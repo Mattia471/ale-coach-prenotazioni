@@ -22,17 +22,41 @@ Deno.serve(async req=>{
   const body=await req.json();
   const stripe=new Stripe(secret);
   if(body.packageId){
-   const {data:profile}=await admin.from('profiles').select('virgin_member').eq('id',user.id).single();
-   if(!profile?.virgin_member)return json({error:'Per acquistare devi essere iscritto a Virgin Active'},403);
-   const {data:pack}=await admin.from('packages').select('*').eq('id',String(body.packageId)).eq('active',true).single();
-   if(!pack)return json({error:'Pacchetto non disponibile'},404);
-   if(pack.type==='subscription')return json({error:'Gli abbonamenti ricorrenti non sono ancora attivati su Stripe.'},503);
+   const packageId=String(body.packageId);
    if(!appUrl.startsWith('https://'))return json({error:'URL app non configurato'},503);
-   const session=await stripe.checkout.sessions.create({mode:'payment',payment_method_types:['card'],customer_email:user.email,
-    line_items:[{price_data:{currency:'eur',unit_amount:pack.price_cents,product_data:{name:`Ale Coach · ${pack.name}`}},quantity:1}],
-    metadata:{client_id:user.id,kind:'package',package_id:pack.id},
-    success_url:`${appUrl}/?payment=success`,cancel_url:`${appUrl}/?payment=cancelled`
-   });
+   const {data:order,error:orderError}=await admin.rpc('begin_package_checkout',{p_client_id:user.id,p_package_id:packageId});
+   if(orderError||!order)return json({error:'Pacchetto non disponibile o checkout temporaneamente non disponibile'},409);
+   if(order.stripe_session_id){
+    const previous=await stripe.checkout.sessions.retrieve(order.stripe_session_id);
+    if(previous.status==='open'&&previous.url)return json({url:previous.url});
+    if(previous.payment_status==='paid')return json({error:'Pagamento già ricevuto, attendi la conferma del pacchetto'},409);
+    if(previous.status!=='expired')return json({error:'Checkout precedente ancora in elaborazione'},409);
+    const {error:expireError}=await admin.rpc('expire_package_checkout_order',{p_order_id:order.id});
+    if(expireError)throw expireError;
+    const retried=await admin.rpc('begin_package_checkout',{p_client_id:user.id,p_package_id:packageId});
+    if(retried.error||!retried.data)return json({error:'Impossibile riavviare il checkout'},409);
+    return await createPackageSession(retried.data);
+   }
+   return await createPackageSession(order);
+  }
+  async function createPackageSession(order:{id:string;package_id:string;amount_cents:number;expires_at:string;client_id:string}) {
+   const {data:pack}=await admin.from('packages').select('name').eq('id',order.package_id).single();
+   const session=await stripe.checkout.sessions.create({
+    mode:'payment',payment_method_types:['card'],customer_email:user.email,
+    line_items:[{price_data:{currency:'eur',unit_amount:order.amount_cents,product_data:{name:`Ale Coach · ${pack?.name||'Pacchetto lezioni'}`}},quantity:1}],
+    client_reference_id:order.id,
+    metadata:{kind:'package',order_id:order.id,client_id:user.id,package_id:order.package_id},
+    success_url:`${appUrl}/?payment=success`,cancel_url:`${appUrl}/?payment=cancelled`,
+    expires_at:Math.floor(Date.now()/1000)+1800
+   },{idempotencyKey:`ale-package-order-${order.id}`});
+   const {data:saved,error:saveError}=await admin.from('package_checkout_orders')
+    .update({stripe_session_id:session.id}).eq('id',order.id).eq('status','pending')
+    .is('stripe_session_id',null).select('id').maybeSingle();
+   if(saveError)throw saveError;
+   if(!saved) {
+    const {data:current}=await admin.from('package_checkout_orders').select('stripe_session_id').eq('id',order.id).single();
+    if(current?.stripe_session_id!==session.id)throw new Error('Ordine modificato durante il checkout');
+   }
    return json({url:session.url});
   }
   const bookingId=String(body.bookingId||'');
@@ -47,6 +71,7 @@ Deno.serve(async req=>{
    const previous=await stripe.checkout.sessions.retrieve(booking.stripe_checkout_session_id);
    if(previous.status==='open'&&previous.url)return json({url:previous.url});
    if(previous.payment_status==='paid')return json({error:'Pagamento già completato'},409);
+   if(previous.status!=='expired')return json({error:'Checkout precedente in elaborazione'},409);
   }
   const {data:serviceData}=await admin.from('services').select('name').eq('id',booking.service_id).single();
   const session=await stripe.checkout.sessions.create({
@@ -56,7 +81,7 @@ Deno.serve(async req=>{
    client_reference_id:booking.id,
    success_url:`${appUrl}/?payment=success`,cancel_url:`${appUrl}/?payment=cancelled`,
    expires_at:Math.floor(Date.now()/1000)+1800
-  },{idempotencyKey:`ale-booking-${booking.id}-${booking.amount_cents}-${Math.floor(Date.now()/(30*60*1000))}`});
+  },{idempotencyKey:`ale-booking-${booking.id}-${booking.amount_cents}-${booking.stripe_checkout_session_id||'first'}`});
   const {error:saveError}=await admin.from('bookings').update({stripe_checkout_session_id:session.id}).eq('id',booking.id).in('status',['awaiting_payment','quoted']);
   if(saveError)throw saveError;
   return json({url:session.url});

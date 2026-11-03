@@ -16,16 +16,27 @@ Deno.serve(async req=>{
   if(event.type==='checkout.session.completed'){
    const session=event.data.object as Stripe.Checkout.Session;
    if(session.payment_status!=='paid')return new Response('OK');
-   if(session.metadata?.kind==='package'&&session.metadata.client_id&&session.metadata.package_id){
-    const {data:pack}=await admin.from('packages').select('*').eq('id',session.metadata.package_id).single();
-    if(!pack||pack.type!=='pack'||session.amount_total!==pack.price_cents||session.currency!=='eur')return new Response('Invalid package payment',{status:409});
-    const {data:existing}=await admin.from('wallet_credits').select('id').eq('stripe_session_id',session.id).maybeSingle();
-    if(!existing){
-     const expires=new Date(Date.now()+pack.validity_days*86400000).toISOString();
-     const {error:creditError}=await admin.from('wallet_credits').insert({client_id:session.metadata.client_id,package_id:pack.id,remaining:pack.credits,expires_at:expires,stripe_session_id:session.id});
-     if(creditError&&creditError.code!=='23505')throw creditError;
-     await admin.from('notifications').insert({recipient_id:session.metadata.client_id,title:'Pacchetto attivo',body:`${pack.name}: ${pack.credits} lezioni disponibili.`,kind:'package_paid'});
+   if(session.metadata?.kind==='package'){
+    const orderId=session.metadata.order_id;
+    const {data:order,error:orderError}=orderId
+      ?await admin.from('package_checkout_orders').select('*').eq('id',orderId).maybeSingle()
+      :{data:null,error:null};
+    const pi=typeof session.payment_intent==='string'?session.payment_intent:session.payment_intent?.id||null;
+    if(orderError)throw orderError;
+    if(order?.status==='paid'&&order.stripe_session_id===session.id)return new Response('OK');
+    if(!order||order.stripe_session_id!==session.id||order.client_id!==session.metadata.client_id
+      ||order.package_id!==session.metadata.package_id||session.amount_total!==order.amount_cents
+      ||session.currency!=='eur'||order.status!=='pending'){
+      // Pagamento accreditato senza un ordine valido: rimborsiamo, non concediamo crediti.
+      if(!pi)throw new Error('Pagamento pacchetto non riconciliabile: PaymentIntent assente');
+      await stripe.refunds.create({payment_intent:pi,reason:'requested_by_customer'},
+       {idempotencyKey:`ale-package-invalid-${session.id}`});
+      return new Response('Refund initiated');
     }
+    const {error:settleError}=await admin.rpc('settle_package_checkout_order',{
+      p_order_id:order.id,p_session_id:session.id
+    });
+    if(settleError)throw settleError;
     return new Response('OK');
    }
    if(session.metadata?.kind!=='booking'||!session.metadata.booking_id)return new Response('OK');
