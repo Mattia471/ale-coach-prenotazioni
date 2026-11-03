@@ -71,6 +71,7 @@ create table public.bookings (
   service_id text not null references public.services(id),
   venue_id text references public.venues(id),
   starts_at timestamptz,
+  ends_at timestamptz,
   duration_minutes integer not null check (duration_minutes between 15 and 180),
   status text not null default 'pending' check (status in ('pending','awaiting_payment','confirmed','quoted','rejected','cancelled','expired')),
   payment_mode text not null default 'online' check (payment_mode in ('online','in_person','credit','none')),
@@ -94,9 +95,23 @@ create table public.bookings (
 );
 create index bookings_client_idx on public.bookings(client_id,created_at desc);
 create index bookings_coach_idx on public.bookings(status,starts_at);
--- L'EXCLUDE impedisce doppie prenotazioni anche in caso di richieste simultanee e fra sedi diverse.
+-- PostgreSQL richiede espressioni IMMUTABLE negli indici GiST.
+-- La somma timestamptz + interval non e' IMMUTABLE (dipende dal fuso orario).
+-- Calcoliamo quindi la fine in un trigger e indicizziamo solo colonne persistite.
+create or replace function private.set_booking_ends_at()
+returns trigger language plpgsql set search_path = '' as $
+begin
+  new.ends_at := case when new.starts_at is null then null
+    else new.starts_at + new.duration_minutes * interval '1 minute' end;
+  return new;
+end; $;
+create trigger bookings_set_ends_at before insert or update of starts_at, duration_minutes
+on public.bookings for each row execute function private.set_booking_ends_at();
+alter table public.bookings add constraint bookings_end_after_start
+  check ((starts_at is null and ends_at is null) or (starts_at is not null and ends_at > starts_at));
+-- L'EXCLUDE impedisce doppie prenotazioni anche fra sedi e richieste simultanee.
 alter table public.bookings add constraint bookings_no_overlap exclude using gist (
-  tstzrange(starts_at, starts_at + duration_minutes * interval '1 minute', '[)') with &&
+  tstzrange(starts_at, ends_at, '[)') with &&
 ) where (starts_at is not null and status in ('pending','awaiting_payment','confirmed'));
 create table public.notifications (
   id uuid primary key default gen_random_uuid(),
