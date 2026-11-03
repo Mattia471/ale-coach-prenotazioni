@@ -7,7 +7,7 @@ Fonte: `Ale_Coach_Prenotazioni_Documento_Funzionale_Logico_Design.pdf` (3 novemb
 | Aree cliente e coach separate | Implementato | Ruolo protetto da RLS; nessun selettore pubblico in produzione |
 | Colloquio conoscitivo 15 min gratis | Implementato | Richiede approvazione |
 | Singola 60m 50 €, coppia 60m 80 € | Implementato | Discipline e nome partner |
-| Check scheda 30m 30 € | Implementato | Bucket Storage privato per PDF/JPG/PNG |
+| Check scheda 30m 30 € | Implementato senza upload | Upload PDF/JPG/PNG disabilitato nella prima release per minimizzazione dati sanitari; RLS Storage nega l'inserimento |
 | Avvio programmazione 45m 45 € | Implementato parzialmente | Informazioni sanitarie omesse finché manca privacy specifica |
 | Altro su preventivo | Implementato | Coach stabilisce importo, Stripe dopo accettazione |
 | Virgin Active, sedi Talenti e Nuovo Salario | Implementato | Blocca prenotazione se non iscritto |
@@ -27,7 +27,7 @@ Fonte: `Ale_Coach_Prenotazioni_Documento_Funzionale_Logico_Design.pdf` (3 novemb
 | Instagram bio/Meta/QR palestra | Implementato | QR usa **ALECOACH10** |
 | Login e password | Implementato | Supabase Auth (necessita progetto dedicato) |
 | Google/Apple Calendar | Non implementato | Estensione futura dopo lancio |
-| Informative privacy e termini validati | Da completare | Non pubblicare come servizio reale prima di verifica |
+| Informative privacy e termini validati | Bozze presenti, approvazione obbligatoria | `/privacy`, `/termini`, `/cookie`, `npm run release:build` e [GDPR-COMPLIANCE.md](GDPR-COMPLIANCE.md) |
 
 ## Decisione di prodotto
 
