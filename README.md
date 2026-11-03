@@ -8,11 +8,11 @@ Web app **mobile first** per Alessandro Cola, personal trainer a **Roma Talenti*
 
 Piano di pubblicazione con Cloudflare Pages Free, Supabase Free nell'account del cliente, Stripe e indirizzo email del dominio:
 **[Piano operativo in 3 giorni](docs/LAUNCH-3-DAYS.md)**, **[test obbligatori](docs/TEST-PLAN.md)**,
-**[video-guide cliente e coach](docs/VIDEO-GUIDES.md)**.
+**[video-guide cliente e coach](docs/VIDEO-GUIDES.md)** e **[piano GDPR](docs/GDPR-COMPLIANCE.md)**.
 
 La build React è stata verificata, ma **migrazioni, Stripe in modalità test, webhook concorrenti,
 RLS, backup e ripristino richiedono ancora collaudo su backend locale e cloud**.
-Nessun pagamento reale deve essere abilitato prima di superare i controlli GO / NO-GO.
+Nessun pagamento reale deve essere abilitato prima di superare i controlli GO / NO-GO. Le pagine `/privacy`, `/termini`, `/cookie` sono BOZZE: per il rilascio commerciale è obbligatorio completarle e farle approvare. Il build Cloudflare `npm run release:build` blocca i placeholder e le configurazioni legali mancanti.
 Su Supabase Free il servizio può fermarsi per inattività e non include backup giornalieri.
 
 ## Stack
@@ -28,12 +28,13 @@ Su Supabase Free il servizio può fermarsi per inattività e non include backup 
 | Area | Flusso |
 | --- | --- |
 | Pubblica | Servizi, prezzi, pacchetti, sedi, promo `ALECOACH10`, entrata da link bio/DM/Meta/QR/referral |
-| Auth | Registrazione e login email/password; Google OAuth opzionale. Il coach viene autorizzato solo dal database |
-| Cliente | Prenotazione a passi, controllo iscrizione Virgin Active, orari realmente liberi, conferma, stato, disdetta e notifiche interne |
+| Auth | Registrazione e login email/password; Google OAuth opzionale. Informativa privacy accessibile prima della registrazione. Il coach viene autorizzato solo dal database |
+| Cliente | Prenotazione a passi, controllo iscrizione Virgin Active, orari realmente liberi, conferma, stato, disdetta, notifiche interne, esportazione JSON dei principali dati personali |
 | Coach | Richieste da approvare/rifiutare, preventivi, agenda, segna incasso in palestra, autorizzazione individuale a pagare in sede |
 | Catalogo | Durate e prezzi modificabili dal coach, disponibilità settimanali, pacchetti e codici sconto |
 | Stripe | Creazione di Checkout dopo approvazione, webhook verificato, sblocco del booking solo su conferma server, rimborsi a 24 h, acquisto pacchetti singoli |
 | PWA | Installazione da browser, iscrizione Web Push con VAPID e function di inoltro da notifiche DB |
+| Privacy | Pagine Privacy/Condizioni/Cookie in bozza, richiesta di presa visione, link per esercizio diritti, upload documenti disabilitato anche a livello Storage RLS |
 
 **Regole principali:** `ALECOACH10` = **10%** entro **7 giorni** dal primo contatto, solo alla prima lezione pagata, non cumulabile. Pagamento **online obbligatorio** per impostazione predefinita, salvo autorizzazione esplicita individuale del coach. Richiesta da approvare entro 24 ore; dopo l’approvazione online il cliente ha fino a 90 minuti per completare il checkout. Disdetta gratuita almeno 24 ore prima. Nessun overbooking fra Talenti e Nuovo Salario. Le persone non iscritte a Virgin Active non possono prenotare.
 
@@ -68,7 +69,7 @@ Se non configuri `.env.local`, `npm run dev` mostra soltanto la vecchia anteprim
 ## Setup Supabase del cliente (solo per la consegna futura)
 
 1. Crea un **progetto separato** (preferibilmente `eu-west-1`), senza riutilizzare database di altri clienti.
-2. Esegui **`supabase/migrations/202611030001_initial.sql`** nel SQL Editor, oppure con un normale workflow Supabase CLI di migrazioni.
+2. Applica **tutte le migrazioni in `supabase/migrations/` in ordine cronologico**, non solo `202611030001_initial.sql`. In particolare, la migrazione GDPR successiva disabilita l'upload di documenti potenzialmente sanitari. Preferire il workflow Supabase CLI.
 3. Abilita Auth **Email/Password** e, opzionalmente, **Google OAuth**. Configura `Site URL` con il tuo dominio e aggiungi tutti gli URL di redirect, inclusi localhost. In Supabase hosted la conferma email è attiva per default: il servizio SMTP incluso è limitato e non adatto alla produzione. Con Google OAuth non dipendi dalle email di conferma, ma devi configurare Google Cloud OAuth. Non disabilitare la verifica email per un'app reale senza valutarne le conseguenze.
 4. Registra l'account del coach tramite login e annota **il suo UUID** dalla tabella Auth users. Assegna il ruolo **solo dal SQL Editor**:
    ```sql
@@ -154,11 +155,11 @@ Instagram viene dichiarata attiva.
 
 Vedi [LAUNCH-3-DAYS.md](docs/LAUNCH-3-DAYS.md) per guida **GitHub → Cloudflare Pages → dominio,
 Supabase Free cliente → SMTP dominio → Stripe e backup**.
-Build: `npm run build`, output `dist`, branch `main`.
+**Build commerciale: `npm run release:build`**, output `dist`, branch `main` (in sviluppo locale usare `npm run build`).
 La variabile `VITE_GOOGLE_ENABLED=true` mostra il pulsante Google **solo dopo**
 che OAuth è realmente configurato in Supabase.
 I segreti Stripe e `service_role` sono **solo** nelle Edge Functions.
-La configurazione `public/_headers` viene usata da Pages. Il routing SPA è gestito nativamente da Cloudflare Pages, senza rewrite globale degli asset.
+La configurazione `public/_headers` viene usata da Pages. Le pagine GDPR sono bozze finché il titolare non completa i campi mancanti e ne valida il contenuto. L'app non garantisce automaticamente adempimenti GDPR solo perché dispone di policy RLS. Il routing SPA è gestito nativamente da Cloudflare Pages, senza rewrite globale degli asset.
 
 ## Repository e controllo qualità
 
