@@ -1,6 +1,9 @@
 # Ale Coach: piano di lancio in 3 giorni (dal dominio acquistato)
 
 **Stato:** piano operativo, non attestazione di sicurezza né autorizzazione ai pagamenti reali.
+**OBBLIGATORIO:** consultare [GDPR-COMPLIANCE.md](GDPR-COMPLIANCE.md), finalizzare e far approvare
+le informative, i diritti degli interessati, i contratti con i fornitori e i criteri di conservazione.
+Il comando di pubblicazione non deve consentire build commerciali senza approvazione legale.
 La data di pubblicazione è condizionata ai test **GO / NO-GO**. Cliente proprietario di dominio,
 account Cloudflare, Supabase, provider email e Stripe. Lo sviluppatore può avere accesso
 temporaneo con permessi necessari, senza conservare credenziali personali.
@@ -36,9 +39,12 @@ https://resend.com/pricing
 ## Giorno 1: dominio, hosting, database, email
 
 1. Registrare il dominio **a nome del coach** e gestire DNS in Cloudflare. Verificare certificato HTTPS.
-2. Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git → repository `Mattia471/ale-coach-prenotazioni` (verificare l'accesso GitHub):
-   - branch: `main`; framework: React (Vite); build: `npm run build`; output: `dist`; root: `/`.
-   - variabili **pubbliche** di build: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GOOGLE_ENABLED` solo se OAuth configurato, `VITE_VAPID_PUBLIC_KEY` (opzionale), `VITE_COACH_WHATSAPP`.
+2. Prima della build di produzione, compilare `src/LegalPage.tsx` e le impostazioni
+   `VITE_LEGAL_*` con contenuti verificati e senza alcun `[DA COMPILARE]`. Se il controllo
+   fallisce, NON disabilitare il gate: completare il documento.
+3. Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git → repository `Mattia471/ale-coach-prenotazioni` (verificare l'accesso GitHub):
+   - branch: `main`; framework: React (Vite); build: `npm run release:build`; output: `dist`; root: `/`.
+   - variabili **pubbliche** di build: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GOOGLE_ENABLED` solo se OAuth configurato, `VITE_VAPID_PUBLIC_KEY` (opzionale), `VITE_COACH_WHATSAPP`. Includere **tutte** le variabili `VITE_LEGAL_*` e `VITE_PUBLIC_SITE_URL` descritte in [GDPR-COMPLIANCE.md](GDPR-COMPLIANCE.md).
    - **mai** creare variabili `VITE_STRIPE_SECRET_KEY`, `VITE_SUPABASE_SERVICE_ROLE_KEY` o altri segreti server.
    - assegnare `dominio.tld` e configurare redirect a un unico host canonico (`www` o apex).
 3. Creare Supabase **nell'account del cliente**, regione UE compatibile con requisiti. Usare una password DB forte in vault; non copiare il database di sviluppo.
@@ -81,6 +87,9 @@ https://resend.com/pricing
 - [ ] Webhook senza firma è respinto; eventi Stripe ripetuti non generano doppi crediti.
 - [ ] Ogni rimborso è riconciliato con Stripe; fallimenti DB producono allerta e non falsi successi.
 - [ ] SMTP dominio funzionante, login/ripristino account, policy privacy e rimborsi approvate.
+- [ ] `npm run release:build` supera il gate, pagine `/privacy`, `/termini`, `/cookie` validate, dati del titolare completi.
+- [ ] Nessun upload di schede sanitarie tramite frontend **o** Storage API, incluso bypass diretto.
+- [ ] Procedure GDPR per accesso/esportazione, rettifica, cancellazione e incidenti documentate; DPA fornitori verificati.
 - [ ] Cron scadenze operativo, backup esterno **testato nel restore**.
 - [ ] Cloudflare live carica solo chiavi pubbliche, tutte le funzioni server hanno secrets appropriati.
 - [ ] Un utente reale non vede account demo o dati personali di prova.
