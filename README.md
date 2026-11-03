@@ -158,7 +158,7 @@ Build: `npm run build`, output `dist`, branch `main`.
 La variabile `VITE_GOOGLE_ENABLED=true` mostra il pulsante Google **solo dopo**
 che OAuth è realmente configurato in Supabase.
 I segreti Stripe e `service_role` sono **solo** nelle Edge Functions.
-Le configurazioni di `public/_headers` e `public/_redirects` vengono usate da Pages.
+La configurazione `public/_headers` viene usata da Pages. Il routing SPA è gestito nativamente da Cloudflare Pages, senza rewrite globale degli asset.
 
 ## Repository e controllo qualità
 
