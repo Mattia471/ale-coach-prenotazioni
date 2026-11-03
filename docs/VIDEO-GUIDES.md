@@ -30,6 +30,12 @@
 | 02:25–02:50 | Pagamenti online e pacchetti | "Stripe gestisce la carta; l'app conferma una lezione soltanto dopo il webhook di pagamento. I pacchetti assegnano crediti dopo l'incasso." |
 | 02:50–03:10 | Cancellazioni, notifiche, supporto | "Controlla notifiche ed eventuali anomalie. Se un rimborso non è riconciliato, verifica Stripe prima di assicurare al cliente che è concluso." |
 
+## Trasparenza e privacy nei tutorial
+
+- Cliente: mostrare brevemente dove leggere Privacy e Condizioni prima della registrazione e come scaricare una copia dei dati dal profilo.
+- Coach: spiegare che non deve inserire referti o informazioni sanitarie nei campi liberi, che l'upload online delle schede è temporaneamente disabilitato e che le richieste privacy richiedono gestione tempestiva.
+- Mai registrare o mostrare dati personali, ricevute, account o carte reali senza idonea base giuridica; preferire demo locali.
+
 ## Formato consigliato alla consegna
 
 - `AleCoach_Guida_Cliente.mp4`, orientamento verticale 1080 × 1920 per WhatsApp e smartphone.
