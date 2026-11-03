@@ -99,12 +99,12 @@ create index bookings_coach_idx on public.bookings(status,starts_at);
 -- La somma timestamptz + interval non e' IMMUTABLE (dipende dal fuso orario).
 -- Calcoliamo quindi la fine in un trigger e indicizziamo solo colonne persistite.
 create or replace function private.set_booking_ends_at()
-returns trigger language plpgsql set search_path = '' as $
+returns trigger language plpgsql set search_path = '' as $tag_booking$
 begin
   new.ends_at := case when new.starts_at is null then null
     else new.starts_at + new.duration_minutes * interval '1 minute' end;
   return new;
-end; $;
+end; $tag_booking$;
 create trigger bookings_set_ends_at before insert or update of starts_at, duration_minutes
 on public.bookings for each row execute function private.set_booking_ends_at();
 alter table public.bookings add constraint bookings_end_after_start
