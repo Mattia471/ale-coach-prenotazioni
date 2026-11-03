@@ -4,13 +4,24 @@ Web app **mobile first** per Alessandro Cola, personal trainer a **Roma Talenti*
 
 > **Stato del rilascio:** interfaccia e logica realizzate; fino al collegamento di un progetto Supabase dedicato il deploy è una **anteprima interattiva**, con dati locali e due account demo. Nessun pagamento reale e nessuna push automatica vengono dichiarati completati senza chiavi e servizi configurati.
 
+## Percorso verso la produzione (stato: **NON ANCORA LIVE PER INCASSI**)
+
+Piano di pubblicazione con Cloudflare Pages Free, Supabase Free nell'account del cliente, Stripe e indirizzo email del dominio:
+**[Piano operativo in 3 giorni](docs/LAUNCH-3-DAYS.md)**, **[test obbligatori](docs/TEST-PLAN.md)**,
+**[video-guide cliente e coach](docs/VIDEO-GUIDES.md)**.
+
+La build React è stata verificata, ma **migrazioni, Stripe in modalità test, webhook concorrenti,
+RLS, backup e ripristino richiedono ancora collaudo su backend locale e cloud**.
+Nessun pagamento reale deve essere abilitato prima di superare i controlli GO / NO-GO.
+Su Supabase Free il servizio può fermarsi per inattività e non include backup giornalieri.
+
 ## Stack
 
 - React 19, TypeScript, Vite 7, Tailwind CSS 4 e CSS custom per il brand Ale Coach
 - Supabase: Auth, PostgreSQL/RLS, Storage privato, Realtime, Edge Functions
 - Stripe Checkout: pagamento dopo l'approvazione, webhook firmati, rimborsi, pacchetti una tantum
 - Web Push + PWA: service worker, push subscription con VAPID, trigger dal database
-- Hosting statico Vercel (oppure Cloudflare Pages per produzione commerciale con piano gratuito compatibile)
+- Hosting statico **Cloudflare Pages Free** per la versione commerciale; Vercel resta soltanto una vecchia anteprima
 
 ## Funzionalità implementate
 
@@ -114,10 +125,10 @@ Seleziona almeno l'evento `checkout.session.completed`. Il webhook usa il **raw 
 ### Stripe e pagamenti
 
 - Il cliente invia una richiesta **senza addebito**.
-- Ale la approva: lo stato diventa `awaiting_payment` e il cliente può aprire Checkout (60 minuti per iniziare il checkout; 90 minuti per completarlo).
+- Ale la approva: lo stato diventa `awaiting_payment` e il cliente può aprire Checkout (90 minuti di validità, con finestra tecnica minima per aprire Checkout).
 - Stripe verifica e incassa la carta. **Solo il webhook firmato** porta la prenotazione a `confirmed/paid`.
 - Pagamento in presenza disponibile esclusivamente per utenti abilitati da Ale; il coach registra «Segna pagata» dopo l'incasso.
-- Pacchetti **5 e 10 lezioni**: checkout immediato, crediti creati dal webhook, scadenza per piano.
+- Pacchetti **5 e 10 lezioni**: ordine server persistente, checkout idempotente, credito e notifica creati atomicamente dopo webhook firmato.
 - Abbonamenti **mensili ricorrenti**: visualizzati in catalogo, da completare con Stripe Billing, Price ID e rinnovi `invoice.paid`. Non sono ancora attivi.
 - Rimborsi online: Edge Function autenticata, prima di 24 h dalla lezione, con idempotency key.
 - In assenza di chiavi Stripe **nessun pagamento viene simulato come riuscito** in modalità reale.
@@ -133,29 +144,25 @@ Seleziona almeno l'evento `checkout.session.completed`. Il webhook usa il **raw 
 
 ## Marketing e codici
 
-| Canale | Parametri URL |
-| --- | --- |
-| Instagram bio | `/?source=instagram_bio` |
-| DM automatico FORZA | `/?source=instagram_dm&campaign=FORZA` |
-| Pubblicità Meta | `/?source=meta_ads` |
-| QR palestra | `/?source=club&code=ALECOACH10` |
-| Codice amico | `/?source=friend&ref=AMICO` |
+La **sezione Marketing del coach mostra solo QR code scaricabile, link di prenotazione da copiare e
+codice promozionale ALECOACH10 da copiare**. QR e link puntano a
+`/?source=club&code=ALECOACH10`. Non contiene pulsanti Instagram, DM Meta o advertising.
+Eventuali query di attribuzione legacy restano riconosciute dal backend, ma nessuna automazione
+Instagram viene dichiarata attiva.
 
-I parametri vengono salvati nella prenotazione. L'invio **automatico** dei DM richiede una piattaforma/API Meta configurata separatamente. Il QR viene creato nel pannello Marketing; non devi caricare immagini da siti esterni.
+## Cloudflare Pages Free e consegna
 
-## Pubblicazione su Vercel
-
-1. Crea un progetto **Vite** e carica il repository GitHub, oppure importa la directory del progetto.
-2. Configura in Vercel **solo** le variabili pubbliche `VITE_*`.
-3. Imposta `npm run build`, directory `dist`.
-4. Associa il dominio in Supabase `Auth → URL Configuration` e come `PUBLIC_APP_URL` nelle Edge Functions.
-5. Controlla registrazione, RLS, checkout Stripe **test mode**, webhook, doppie prenotazioni e login coach prima di usare dati reali.
-
-> **Nota sui piani gratuiti:** Supabase Free consente due progetti attivi complessivi. Vercel Hobby è destinato a uso **personale non commerciale**; la demo può restare su Hobby, ma una versione venduta a un coach richiede un hosting con termini compatibili oppure Vercel Pro.
+Vedi [LAUNCH-3-DAYS.md](docs/LAUNCH-3-DAYS.md) per guida **GitHub → Cloudflare Pages → dominio,
+Supabase Free cliente → SMTP dominio → Stripe e backup**.
+Build: `npm run build`, output `dist`, branch `main`.
+La variabile `VITE_GOOGLE_ENABLED=true` mostra il pulsante Google **solo dopo**
+che OAuth è realmente configurato in Supabase.
+I segreti Stripe e `service_role` sono **solo** nelle Edge Functions.
+Le configurazioni di `public/_headers` e `public/_redirects` vengono usate da Pages.
 
 ## Repository e controllo qualità
 
-Il progetto è pronto da caricare in una repository nuova `ale-coach-prenotazioni` (consigliata **privata** finché non saranno verificati privacy, testi e asset):
+Repository ufficiale già esistente: **https://github.com/Mattia471/ale-coach-prenotazioni**. Per sincronizzare il checkout locale:
 
 ```bash
 git init
