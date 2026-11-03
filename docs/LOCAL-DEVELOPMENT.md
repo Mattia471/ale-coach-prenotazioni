@@ -85,6 +85,7 @@ npm run local:seed    # ricrea i test user mancanti, senza duplicati
 npm run local:stop    # arresta i container e conserva i dati
 npm run local:reset   # ATTENZIONE: cancella i dati locali e riapplica le migrazioni
 npm run local:check   # test script di configurazione e controllo localhost
+npm run local:integration # RLS, overbooking, promo e blocco upload (crea utenti temporanei)
 npm run build         # controlla TypeScript e build Vite
 ```
 
@@ -127,4 +128,4 @@ Alla consegna:
 - **App ancora in modalità demo**: riesegui `npm run local:env` e **riavvia** `npm run dev` (Vite legge l'env all'avvio).
 - **Login non funziona**: controlla il profilo Auth e la tabella `public.profiles` nello Studio locale, poi `npm run local:seed`.
 - **Errore durante la migrazione**: esamina il log di `npm run local:start`; non azzerare Docker globalmente.
-- **Upload scheda**: il bucket privato `client-documents` è creato dalla migrazione SQL. Nessun file va in un bucket pubblico.
+- **Upload scheda**: il bucket privato `client-documents` esiste, ma la migrazione GDPR `20261103194607_gdpr_minimization.sql` rimuove la policy di upload. L'invio di documenti è **disabilitato anche via API**, in attesa di una valutazione sui dati sanitari.
