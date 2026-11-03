@@ -25,11 +25,13 @@ https://supabase.com/docs/guides/platform/backups
 https://developers.cloudflare.com/pages/platform/limits/
 https://developers.cloudflare.com/pages/configuration/build-configuration/
 https://resend.com/pricing
+https://www.garanteprivacy.it/faq/cookie
+https://www.garanteprivacy.it/Regolamentoue/diritti-degli-interessati
 
 ## Prima di comprare il dominio (lavoro preparatorio)
 
 - [ ] Eseguire `npm ci && npm run build && npm run local:check`.
-- [ ] Su Docker locale: avviare Supabase e applicare **tutte** le migrazioni; eseguire i test di integrazione quando disponibili.
+- [ ] Su Docker locale: avviare Supabase e applicare **tutte** le migrazioni; eseguire `npm run local:integration` (RLS, collisioni, promo e blocco upload Storage).
 - [ ] Ripetere prove di: 2 clienti stesso slot, prezzi alterati dal browser, coupon duplicati, credito pacchetto, scadenze, limiti di cancellazione.
 - [ ] Terminare hardening dei pagamenti: pacchetto con ordine persistente, webhook idempotenti, rimborsi riconciliati, Stripe test.
 - [ ] Preparare informativa privacy, termini di acquisto e cancellazione/rimborso, dati del titolare, contatti e conservazione; evitare raccolta di dettagli sanitari senza base giuridica e misure adeguate.
@@ -47,11 +49,11 @@ https://resend.com/pricing
    - variabili **pubbliche** di build: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GOOGLE_ENABLED` solo se OAuth configurato, `VITE_VAPID_PUBLIC_KEY` (opzionale), `VITE_COACH_WHATSAPP`. Includere **tutte** le variabili `VITE_LEGAL_*` e `VITE_PUBLIC_SITE_URL` descritte in [GDPR-COMPLIANCE.md](GDPR-COMPLIANCE.md).
    - **mai** creare variabili `VITE_STRIPE_SECRET_KEY`, `VITE_SUPABASE_SERVICE_ROLE_KEY` o altri segreti server.
    - assegnare `dominio.tld` e configurare redirect a un unico host canonico (`www` o apex).
-3. Creare Supabase **nell'account del cliente**, regione UE compatibile con requisiti. Usare una password DB forte in vault; non copiare il database di sviluppo.
-4. Applicare le migrazioni versionate in `supabase/migrations` **nell'ordine**. Non eseguire script seed demo `*.dev@example.test` su cloud. Attivare Realtime su tabelle necessarie e verificare bucket privato.
-5. Auth: Site URL `https://dominio.tld`, redirect espliciti; email confirmation attiva; impostare limite OTP e protezione CAPTCHA, policy password e recupero credenziali. Google OAuth opzionale: Client ID/Secret di Google Cloud con callback Supabase hosted, poi impostare `VITE_GOOGLE_ENABLED=true`.
-6. Resend: verificare il dominio con DNS SPF/DKIM/DMARC secondo istruzioni del provider; abilitare SMTP personalizzato in Supabase Auth (es. `no-reply@dominio.tld`). Test invio a Gmail/Outlook e spam. **Non usare SMTP di default Supabase** per utenti reali.
-7. Ricezione email: se richiesta, configurare Cloudflare Email Routing da `assistenza@dominio.tld` all'email effettiva del coach; Email Routing non equivale a una casella IMAP/SMTP in uscita.
+4. Creare Supabase **nell'account del cliente**, regione UE compatibile con requisiti. Usare una password DB forte in vault; non copiare il database di sviluppo.
+5. Applicare le migrazioni versionate in `supabase/migrations` **nell'ordine**. Non eseguire script seed demo `*.dev@example.test` su cloud. Attivare Realtime su tabelle necessarie e verificare bucket privato.
+6. Auth: Site URL `https://dominio.tld`, redirect espliciti; email confirmation attiva; impostare limite OTP e protezione CAPTCHA, policy password e recupero credenziali. Google OAuth opzionale: Client ID/Secret di Google Cloud con callback Supabase hosted, poi impostare `VITE_GOOGLE_ENABLED=true`.
+7. Resend: verificare il dominio con DNS SPF/DKIM/DMARC secondo istruzioni del provider; abilitare SMTP personalizzato in Supabase Auth (es. `no-reply@dominio.tld`). Test invio a Gmail/Outlook e spam. **Non usare SMTP di default Supabase** per utenti reali.
+8. Ricezione email: se richiesta, configurare Cloudflare Email Routing da `assistenza@dominio.tld` all'email effettiva del coach; Email Routing non equivale a una casella IMAP/SMTP in uscita.
 
 ## Giorno 2: API, Stripe, sicurezza, affidabilità
 
