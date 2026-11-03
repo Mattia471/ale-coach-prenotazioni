@@ -30,7 +30,7 @@ create table public.package_checkout_orders (
   status text not null default 'pending' check (status in ('pending','paid','expired')),
   stripe_session_id text unique,
   created_at timestamptz not null default now(),
-  expires_at timestamptz not null default (now() + interval '30 minutes'),
+  expires_at timestamptz not null default (now() + interval '32 minutes'),
   paid_at timestamptz
 );
 create unique index package_checkout_one_pending_idx
@@ -104,3 +104,26 @@ end;
 $settle$;
 revoke all on function public.settle_package_checkout_order(uuid,text) from public,anon,authenticated;
 grant execute on function public.settle_package_checkout_order(uuid,text) to service_role;
+
+-- Anche i preventivi scadono; gli slot rimangono bloccati fino al cron.
+create or replace function public.expire_stale_bookings()
+returns integer language plpgsql security definer set search_path='' as $expiry$
+declare n integer:=0; v_record record;
+begin
+ for v_record in
+  update public.bookings set status='expired'
+  where status in ('pending','awaiting_payment','quoted') and expires_at<now()
+  returning credit_wallet_id,client_id,id
+ loop
+  n:=n+1;
+  if v_record.credit_wallet_id is not null then
+   update public.wallet_credits set remaining=remaining+1 where id=v_record.credit_wallet_id;
+  end if;
+  insert into public.notifications(recipient_id,title,body,kind,booking_id)
+  values(v_record.client_id,'Richiesta scaduta',
+    'Il termine per la conferma o il pagamento è scaduto.','booking_expired',v_record.id);
+ end loop;
+ return n;
+end;
+$expiry$;
+revoke all on function public.expire_stale_bookings() from public,anon,authenticated;
