@@ -69,6 +69,19 @@ try{
   const own=await db(`/rest/v1/profiles?select=role&id=eq.${a.id}`);
   confirm(own?.[0]?.role==='client','Il cliente non può promuoversi a coach');
 
+  // L'upload schede è bloccato anche nel backend, non soltanto nascosto nella UI.
+  const bucket=await request('/storage/v1/bucket/client-documents',{key:secretKey});
+  confirm(bucket.ok,'Bucket privato presente nel progetto');
+  const onePixelPng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/5p8AAAAASUVORK5CYII=','base64');
+  const upload=await fetch(`${origin}/storage/v1/object/client-documents/${a.id}/test-${randomUUID()}.png`,{
+    method:'POST',
+    headers:{apikey:anonymousKey,Authorization:`Bearer ${a.token}`,'Content-Type':'image/png'},
+    body:onePixelPng,
+  });
+  const uploadError=await upload.text();
+  confirm(upload.status===403||(upload.status===400&&/row.level|policy|permission/i.test(uploadError)),
+   'RLS Storage blocca upload di documenti anche tramite API diretta');
+
   const promo=await db('/rest/v1/discount_codes?select=active&code=eq.ALECOACH10');
   assert(promo?.[0]?.active,'ALECOACH10 deve essere attivo per questo collaudo');
 
