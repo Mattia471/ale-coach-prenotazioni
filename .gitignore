@@ -6,3 +6,11 @@ dist/
 .vercel/
 .DS_Store
 *.local
+
+.env.local
+supabase/.branches/
+supabase/.temp/
+supabase/.profiles/
+supabase/.env
+supabase/.env.*
+!supabase/.env.example

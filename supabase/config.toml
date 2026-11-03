@@ -1,3 +1,30 @@
+# Ale Coach: sviluppo locale isolato (Supabase CLI 2.121.0 + Docker Desktop).
+# Non specificare porte: lo stack sperimentale le assegna a ogni progetto.
+# Questa configurazione non va applicata alla produzione del cliente.
+project_id = "ale-coach-local"
+
+[experimental]
+stack = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://127.0.0.1:5173/**", "http://localhost:5173/**"]
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Sviluppo: login immediato, nessuna email reale. In produzione riattivare la conferma.
+enable_confirmations = false
+
+[local_smtp]
+enabled = true
+
+[db.seed]
+# Il catalogo è già inserito nella migrazione iniziale; gli account demo
+# vengono creati da uno script Node SOLO dopo aver verificato l'URL locale.
+enabled = false
+
 [functions.create-checkout]
 verify_jwt = true
 

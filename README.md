@@ -26,27 +26,35 @@ Web app **mobile first** per Alessandro Cola, personal trainer a **Roma Talenti*
 
 **Regole principali:** `ALECOACH10` = **10%** entro **7 giorni** dal primo contatto, solo alla prima lezione pagata, non cumulabile. Pagamento **online obbligatorio** per impostazione predefinita, salvo autorizzazione esplicita individuale del coach. Richiesta da approvare entro 24 ore; dopo l’approvazione online il cliente ha fino a 90 minuti per completare il checkout. Disdetta gratuita almeno 24 ore prima. Nessun overbooking fra Talenti e Nuovo Salario. Le persone non iscritte a Virgin Active non possono prenotare.
 
-## Avvio locale
+## Sviluppo locale con Docker (modalità predefinita)
 
-```bash
+**Non serve un progetto Supabase cloud, né un account Pro.** Avvia Docker Desktop e usa PowerShell:
+
+```powershell
+git clone https://github.com/Mattia471/ale-coach-prenotazioni.git
+cd ale-coach-prenotazioni
 npm install
-cp .env.example .env
+npm run local:start
 npm run dev
-npm run build
 ```
 
-`.env` contiene **soltanto configurazione pubblica**:
+Apri `http://localhost:5173`. Il comando `local:start` avvia Postgres, Auth, Storage, Studio e le API di **Ale Coach**, applica le migrazioni, genera automaticamente `.env.local` (solo chiavi pubbliche per il browser) e crea due account locali di prova con ruoli cliente/coach.
 
-```env
-VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
-VITE_VAPID_PUBLIC_KEY=<vapid-public-key>
-VITE_COACH_WHATSAPP=<numero-internazionale-senza-+>
-```
+- **Coach locale:** `ale.dev@example.test` / `AleCoachLocal2026!`
+- **Cliente locale:** `cliente.dev@example.test` / `ClienteLocal2026!`
+- **Dashboard Studio e porte:** `npm run local:status` (porte dinamiche, stack isolato dagli altri progetti).
+- **Stop conservando i dati:** `npm run local:stop`.
+- **Reset DB locale distruttivo:** `npm run local:reset`.
 
-L'assenza delle prime due variabili avvia la sola **anteprima locale**. Accedi tramite «Cliente demo» o «Coach demo» per navigare i flussi. In modalità reale quei pulsanti **non vengono mostrati**. Non caricare la service role, la chiave segreta Stripe o VAPID nel frontend.
+**Guida completa Windows/Docker, avvio parallelo di più progetti, test e consegna:** [docs/LOCAL-DEVELOPMENT.md](docs/LOCAL-DEVELOPMENT.md).
 
-## Setup Supabase
+La CLI Supabase è tra le `devDependencies`; il repository usa la modalità sperimentale `supabase stack` (versione pin `2.121.0`) per evitare conflitti di porte quando sviluppi più applicazioni. Non viene eseguito alcun deploy Supabase cloud.
+
+### Modalità anteprima senza Docker
+
+Se non configuri `.env.local`, `npm run dev` mostra soltanto la vecchia anteprima con account demo e dati nel browser. Per **testare il database reale locale**, esegui `npm run local:start`.
+
+## Setup Supabase del cliente (solo per la consegna futura)
 
 1. Crea un **progetto separato** (preferibilmente `eu-west-1`), senza riutilizzare database di altri clienti.
 2. Esegui **`supabase/migrations/202611030001_initial.sql`** nel SQL Editor, oppure con un normale workflow Supabase CLI di migrazioni.

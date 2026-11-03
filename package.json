@@ -4,9 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "local:start": "supabase start && node scripts/sync-local-env.mjs && node scripts/seed-local-users.mjs",
+    "local:status": "supabase status",
+    "local:stop": "supabase stop",
+    "local:env": "node scripts/sync-local-env.mjs",
+    "local:seed": "node scripts/seed-local-users.mjs",
+    "local:reset": "supabase db reset && node scripts/seed-local-users.mjs",
+    "local:check": "node --test scripts/*.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.76.0",
@@ -23,6 +30,7 @@
     "tailwindcss": "^4.1.0",
     "typescript": "^5.9.0",
     "vite": "^7.2.0",
-    "@vitejs/plugin-react": "^5.1.0"
+    "@vitejs/plugin-react": "^5.1.0",
+    "supabase": "2.121.0"
   }
 }
