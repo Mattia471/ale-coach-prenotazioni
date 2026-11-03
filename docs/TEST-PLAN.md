@@ -37,3 +37,32 @@
 - [ ] Calendario durante cambio ora legale e fuso Europe/Rome.
 - [ ] Feedback di errore credenziali e rete offline; niente successi fasulli.
 - [ ] `npm run build` senza errori TS e senza chiavi riservate.
+
+## Verifica locale ripetibile
+
+Con Docker e Supabase locale attivi, dopo tutte le migrazioni:
+
+```powershell
+npm run local:check
+npm run local:integration
+npm run build
+```
+
+`local:integration` usa esclusivamente l'API localhost e **crea due clienti temporanei**
+per verificare RLS, autorizzazioni, collisioni vere tra utenti diversi e coupon
+ALECOACH10. Elimina gli utenti al termine; non va eseguito su un database cloud.
+Richiede almeno tre slot consecutivi liberi tra domani+2 e domani+7 e il promo attivo.
+
+## Nuove prove P0 prima dei pagamenti live
+- [ ] Due click simultanei sul checkout della **stessa** prenotazione restituiscono una sola sessione Stripe, con retry dopo scadenza.
+- [ ] Due checkout di acquisto dello stesso pacchetto condividono l'ordine pending e una sola sessione Stripe.
+- [ ] Due webhook pacchetto simultanei creano **esattamente un** wallet e una notifica, con transazione SQL.
+- [ ] Se il listino pacchetti cambia durante il checkout, l'ordine conserva il prezzo concordato.
+- [ ] Webhook su ordine pacchetto scaduto o incongruente attiva rimborso senza accreditare lezioni.
+- [ ] Preventivo torna in scadenza dopo la quotazione e scade tramite cron.
+- [ ] Rimborsi: errore DB dopo richiesta Stripe, retry ed eventuale riconciliazione manuale verificata.
+- [ ] SMTP del dominio, conferme email, password reset e protezione anti-abuso.
+- [ ] Backup cifrato fuori piattaforma, **ripristino completo anche degli oggetti Storage** testato.
+- [ ] Google login nascosto finché provider non configurato; se attivato provare OAuth dalla URL reale.
+- [ ] Test mobile 320–430px, accessibilità, PWA e assenza di dati/credenziali nel bundle.
+- [ ] Security Advisor Supabase e permessi RPC `service_role` verificati.
