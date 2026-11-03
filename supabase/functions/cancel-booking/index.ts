@@ -20,8 +20,12 @@ Deno.serve(async req=>{
   if(!b.starts_at||new Date(b.starts_at).getTime()-Date.now()<24*3600000)return json({error:'Il limite per la disdetta gratuita è di 24 ore prima'},409);
   const stripe=new Stripe(key);
   await stripe.refunds.create({payment_intent:b.stripe_payment_intent_id,reason:'requested_by_customer'},{idempotencyKey:`ale-refund-${b.id}`});
-  const {error:saveError}=await admin.from('bookings').update({status:'cancelled',payment_status:'refunded',cancelled_at:new Date().toISOString()}).eq('id',b.id).eq('status','confirmed');
+  const {data:saved,error:saveError}=await admin.from('bookings')
+   .update({status:'cancelled',payment_status:'refunded',cancelled_at:new Date().toISOString()})
+   .eq('id',b.id).eq('status','confirmed').eq('payment_status','paid')
+   .select('id').maybeSingle();
   if(saveError)throw saveError;
+  if(!saved)throw new Error('Rimborso avviato su Stripe, ma la prenotazione va riconciliata manualmente');
   await admin.from('notifications').insert({recipient_id:b.client_id,title:'Disdetta e rimborso',body:'La tua lezione è stata disdetta. Il rimborso è stato avviato sul metodo originale.',kind:'booking_cancelled',booking_id:b.id});
   return json({ok:true});
  }catch(e){console.error('cancel-booking',e);return json({error:'Rimborso non completato. Contatta il coach.'},500)}
