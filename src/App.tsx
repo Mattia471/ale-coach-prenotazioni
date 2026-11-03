@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import { ArrowLeft, ArrowRight, Bell, CalendarCheck, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, CreditCard, Dumbbell, ExternalLink, Gift, Instagram, LockKeyhole, LogOut, MapPin, Menu, MessageCircle, QrCode, Settings2, ShieldCheck, Sparkles, Tag, TicketPercent, UserRound, Users, Wallet, X, Zap } from 'lucide-react';
 import type { Booking, ClientTab, CoachTab, Discount, Notice, Pack, PaymentMode, Profile, Service, Venue, Wallet as CreditWallet, WorkingHours } from './types';
 import { currency, dateLabel, demoBooking, demoHours, demoPacks, demoServices, demoVenues, nextDates, previewProfile, ready, sources, stateLabels, supabase, timeLabel, whatsappLink } from './lib';
+import { blockUnreviewedLegal, legal, legalPaths } from './legal';
 
 type Screen='landing'|'auth'|'client'|'coach';
 type Step='details'|'when'|'review';
@@ -52,7 +53,7 @@ function App(){
  const [selectedVenue,setSelectedVenue]=useState('talenti');
  const [selectedMode,setSelectedMode]=useState<PaymentMode>('online');
  const [bookingDetails,setBookingDetails]=useState<Record<string,string>>({});
- const [documentFile,setDocumentFile]=useState<File|null>(null);
+ const [privacyNoticeSeen,setPrivacyNoticeSeen]=useState(false);
  const [promoInput,setPromoInput]=useState('');
  const [availableHours,setAvailableHours]=useState<number[]>([]);
  const [quoteValues,setQuoteValues]=useState<Record<string,string>>({});
@@ -143,6 +144,8 @@ function App(){
  const authenticate=async(e:React.FormEvent)=>{
   e.preventDefault();if(!supabase){submitMsg('Configura Supabase per attivare la registrazione.','error');return}
   if(authMode==='signup'&&!authForm.name.trim()){submitMsg('Inserisci nome e cognome.','error');return}
+  if(authMode==='signup'&&!privacyNoticeSeen){submitMsg('Leggi l’informativa privacy prima di creare il profilo.','error');return}
+  if(authMode==='signup'&&blockUnreviewedLegal){submitMsg('Registrazioni non attive: informative e dati legali del titolare non ancora approvati.','error');return}
   setBusy(true);
   try{
    if(authMode==='reset'){
@@ -155,7 +158,7 @@ function App(){
    const {error}=await supabase.auth.signInWithPassword({email:authForm.email,password:authForm.password});if(error)throw error;
   }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
- const beginBooking=(s:Service)=>{pendingAction.current=s.id;setSelectedService(s);setStep(s.kind==='free'?'when':'details');setSelectedDay('');setSelectedHour(null);setSelectedMode('online');setSelectedVenue('talenti');setBookingDetails({});setDocumentFile(null);setTermsOk(false);setPromoInput(attrib.current.code===promo?promo:'');if(!profile){setScreen('auth');setAuthMode('signin')}};
+ const beginBooking=(s:Service)=>{pendingAction.current=s.id;setSelectedService(s);setStep(s.kind==='free'?'when':'details');setSelectedDay('');setSelectedHour(null);setSelectedMode('online');setSelectedVenue('talenti');setBookingDetails({});setTermsOk(false);setPromoInput(attrib.current.code===promo?promo:'');if(!profile){setScreen('auth');setAuthMode('signin')}};
  const finishWizard=()=>{setSelectedService(null);setStep('details');setClientTab('bookings');void refresh()};
  const changeProfile=async(patch:Partial<Pick<Profile,'full_name'|'phone'|'virgin_member'>>)=>{
   if(!profile)return;
@@ -171,6 +174,7 @@ function App(){
   if(['single','couple'].includes(selected.id)&&!bookingDetails.discipline){submitMsg('Scegli una disciplina.','error');return}
   if(selected.id==='other'&&!bookingDetails.description?.trim()){submitMsg('Descrivi la richiesta.','error');return}
   if(!termsOk){submitMsg('Accetta le condizioni di prenotazione.','error');return}
+  if(blockUnreviewedLegal){submitMsg('Prenotazioni non attive: informative legali non ancora approvate.','error');return}
   setBusy(true);
   try{
    if(!supabase){
@@ -183,12 +187,6 @@ function App(){
     setBookings(v=>[b,...v]);submitMsg('Richiesta inviata! Ale dovrà confermarla.');finishWizard();return;
    }
    const details={...bookingDetails};
-   if(documentFile){
-    if(!['application/pdf','image/jpeg','image/png'].includes(documentFile.type)||documentFile.size>5*1024*1024)throw Error('Carica un PDF, JPG o PNG fino a 5 MB.');
-    const path=`${profile.id}/${crypto.randomUUID()}-${documentFile.name.replace(/[^a-z0-9._-]/gi,'_')}`;
-    const {error:uploadError}=await supabase.storage.from('client-documents').upload(path,documentFile,{contentType:documentFile.type,upsert:false});
-    if(uploadError)throw uploadError;details.document_path=path;
-   }
    const {error}=await supabase.rpc('create_booking',{p_service_id:selected.id,p_venue_id:selectedVenue,p_day:selected.kind==='quote'?null:selectedDay,p_hour:selected.kind==='quote'?null:selectedHour,p_details:details,p_payment_mode:selected.kind==='free'||selected.kind==='quote'?'none':selectedMode,p_code:promoInput.toUpperCase().trim()||null,p_source:attrib.current.source,p_referral:attrib.current.referral||null});
    if(error)throw error;
    submitMsg('Richiesta inviata. Ale riceverà una notifica e potrà approvarla.');finishWizard();
@@ -301,8 +299,10 @@ function App(){
   {screen==='auth'&&<main className="client-layout auth-page"><button className="back-link" onClick={()=>setScreen('landing')}><ArrowLeft size={17}/> Torna alla presentazione</button><div className="auth-card"><div className="auth-icon"><LockKeyhole size={26}/></div><div className="signature">il tuo spazio con Ale</div><Title eyebrow="AREA RISERVATA">{authMode==='signup'?'CREA IL TUO ACCOUNT':authMode==='reset'?'RECUPERA LA PASSWORD':'BENTORNATO!'}</Title><p className="auth-lead">{authMode==='signup'?'Prenota, segui le tue lezioni e ricevi conferme in un unico posto.':authMode==='reset'?'Inserisci la tua email per recuperare l’accesso.':'Accedi con la tua email e la tua password.'}</p>
     <form onSubmit={e=>void authenticate(e)} className="form-stack">{authMode==='signup'&&<><Labeled label="Nome e cognome" required><input required autoComplete="name" value={authForm.name} onChange={e=>setAuthForm(f=>({...f,name:e.target.value}))} placeholder="Mario Rossi"/></Labeled><Labeled label="Telefono"><input type="tel" autoComplete="tel" value={authForm.phone} onChange={e=>setAuthForm(f=>({...f,phone:e.target.value}))} placeholder="+39..."/></Labeled></>}
     <Labeled label="Email" required><input type="email" required autoComplete="email" value={authForm.email} onChange={e=>setAuthForm(f=>({...f,email:e.target.value}))} placeholder="nome@email.it"/></Labeled>{authMode!=='reset'&&<Labeled label="Password" required><input type="password" required minLength={8} autoComplete={authMode==='signup'?'new-password':'current-password'} value={authForm.password} onChange={e=>setAuthForm(f=>({...f,password:e.target.value}))} placeholder="Almeno 8 caratteri"/></Labeled>}
-    <Button type="submit" disabled={busy||!onlineReady}>{busy?'Caricamento...':authMode==='signup'?'REGISTRATI':authMode==='reset'?'INVIA LINK':'ACCEDI'} <ArrowRight size={17}/></Button></form>
-    {import.meta.env.VITE_GOOGLE_ENABLED==='true'&&<><div className="oauth-separator">oppure</div><Button variant="outline" className="google-login" onClick={()=>void googleLogin()}>CONTINUA CON GOOGLE</Button></>}
+    {authMode==='signup'&&<label className="check-row terms"><input required type="checkbox" checked={privacyNoticeSeen} onChange={e=>setPrivacyNoticeSeen(e.target.checked)}/><span>Ho preso visione dell'<a href={legalPaths.privacy} target="_blank" rel="noopener noreferrer">informativa privacy</a>. Questa presa visione non costituisce consenso per finalità promozionali.</span></label>}
+    {authMode==='signup'&&blockUnreviewedLegal&&<p className="legal-warning">La registrazione sarà abilitata dopo l'approvazione delle informative e dei dati legali del titolare.</p>}
+    <Button type="submit" disabled={busy||!onlineReady||(authMode==='signup'&&(!privacyNoticeSeen||blockUnreviewedLegal))}>{busy?'Caricamento...':authMode==='signup'?'REGISTRATI':authMode==='reset'?'INVIA LINK':'ACCEDI'} <ArrowRight size={17}/></Button></form>
+    {import.meta.env.VITE_GOOGLE_ENABLED==='true'&&!blockUnreviewedLegal&&<><div className="oauth-separator">oppure</div><Button variant="outline" className="google-login" onClick={()=>void googleLogin()}>CONTINUA CON GOOGLE</Button></>}
     <div className="auth-switch">{authMode==='signin'?<><button onClick={()=>setAuthMode('signup')}>Non hai un account? Registrati</button><button onClick={()=>setAuthMode('reset')}>Password dimenticata?</button></>:<button onClick={()=>setAuthMode('signin')}>Hai già un account? Accedi</button>}</div>
     {isPreview&&<div className="preview-logins"><span>ANTEPRIMA DEL FLUSSO, SENZA ACCOUNT REALI</span><Button variant="dark" onClick={()=>previewLogin('client')}><UserRound size={17}/> Entra come cliente demo</Button><Button variant="outline" onClick={()=>previewLogin('coach')}><Dumbbell size={17}/> Entra come coach demo</Button></div>}
    </div><p className="security-note"><ShieldCheck size={15}/> Login protetto da Supabase Auth quando configurato</p></main>}
@@ -313,7 +313,7 @@ function App(){
     {step==='details'&&<div className="wizard-panel"><Title eyebrow="01 · DETTAGLI">DIMMI DI PIÙ</Title>
      {['single','couple'].includes(selected.id)&&<><Labeled label="Disciplina" required><select value={bookingDetails.discipline||''} onChange={e=>setBookingDetails(d=>({...d,discipline:e.target.value}))}><option value="">Scegli una disciplina</option>{disciplines.map(x=><option key={x}>{x}</option>)}</select></Labeled><Labeled label="Il tuo livello"><select value={bookingDetails.level||'Principiante'} onChange={e=>setBookingDetails(d=>({...d,level:e.target.value}))}>{['Principiante','Intermedio','Avanzato'].map(x=><option key={x}>{x}</option>)}</select></Labeled></>}
      {selected.id==='couple'&&<><Labeled label="Nome del partner" required><input value={bookingDetails.partner||''} onChange={e=>setBookingDetails(d=>({...d,partner:e.target.value}))} placeholder="Nome e cognome"/></Labeled><Labeled label="Email del partner"><input type="email" value={bookingDetails.partner_email||''} onChange={e=>setBookingDetails(d=>({...d,partner_email:e.target.value}))}/></Labeled></>}
-     {selected.id==='check'&&<><Labeled label="Cosa vuoi migliorare?"><textarea rows={3} value={bookingDetails.goal||''} onChange={e=>setBookingDetails(d=>({...d,goal:e.target.value}))} placeholder="Raccontami il tuo obiettivo"/></Labeled><Labeled label="Carica la scheda (PDF, JPG, PNG · max 5 MB)"><input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={e=>setDocumentFile(e.target.files?.[0]||null)}/></Labeled></>}
+     {selected.id==='check'&&<><Labeled label="Cosa vuoi migliorare?"><textarea rows={3} value={bookingDetails.goal||''} onChange={e=>setBookingDetails(d=>({...d,goal:e.target.value}))} placeholder="Raccontami il tuo obiettivo"/></Labeled><p className="footnote">Per tutelare i tuoi dati, l'invio di schede e documenti online è temporaneamente disabilitato. Non inserire dati sanitari nei campi di testo.</p></>}
      {selected.id==='start'&&<><Labeled label="Obiettivo"><textarea rows={2} value={bookingDetails.goal||''} onChange={e=>setBookingDetails(d=>({...d,goal:e.target.value}))} placeholder="Aumentare forza, preparare Hyrox..."/></Labeled><Labeled label="Esperienza di allenamento"><select value={bookingDetails.experience||'Principiante'} onChange={e=>setBookingDetails(d=>({...d,experience:e.target.value}))}>{['Principiante','1–2 anni','Oltre 2 anni'].map(x=><option key={x}>{x}</option>)}</select></Labeled><p className="footnote">Eventuali infortuni o informazioni sanitarie saranno discussi direttamente con il coach finché non sarà disponibile un’informativa privacy specifica.</p></>}
      {selected.kind==='quote'&&<><Labeled label="Raccontami cosa ti serve" required><textarea rows={5} value={bookingDetails.description||''} onChange={e=>setBookingDetails(d=>({...d,description:e.target.value}))} placeholder="Piccoli gruppi, Hyrox, eventi..."/></Labeled><Labeled label="Giorni e orari preferiti"><input value={bookingDetails.preference||''} onChange={e=>setBookingDetails(d=>({...d,preference:e.target.value}))} placeholder="Es. lunedì mattina"/></Labeled></>}
      <Button onClick={()=>{if(['single','couple'].includes(selected.id)&&!bookingDetails.discipline){submitMsg('Scegli una disciplina.','error');return}if(selected.id==='couple'&&!bookingDetails.partner?.trim()){submitMsg('Inserisci il nome del partner.','error');return}if(selected.kind==='quote'&&!bookingDetails.description?.trim()){submitMsg('Descrivi la tua richiesta.','error');return}setStep(selected.kind==='quote'?'review':'when')}}>CONTINUA <ArrowRight size={18}/></Button>
@@ -323,7 +323,7 @@ function App(){
      <div className="virgin-box"><div><ShieldCheck size={21}/><b>Iscrizione Virgin Active</b></div><p>Le lezioni si svolgono all'interno della palestra e sono riservate agli iscritti. Non è disponibile un ingresso giornaliero.</p><label className="check-row"><input type="checkbox" checked={profile.virgin_member} onChange={e=>void changeProfile({virgin_member:e.target.checked})}/><span>Confermo di essere iscritto a Virgin Active.</span></label>{!profile.virgin_member&&whatsappLink('Ciao Ale, non sono ancora iscritto a Virgin Active. Posso avere informazioni?')&&<a href={whatsappLink('Ciao Ale, non sono ancora iscritto a Virgin Active. Posso avere informazioni?')!} target="_blank" rel="noreferrer" className="text-link">Chiedi informazioni ad Ale <ExternalLink size={14}/></a>}</div>
      {selected.kind==='paid'&&<><Labeled label="Hai un codice sconto?"><div className="promo-input"><input placeholder="Es. ALECOACH10" value={promoInput} onChange={e=>setPromoInput(e.target.value.toUpperCase())}/><Tag size={18}/></div></Labeled>{promoInput.trim().toUpperCase()===promo&&<p className="good-note"><Check size={15}/> Sconto 10% se idoneo: prima lezione pagata entro 7 giorni dal primo contatto. Conferma lato server.</p>}
       <div className="field"><span>Metodo di pagamento</span><button className={`pay-choice ${selectedMode==='online'?'chosen':''}`} onClick={()=>setSelectedMode('online')}><CreditCard size={19}/><div><b>Pagamento online con Stripe</b><small>Solo dopo l'approvazione di Ale</small></div><Check size={17}/></button>{profile.allow_in_person&&<button className={`pay-choice ${selectedMode==='in_person'?'chosen':''}`} onClick={()=>setSelectedMode('in_person')}><Wallet size={19}/><div><b>Pagamento in palestra</b><small>Autorizzato dal coach per il tuo account</small></div><Check size={17}/></button>}{creditCount>0&&selected.id==='single'&&<button className={`pay-choice ${selectedMode==='credit'?'chosen':''}`} onClick={()=>setSelectedMode('credit')}><TicketPercent size={19}/><div><b>Usa un credito</b><small>{creditCount} lezioni disponibili</small></div><Check size={17}/></button>}</div></>}
-     <div className="total"><span>Totale indicativo</span><strong>{selected.kind==='free'?'GRATIS':selected.kind==='quote'?'DA DEFINIRE':selectedMode==='credit'?'1 CREDITO':currency(selectedPreviewAmount*(100-discountPreview)/100)}</strong></div><div className="disclaimer">La richiesta scade dopo 24 ore senza conferma. Per gli importi online, pagherai solo dopo l'approvazione del coach. Disdetta gratuita entro 24 ore dalla lezione.</div><label className="check-row terms"><input type="checkbox" checked={termsOk} onChange={e=>setTermsOk(e.target.checked)}/><span>Ho letto e accetto le condizioni di prenotazione e di disdetta.</span></label><Button disabled={busy||!profile.virgin_member||!termsOk} onClick={()=>void saveBooking()}>{busy?'INVIO...':selected.kind==='quote'?'CHIEDI IL PREVENTIVO':selected.kind==='free'?'PRENOTA IL COLLOQUIO':'INVIA LA RICHIESTA'} <ArrowRight size={17}/></Button>
+     <div className="total"><span>Totale indicativo</span><strong>{selected.kind==='free'?'GRATIS':selected.kind==='quote'?'DA DEFINIRE':selectedMode==='credit'?'1 CREDITO':currency(selectedPreviewAmount*(100-discountPreview)/100)}</strong></div><div className="disclaimer">La richiesta scade dopo 24 ore senza conferma. Per gli importi online, pagherai solo dopo l'approvazione del coach. Disdetta gratuita entro 24 ore dalla lezione.</div><label className="check-row terms"><input type="checkbox" checked={termsOk} onChange={e=>setTermsOk(e.target.checked)}/><span>Ho letto e accetto le <a href={legalPaths.terms} target="_blank" rel="noopener noreferrer">condizioni di prenotazione e disdetta</a> e ho preso visione dell'<a href={legalPaths.privacy} target="_blank" rel="noopener noreferrer">informativa privacy</a>.</span></label><Button disabled={busy||!profile.virgin_member||!termsOk||blockUnreviewedLegal} onClick={()=>void saveBooking()}>{busy?'INVIO...':selected.kind==='quote'?'CHIEDI IL PREVENTIVO':selected.kind==='free'?'PRENOTA IL COLLOQUIO':'INVIA LA RICHIESTA'} <ArrowRight size={17}/></Button>
     </div>}
    </section>:<>
    {clientTab==='home'&&<><section className="client-hero"><div className="eyebrow">/// IL TUO PROSSIMO OBIETTIVO</div><h2>UNA LEZIONE<br/><em>ALLA VOLTA.</em></h2><p>Il momento giusto per migliorare è adesso.</p><div className="client-hero-lines">///</div></section>
@@ -354,7 +354,7 @@ function App(){
    <div className="coach-footer-note"><Settings2 size={15}/> Pannello riservato al coach. Autorizzazioni verificate dal database in modalità reale.</div>
   </main>}
   </>}
-  <footer className="site-footer"><div><Logo small/><span>NON BASTA ALLENARSI. CONTA COME LO FAI.</span></div><p>© 2026 Ale Coach · Roma Talenti e Nuovo Salario</p><p className="developer">Sviluppato da <a href="https://www.instagram.com/mattiacucuzza_/" target="_blank" rel="noreferrer">Mattia Cucuzza <Instagram size={13}/></a></p></footer>
+  <footer className="site-footer"><div><Logo small/><span>NON BASTA ALLENARSI. CONTA COME LO FAI.</span></div><p>© 2026 Ale Coach · Roma Talenti e Nuovo Salario</p><p className="legal-links"><a href={legalPaths.privacy}>Privacy</a><a href={legalPaths.terms}>Condizioni</a><a href={legalPaths.cookies}>Cookie</a>{legal.contactEmail&&<a href={`mailto:${legal.contactEmail}?subject=Richiesta%20privacy%20Ale%20Coach`}>Diritti sui dati</a>}</p><p className="developer">Sviluppato da <a href="https://www.instagram.com/mattiacucuzza_/" target="_blank" rel="noreferrer">Mattia Cucuzza <Instagram size={13}/></a></p></footer>
   {ready&&<div className="readiness-note">{onlineReady?<><CheckCircle2 size={14}/> Servizio dati collegato</>:null}</div>}
  </div>
 }
