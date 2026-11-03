@@ -13,7 +13,8 @@
     "local:env": "node scripts/sync-local-env.mjs",
     "local:seed": "node scripts/seed-local-users.mjs",
     "local:reset": "supabase db reset && node scripts/seed-local-users.mjs",
-    "local:check": "node --test scripts/*.test.mjs"
+    "local:check": "node --test scripts/*.test.mjs",
+    "local:integration": "node scripts/local-integration.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.76.0",
