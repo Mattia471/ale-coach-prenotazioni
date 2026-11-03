@@ -1,0 +1,11 @@
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.cancel-booking]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.push-notify]
+verify_jwt = false
