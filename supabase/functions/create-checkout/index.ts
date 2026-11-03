@@ -47,7 +47,7 @@ Deno.serve(async req=>{
     client_reference_id:order.id,
     metadata:{kind:'package',order_id:order.id,client_id:user.id,package_id:order.package_id},
     success_url:`${appUrl}/?payment=success`,cancel_url:`${appUrl}/?payment=cancelled`,
-    expires_at:Math.floor(Date.now()/1000)+1800
+    expires_at:Math.floor(Date.now()/1000)+31*60
    },{idempotencyKey:`ale-package-order-${order.id}`});
    const {data:saved,error:saveError}=await admin.from('package_checkout_orders')
     .update({stripe_session_id:session.id}).eq('id',order.id).eq('status','pending')
@@ -61,10 +61,10 @@ Deno.serve(async req=>{
   }
   const bookingId=String(body.bookingId||'');
   if(!/^[a-f0-9-]{36}$/i.test(bookingId))return json({error:'Prenotazione non valida'},400);
-  const {data:booking,error}=await admin.from('bookings').select('id,client_id,service_id,status,payment_mode,amount_cents,approved_at,stripe_checkout_session_id').eq('id',bookingId).single();
+  const {data:booking,error}=await admin.from('bookings').select('id,client_id,service_id,status,payment_mode,amount_cents,approved_at,expires_at,stripe_checkout_session_id').eq('id',bookingId).single();
   if(error||!booking||booking.client_id!==user.id)return json({error:'Prenotazione non trovata'},404);
   if(!['awaiting_payment','quoted'].includes(booking.status)||booking.payment_mode!=='online'&&booking.status!=='quoted')return json({error:'Pagamento non disponibile'},409);
-  if(booking.status==='awaiting_payment'&&(!booking.approved_at||Date.now()-Date.parse(booking.approved_at)>60*60000))return json({error:'Il termine per iniziare il pagamento è scaduto. Contatta Ale.'},409);
+  if(!booking.expires_at||Date.parse(booking.expires_at)-Date.now()<32*60000)return json({error:'Tempo insufficiente per aprire il checkout. Contatta Ale per una nuova conferma.'},409);
   if(!Number.isInteger(booking.amount_cents)||booking.amount_cents<50)return json({error:'Importo non valido'},409);
   if(!appUrl.startsWith('https://'))return json({error:'URL pubblico dell’app non configurato'},503);
   if(booking.stripe_checkout_session_id){
@@ -80,7 +80,7 @@ Deno.serve(async req=>{
    metadata:{booking_id:booking.id,client_id:user.id,kind:'booking'},
    client_reference_id:booking.id,
    success_url:`${appUrl}/?payment=success`,cancel_url:`${appUrl}/?payment=cancelled`,
-   expires_at:Math.floor(Date.now()/1000)+1800
+   expires_at:Math.floor(Date.now()/1000)+31*60
   },{idempotencyKey:`ale-booking-${booking.id}-${booking.amount_cents}-${booking.stripe_checkout_session_id||'first'}`});
   const {error:saveError}=await admin.from('bookings').update({stripe_checkout_session_id:session.id}).eq('id',booking.id).in('status',['awaiting_payment','quoted']);
   if(saveError)throw saveError;
