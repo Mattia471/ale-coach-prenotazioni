@@ -66,3 +66,19 @@ Richiede almeno tre slot consecutivi liberi tra domani+2 e domani+7 e il promo a
 - [ ] Google login nascosto finché provider non configurato; se attivato provare OAuth dalla URL reale.
 - [ ] Test mobile 320–430px, accessibilità, PWA e assenza di dati/credenziali nel bundle.
 - [ ] Security Advisor Supabase e permessi RPC `service_role` verificati.
+
+## GDPR e privacy (test P0 aggiuntivi)
+
+- [ ] `/privacy`, `/termini`, `/cookie` accessibili anche senza login, da desktop e mobile.
+- [ ] Signup: presa visione informativa visibile e non preselezionata, non confusa con marketing.
+- [ ] Prenotazione: link alle condizioni e privacy prima dell'accettazione; termini da validare giuridicamente.
+- [ ] Build Cloudflare commerciale: `npm run release:build` **fallisce** senza dati legali verificati.
+- [ ] L'upload di schede e PDF è assente nella UI, negato anche tramite API Storage/RLS.
+- [ ] I campi liberi scoraggiano l'inserimento di dati sanitari e non espongono dati ad altri clienti.
+- [ ] Dal profilo cliente esportazione JSON contiene solo i propri record, nessun altro utente.
+- [ ] Richieste accesso/rettifica/cancellazione arrivano a email di dominio funzionante; processo risposta definito.
+- [ ] Cookie/LocalStorage/remote requests verificati in DevTools su dominio reale, nessun marketing cookie senza consenso.
+- [ ] Trasferimenti, DPA, fornitori, retention e procedure di data breach documentati e approvati.
+- [ ] Video-guide usano solo account e dati fittizi, mai credenziali o documenti reali.
+
+Guida: [GDPR-COMPLIANCE.md](GDPR-COMPLIANCE.md).
