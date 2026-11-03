@@ -16,4 +16,8 @@ Deno.serve(async req=>{
  if(error)throw error;
  let sent=0;
  for(const d of devices||[]){
-  try{await webpush.sendNotification({endpoint:d.endpoint,keys:{p256dh:d.p256dh,auth:d.auth_key}},JSON.stringify({title:String(record.title||'Ale Coach').slice(0,90),body:String(record¶»§q«^
+  try{await webpush.sendNotification({endpoint:d.endpoint,keys:{p256dh:d.p256dh,auth:d.auth_key}},JSON.stringify({title:String(record.title||'Ale Coach').slice(0,90),body:String(record.body||'Hai una notifica').slice(0,220),url:'/'}));sent++}
+  catch(e){const status=(e as {statusCode?:number}).statusCode;if(status===404||status===410)await admin.from('push_subscriptions').delete().eq('id',d.id);else console.error('Push failed',status)}
+ }
+ return Response.json({sent});
+});

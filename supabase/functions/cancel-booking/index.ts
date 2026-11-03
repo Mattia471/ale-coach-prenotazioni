@@ -16,4 +16,13 @@ Deno.serve(async req=>{
   const {bookingId}=await req.json();
   const {data:b,error}=await admin.from('bookings').select('*').eq('id',bookingId).single();
   if(error||!b||b.client_id!==user.id)return json({error:'Prenotazione non trovata'},404);
-  ¶»§q«^
+  if(b.status!=='confirmed'||b.payment_status!=='paid'||b.payment_mode!=='online'||!b.stripe_payment_intent_id)return json({error:'Prenotazione non rimborsabile online'},409);
+  if(!b.starts_at||new Date(b.starts_at).getTime()-Date.now()<24*3600000)return json({error:'Il limite per la disdetta gratuita Ã¨ di 24 ore prima'},409);
+  const stripe=new Stripe(key);
+  await stripe.refunds.create({payment_intent:b.stripe_payment_intent_id,reason:'requested_by_customer'},{idempotencyKey:`ale-refund-${b.id}`});
+  const {error:saveError}=await admin.from('bookings').update({status:'cancelled',payment_status:'refunded',cancelled_at:new Date().toISOString()}).eq('id',b.id).eq('status','confirmed');
+  if(saveError)throw saveError;
+  await admin.from('notifications').insert({recipient_id:b.client_id,title:'Disdetta e rimborso',body:'La tua lezione Ã¨ stata disdetta. Il rimborso Ã¨ stato avviato sul metodo originale.',kind:'booking_cancelled',booking_id:b.id});
+  return json({ok:true});
+ }catch(e){console.error('cancel-booking',e);return json({error:'Rimborso non completato. Contatta il coach.'},500)}
+});

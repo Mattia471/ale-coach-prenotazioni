@@ -16,4 +16,19 @@ Fonte: `Ale_Coach_Prenotazioni_Documento_Funzionale_Logico_Design.pdf` (3 novemb
 | Approvazione coach entro 24 h | Implementato | Richiede job cron in Supabase |
 | Pagamento approvato dopo conferma | Implementato come checkout successivo | Ultima decisione concordata: online dopo approvazione, non pre-autorizzazione anticipata |
 | Pagamento in presenza solo su permesso coach | Implementato | Default disabilitato per tutti |
-| Disdetta almeno 24 h, rimborso online | Implementato con function Str¶»§q«^
+| Disdetta almeno 24 h, rimborso online | Implementato con function Stripe | Da collaudare con account Stripe test |
+| Promozione prima lezione | Implementato | **ALECOACH10 10% entro 7 giorni**, prevale sulla vecchia tabella CORSI/ONLINE |
+| Pacchetto 5/10, crediti con scadenza | Predisposto | Acquisto Stripe singolo e wallet attivato con webhook |
+| Mensili 4/8 lezioni | Catalogo | Billing ricorrente da integrare con Price ID reali |
+| Notifiche in-app | Implementato | DB + Realtime quando configurato |
+| Push iOS/Android | Predisposto | Da configurare VAPID e Database Webhook |
+| DM Instagram `FORZA` | Link tracciato | Automazione DM da connettere a Meta |
+| Codice amico personalizzato | Link generico | Generazione/verifica referral personalizzati non ancora sviluppata |
+| Instagram bio/Meta/QR palestra | Implementato | QR usa **ALECOACH10** |
+| Login e password | Implementato | Supabase Auth (necessita progetto dedicato) |
+| Google/Apple Calendar | Non implementato | Estensione futura dopo lancio |
+| Informative privacy e termini validati | Da completare | Non pubblicare come servizio reale prima di verifica |
+
+## Decisione di prodotto
+
+Il PDF documenta il comportamento della **demo originale**: dove indica CORSI 15%, VIRGIN o autorizzazione carta anticipata, si applicano le decisioni successive: **ALECOACH10 10%** e **Checkout solo dopo approvazione**. Non si fingono pagamenti senza Stripe.
