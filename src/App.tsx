@@ -166,6 +166,33 @@ function App(){
   setBusy(true);const {error}=await supabase.from('profiles').update(patch).eq('id',profile.id);setBusy(false);
   if(error){submitMsg(error.message,'error');return}setProfile({...profile,...patch});submitMsg('Profilo aggiornato');
  };
+ const exportMyData=async()=>{
+  if(!profile||!supabase){submitMsg('L’esportazione dati è disponibile solo con un account reale.','info');return}
+  setBusy(true);
+  try{
+   const [p,b,w,n,devices]=await Promise.all([
+    supabase.from('profiles').select('*').eq('id',profile.id),
+    supabase.from('bookings').select('*').eq('client_id',profile.id),
+    supabase.from('wallet_credits').select('*').eq('client_id',profile.id),
+    supabase.from('notifications').select('*').eq('recipient_id',profile.id),
+    supabase.from('push_subscriptions').select('id,endpoint,created_at').eq('user_id',profile.id),
+   ]);
+   for(const result of [p,b,w,n,devices])if(result.error)throw result.error;
+   const json=JSON.stringify({
+    esportato_il:new Date().toISOString(),
+    titolare:legal.controllerName||'Ale Coach',
+    nota:'Copia dei principali dati presenti in app. Per una richiesta completa ex art. 15 GDPR contatta il titolare.',
+    profilo:p.data,prenotazioni:b.data,pacchetti_e_crediti:w.data,
+    notifiche:n.data,dispositivi_push:devices.data,
+   },null,2);
+   const url=URL.createObjectURL(new Blob([json],{type:'application/json;charset=utf-8'}));
+   const link=document.createElement('a');
+   link.href=url;link.download=`ale-coach-dati-${new Date().toISOString().slice(0,10)}.json`;
+   document.body.append(link);link.click();link.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(url),5000);
+   submitMsg('Esportazione completata: conserva il file in un luogo sicuro.');
+  }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
+ };
  const saveBooking=async()=>{
   if(!profile||!selected)return;
   if(!profile.virgin_member){submitMsg('Serve l’iscrizione a Virgin Active.','error');return}
@@ -335,7 +362,9 @@ function App(){
    </>}
    {clientTab==='bookings'&&<section><Title eyebrow="LA TUA AGENDA" sub="Richieste, conferme e pagamenti in un posto solo.">LE MIE LEZIONI</Title>{myBookings.length===0?<Empty title="Ancora nessuna lezione" desc="Prenota il primo appuntamento e inizia il tuo percorso."/>:<div className="booking-list">{myBookings.map(b=>{const s=services.find(x=>x.id===b.service_id);return <article key={b.id} className="booking-card"><div className="booking-head"><h3>{s?.name||b.service_id}</h3><Status status={b.status}/></div>{b.starts_at?<div className="booking-meta"><CalendarDays size={16}/>{dateLabel(b.starts_at)} · {timeLabel(b.starts_at)} <span>·</span>{venues.find(v=>v.id===b.venue_id)?.name}</div>:<p className="small-muted">Da concordare con il coach</p>}<div className="booking-total"><span>{b.payment_mode==='in_person'?'Pagamento in palestra':b.payment_mode==='credit'?'Credito pacchetto':b.payment_mode==='none'?'Senza pagamento':'Pagamento online'}</span><b>{b.amount_cents?currency(b.amount_cents):b.status==='quoted'?'Da definire':'Gratis'}</b></div>{b.status==='pending'&&<p className="small-muted">Ale deve ancora approvare questa richiesta. Scadenza: {new Date(b.expires_at).toLocaleString('it-IT')}.</p>}{b.status==='awaiting_payment'&&<p className="small-muted">Termine per completare il pagamento: {new Date(b.expires_at).toLocaleString('it-IT')}</p>}{b.status==='awaiting_payment'&&<Button onClick={()=>void payBooking(b)} disabled={busy}><CreditCard size={16}/> COMPLETA IL PAGAMENTO</Button>}{b.status==='quoted'&&<Button onClick={()=>void payBooking(b)} disabled={busy}>ACCETTA E PAGA IL PREVENTIVO <ArrowRight size={16}/></Button>}{cancelAllowed(b)&&<button className="link-danger" onClick={()=>void cancelBooking(b)}>Disdici prenotazione</button>}{b.status==='confirmed'&&b.starts_at&&!cancelAllowed(b)&&<p className="footnote">A meno di 24 ore dalla lezione la disdetta online non è disponibile.</p>}</article>})}</div>}</section>}
    {clientTab==='messages'&&<section><Title eyebrow="TUTTI GLI AGGIORNAMENTI">NOTIFICHE</Title><div className="row-end"><Button variant="outline" onClick={()=>void subscribePush()}><Bell size={15}/>{pushEnabled?'Push abilitate':'Attiva notifiche push'}</Button></div>{myNotices.length===0?<Empty title="Tutto tranquillo" desc="Qui riceverai notizie su conferme, disdette e pagamenti."/>:myNotices.map(n=><div key={n.id} className={`notice-card ${n.read_at?'':'unread'}`}><div><b>{n.title}</b><small>{new Date(n.created_at).toLocaleString('it-IT')}</small></div><p>{n.body}</p></div>)}</section>}
-   {clientTab==='profile'&&<section><Title eyebrow="IL TUO ACCOUNT">PROFILO</Title><div className="profile-card"><div className="large-avatar">{profile.full_name.charAt(0)}</div><h3>{profile.full_name}</h3><p>{profile.email}</p><div className="field"><span>Nome completo</span><input defaultValue={profile.full_name} onBlur={e=>{if(e.target.value!==profile.full_name)void changeProfile({full_name:e.target.value})}}/></div><div className="field"><span>Telefono</span><input type="tel" defaultValue={profile.phone} onBlur={e=>{if(e.target.value!==profile.phone)void changeProfile({phone:e.target.value})}}/></div><label className="check-row virgin-profile"><input type="checkbox" checked={profile.virgin_member} onChange={e=>void changeProfile({virgin_member:e.target.checked})}/><span>Iscritto a Virgin Active</span></label><div className="permission-line"><div><b>Pagamento in presenza</b><span>{profile.allow_in_person?'Abilitato dal coach':'Non abilitato: anticipo online obbligatorio'}</span></div><span className={`permission-dot ${profile.allow_in_person?'on':''}`}/></div><Button variant="outline" onClick={()=>void subscribePush()}><Bell size={17}/> {pushEnabled?'Notifiche push abilitate':'Abilita notifiche push'}</Button><Button variant="quiet" onClick={()=>void logout()}><LogOut size={17}/> Esci</Button></div></section>}
+   {clientTab==='profile'&&<section><Title eyebrow="IL TUO ACCOUNT">PROFILO</Title><div className="profile-card"><div className="large-avatar">{profile.full_name.charAt(0)}</div><h3>{profile.full_name}</h3><p>{profile.email}</p><div className="field"><span>Nome completo</span><input defaultValue={profile.full_name} onBlur={e=>{if(e.target.value!==profile.full_name)void changeProfile({full_name:e.target.value})}}/></div><div className="field"><span>Telefono</span><input type="tel" defaultValue={profile.phone} onBlur={e=>{if(e.target.value!==profile.phone)void changeProfile({phone:e.target.value})}}/></div><label className="check-row virgin-profile"><input type="checkbox" checked={profile.virgin_member} onChange={e=>void changeProfile({virgin_member:e.target.checked})}/><span>Iscritto a Virgin Active</span></label><div className="permission-line"><div><b>Pagamento in presenza</b><span>{profile.allow_in_person?'Abilitato dal coach':'Non abilitato: anticipo online obbligatorio'}</span></div><span className={`permission-dot ${profile.allow_in_person?'on':''}`}/></div><Button variant="outline" onClick={()=>void subscribePush()}><Bell size={17}/> {pushEnabled?'Notifiche push abilitate':'Abilita notifiche push'}</Button><Button variant="outline" onClick={()=>void exportMyData()} disabled={busy}>Scarica una copia dei miei dati (JSON)</Button>
+     {legal.contactEmail&&<a className="privacy-request" href={`mailto:${legal.contactEmail}?subject=Richiesta%20accesso%20o%20cancellazione%20dati%20Ale%20Coach`}>Chiedi accesso, rettifica o cancellazione dei tuoi dati</a>}
+     <Button variant="quiet" onClick={()=>void logout()}><LogOut size={17}/> Esci</Button></div></section>}
    </>}
    {!selectedService&&<nav className="bottom-nav" aria-label="Navigazione cliente"><button className={clientTab==='home'?'active':''} onClick={()=>setClientTab('home')}><Dumbbell size={21}/>Prenota</button><button className={clientTab==='bookings'?'active':''} onClick={()=>setClientTab('bookings')}><CalendarDays size={21}/>Le mie lezioni</button><button className={clientTab==='messages'?'active':''} onClick={()=>{setClientTab('messages');void markNotices()}}><span className="badge-icon"><Bell size={21}/>{unread>0&&<i>{unread}</i>}</span>Notifiche</button><button className={clientTab==='profile'?'active':''} onClick={()=>setClientTab('profile')}><UserRound size={21}/>Profilo</button></nav>}
   </main>}
