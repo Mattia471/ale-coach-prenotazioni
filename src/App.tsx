@@ -135,6 +135,8 @@ function App(){
  },[selectedService,selectedDay,bookings,hours]);
  useEffect(()=>{if(coachTab!=='marketing')return;void import('qrcode').then(({default:QRCode})=>QRCode.toDataURL(`${location.origin}/?source=club&code=${promo}`,{width:320,margin:2,color:{dark:'#1b1515',light:'#ffffff'}})).then(setQr).catch(()=>setQr(''))},[coachTab]);
  const googleLogin=async()=>{
+  if(!privacyNoticeSeen){submitMsg('Prima di usare Google, prendi visione dell’informativa privacy.','info');return}
+  if(blockUnreviewedLegal){submitMsg('Registrazioni non ancora attive: informativa privacy in revisione.','error');return}
   if(!supabase){submitMsg('Google OAuth disponibile dopo la configurazione Supabase.','info');return}
   const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}});
   if(error)submitMsg(error.message,'error');
@@ -329,7 +331,7 @@ function App(){
     {authMode==='signup'&&<label className="check-row terms"><input required type="checkbox" checked={privacyNoticeSeen} onChange={e=>setPrivacyNoticeSeen(e.target.checked)}/><span>Ho preso visione dell'<a href={legalPaths.privacy} target="_blank" rel="noopener noreferrer">informativa privacy</a>. Questa presa visione non costituisce consenso per finalità promozionali.</span></label>}
     {authMode==='signup'&&blockUnreviewedLegal&&<p className="legal-warning">La registrazione sarà abilitata dopo l'approvazione delle informative e dei dati legali del titolare.</p>}
     <Button type="submit" disabled={busy||!onlineReady||(authMode==='signup'&&(!privacyNoticeSeen||blockUnreviewedLegal))}>{busy?'Caricamento...':authMode==='signup'?'REGISTRATI':authMode==='reset'?'INVIA LINK':'ACCEDI'} <ArrowRight size={17}/></Button></form>
-    {import.meta.env.VITE_GOOGLE_ENABLED==='true'&&!blockUnreviewedLegal&&<><div className="oauth-separator">oppure</div><Button variant="outline" className="google-login" onClick={()=>void googleLogin()}>CONTINUA CON GOOGLE</Button></>}
+    {import.meta.env.VITE_GOOGLE_ENABLED==='true'&&!blockUnreviewedLegal&&<><div className="oauth-separator">oppure</div>{authMode!=='signup'&&<label className="check-row terms"><input type="checkbox" checked={privacyNoticeSeen} onChange={e=>setPrivacyNoticeSeen(e.target.checked)}/><span>Ho preso visione dell'<a href={legalPaths.privacy} target="_blank" rel="noopener noreferrer">informativa privacy</a> prima di continuare con Google.</span></label>}<Button variant="outline" className="google-login" disabled={!privacyNoticeSeen} onClick={()=>void googleLogin()}>CONTINUA CON GOOGLE</Button></>}
     <div className="auth-switch">{authMode==='signin'?<><button onClick={()=>setAuthMode('signup')}>Non hai un account? Registrati</button><button onClick={()=>setAuthMode('reset')}>Password dimenticata?</button></>:<button onClick={()=>setAuthMode('signin')}>Hai già un account? Accedi</button>}</div>
     {isPreview&&<div className="preview-logins"><span>ANTEPRIMA DEL FLUSSO, SENZA ACCOUNT REALI</span><Button variant="dark" onClick={()=>previewLogin('client')}><UserRound size={17}/> Entra come cliente demo</Button><Button variant="outline" onClick={()=>previewLogin('coach')}><Dumbbell size={17}/> Entra come coach demo</Button></div>}
    </div><p className="security-note"><ShieldCheck size={15}/> Login protetto da Supabase Auth quando configurato</p></main>}
