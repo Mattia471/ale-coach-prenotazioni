@@ -43,6 +43,17 @@ test('ritratto ufficiale del coach presente con fallback e link professionale',(
  assert.match(app,/function CoachPhoto[\s\S]*onError=\{\(\)=>setUnavailable\(true\)\}/);
  assert.match(app,/virginactive\.it\/people\/alessandro--cola-a-cola/);
 });
+test('release base conferma usando agenda interna, senza obbligo Google',()=>{
+ const migration=read('supabase/migrations/20261104200000_internal_calendar_base_release.sql');
+ const app=read('src/App.tsx');
+ assert.match(migration,/create or replace function public\\.claim_booking_decision/);
+ assert.match(migration,/create or replace function private\\.revalidate_booking_on_confirm/);
+ assert.match(migration,/private\\.coach_slot_is_free/);
+ assert.match(migration,/public\\.calendar_closures/);
+ assert.doesNotMatch(migration,/select 1 from public\\.google_calendar_sync/);
+ assert.match(app,/Agenda interna attiva/);
+ assert.doesNotMatch(app,/Eventi sincronizzati da Google/);
+});
 test('checkout prenotazione autorizza la carta prima dell’invio al coach',()=>{
  const fn=read('supabase/functions/create-checkout/index.ts');
  const app=read('src/App.tsx');
