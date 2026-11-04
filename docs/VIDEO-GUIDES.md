@@ -8,9 +8,9 @@
 | --- | --- | --- |
 | 00:00–00:12 | Home su smartphone, logo e servizi | "Benvenuto su Ale Coach. Da qui prenoti in pochi passaggi le tue lezioni." |
 | 00:12–00:30 | Registrazione email/password o Google solo se attivo | "Crea il tuo profilo ed effettua l'accesso. Per prenotare devi essere iscritto a Virgin Active." |
-| 00:30–00:55 | Selezione servizio, disciplina, sede, orario | "Scegli il servizio e la sede. L'agenda mostra soltanto gli orari prenotabili." |
-| 00:55–01:15 | Codice ALECOACH10 e invio richiesta | "Se previsto, inserisci il codice promozionale e invia la richiesta al coach." |
-| 01:15–01:37 | Stato richiesta, coach approva nell'account demo, cliente vede invito a pagare | "La richiesta resta in attesa dell'approvazione. Dopo la conferma del coach, completa il pagamento online in sicurezza con Stripe." |
+| 00:30–00:55 | Selezione servizio, disciplina, sede, orario | "Scegli il servizio e la sede. Scegli Talenti, Nuovo Salario o Indifferente, poi uno slot a intervalli di 15 minuti fino a 42 giorni." |
+| 00:55–01:15 | Codice ALECOACH15 e invio richiesta | "Se previsto, inserisci il codice promozionale e invia la richiesta al coach." |
+| 01:15–01:37 | Stato richiesta, coach approva nell'account demo, cliente vede invito a pagare | "La richiesta resta in attesa dell'approvazione. Dopo la conferma del coach, Completa il pagamento online con Stripe dopo l'approvazione nella versione attuale. Prima del video di produzione, verificare il nuovo flusso di preautorizzazione richiesto dalla specifica v2." |
 | 01:37–01:55 | Appuntamenti e notifiche | "Controlla lo stato e le notifiche nella tua area personale. Disdette e rimborsi seguono le condizioni indicate." |
 | 01:55–02:05 | Supporto e contatti | "Per dubbi o modifiche contatta Ale tramite i canali ufficiali." |
 
@@ -42,3 +42,10 @@
 - `AleCoach_Guida_Coach.mp4`, orizzontale 1920 × 1080 per amministrazione desktop; includere anche una versione smartphone se il coach usa il telefono.
 - Sottotitoli .srt in italiano, schermata iniziale e finale con logo, nessun dato reale in video.
 - Rivedere script dopo il collaudo: non presentare come disponibili Google OAuth, abbonamenti, push o rimborsi se non sono stati realmente attivati e verificati.
+
+## Aggiornamenti obbligatori per la specifica v2
+
+- Mostrare nuove tariffe: singola 55 €, check 35 €, valutazione 50 €, Flex 5 a 250 €, Flex 10 a 450 €, Continuity 150/260 € con minimo due mesi.
+- Illustrare promo ALECOACH15 che porta la **prima individuale a 46,75 €** e non vale su Duo/pacchetti.
+- Nel video coach mostrare editor fasce per sede, chiusure, corsi, riserva 10 minuti, lettura dello stato Google Calendar e classificazione eventi dubbi.
+- **Non registrare un tutorial di pagamento live** finché non sono state implementate e verificate preautorizzazione/cattura, recuperi e Continuity. Le scene Stripe e rinnovi sono segnaposto.
