@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { ArrowLeft, ArrowRight, Bell, CalendarCheck, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, CreditCard, Dumbbell, ExternalLink, Gift, Instagram, LockKeyhole, LogOut, MapPin, Menu, MessageCircle, QrCode, Settings2, ShieldCheck, Sparkles, Tag, TicketPercent, UserRound, Users, Wallet, X, Zap } from 'lucide-react';
-import type { Booking, ClientTab, CoachTab, Discount, Notice, Pack, PaymentMode, Profile, Service, Venue, Wallet as CreditWallet, WorkingHours } from './types';
-import { currency, dateLabel, demoBooking, demoHours, demoPacks, demoServices, demoVenues, nextDates, previewProfile, ready, sources, stateLabels, supabase, timeLabel, whatsappLink, formatStartMinute, previewSlots } from './lib';
+import type { Booking, ClientTab, CoachTab, Discount, Notice, Pack, PaymentMode, Profile, Service, Venue, Wallet as CreditWallet } from './types';
+import { currency, dateLabel, demoBooking, demoPacks, demoServices, demoVenues, nextDates, previewProfile, ready, sources, stateLabels, supabase, timeLabel, whatsappLink, formatStartMinute, previewSlots } from './lib';
 import { blockUnreviewedLegal, legal, legalPaths } from './legal';
 
 type Screen='landing'|'auth'|'client'|'coach';
@@ -43,7 +43,6 @@ function App(){
  const [authForm,setAuthForm]=useState({name:'',phone:'',email:'',password:''});
  const [services,setServices]=useState<Service[]>(demoServices);
  const [venues,setVenues]=useState<Venue[]>(demoVenues);
- const [hours,setHours]=useState<WorkingHours[]>(demoHours);
  const [availabilityWindows,setAvailabilityWindows]=useState<WindowRow[]>([]);
  const [closures,setClosures]=useState<ClosureRow[]>([]);
  const [calendarSync,setCalendarSync]=useState<{status:string;last_success_at:string|null;last_error:string|null}|null>(null);
@@ -125,9 +124,8 @@ function App(){
   void Promise.all([
    api.from('services').select('*').order('sort_order'),
    api.from('venues').select('*'),
-   api.from('working_hours').select('*').order('weekday'),
    api.from('packages').select('*').order('sort_order')
-  ]).then(([s,v,h,p])=>{if(!s.error)setServices(s.data as Service[]);if(!v.error)setVenues(v.data as Venue[]);if(!h.error)setHours(h.data as WorkingHours[]);if(!p.error)setPacks(p.data as Pack[])});
+  ]).then(([s,v,p])=>{if(!s.error)setServices(s.data as Service[]);if(!v.error)setVenues(v.data as Venue[]);if(!p.error)setPacks(p.data as Pack[])});
  },[]);
  useEffect(()=>{void refresh()},[refresh]);
  useEffect(()=>{
@@ -360,7 +358,6 @@ function App(){
   if(error){submitMsg(error.message,'error');return}
   setClosures(rows=>rows.map(x=>x.id===cl.id?{...x,...patch}:x));
  };
- const updateHours=async(h:WorkingHours,patch:Partial<WorkingHours>)=>{if(!supabase){setHours(rows=>rows.map(x=>x.weekday===h.weekday?{...x,...patch}:x));return}const {error}=await supabase.from('working_hours').update(patch).eq('weekday',h.weekday);if(error)submitMsg(error.message,'error');else setHours(rows=>rows.map(x=>x.weekday===h.weekday?{...x,...patch}:x))};
  const saveCode=async(value:Discount)=>{if(!supabase){setCodes(rows=>rows.map(c=>c.code===value.code?value:c));return}const {error}=await supabase.from('discount_codes').update({active:value.active,percent_off:value.percent_off}).eq('code',value.code);if(error)submitMsg(error.message,'error');else setCodes(rows=>rows.map(c=>c.code===value.code?value:c))};
  const activeServices=services.filter(s=>s.active).sort((a,b)=>a.sort_order-b.sort_order);
  const activePacks=packs.filter(p=>p.active).sort((a,b)=>a.sort_order-b.sort_order);
