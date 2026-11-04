@@ -32,8 +32,8 @@ Fonte: `Ale_Coach_Specifica_Calendario_Listino.docx`, v2, 4 novembre 2026. Docum
 Configurare Supabase Edge Secrets: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN`, `GOOGLE_CALENDAR_IDS` (CSV), `GOOGLE_SYNC_SECRET`. Il refresh token deriva dall'autorizzazione **dell'account Google del coach** e non va mai committato. Deploy `google-calendar-sync` con JWT disabilitato, ma POST protetto dall'header `x-ale-google-sync-secret`. Pianificare ogni 5 minuti con Supabase Cron/pg_net e Vault, testare eventi, eccezioni, cancellazioni e fusione occupazioni duplicati.
 
 ## Verifiche obbligatorie
-- `pnpm exec supabase migration up --local` su Docker: tutte le nuove migrazioni applicate nell'ordine.
-- `pnpm run local:integration`: 2 clienti simultanei, promo, hold, RLS e blocco upload.
+- `verificare lo storico migrazioni di Supabase Cloud` su Supabase Cloud: tutte le nuove migrazioni applicate nell'ordine.
+- `eseguire il collaudo controllato sul Supabase Cloud`: 2 clienti simultanei, promo, hold, RLS e blocco upload.
 - Test su calendario DST, margini, sede, assenze, classi settimanali e prenotazioni in parallelo.
 - Test Stripe test mode e Google OAuth effettivo, nessuna conferma su sync scaduta.
 - Controlli GDPR, condizioni contrattuali, backup, cron, pagamento e fatturazione.
