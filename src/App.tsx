@@ -10,6 +10,8 @@ type Screen='landing'|'auth'|'client'|'coach';
 type Step='details'|'when'|'review';
 type WindowRow={id:number;weekday:number;venue_id:string;start_minute:number;end_minute:number;is_flexible:boolean;is_active:boolean};
 type ClosureRow={id:number;start_date:string;end_date:string;reason:string;is_active:boolean;review_status:'proposed'|'confirmed'};
+type CourseRow={id:number;title:string;venue_id:string|null;weekday:number|null;on_date:string|null;start_minute:number;end_minute:number;is_active:boolean;needs_review:boolean};
+type ExternalRow={id:number;calendar_id:string;original_event_id:string;venue_id:string|null;starts_at:string;ends_at:string;is_course:boolean;blocks_booking:boolean;needs_review:boolean};
 const asMinute=(value:string)=>{const [h,m]=value.split(':').map(Number);return h*60+m};
 
 const disciplines=['Forza / Sala pesi','TRX','GRID','Calisthenics','Hyrox','Flexability','Cross Active'];
@@ -45,6 +47,8 @@ function App(){
  const [venues,setVenues]=useState<Venue[]>(demoVenues);
  const [availabilityWindows,setAvailabilityWindows]=useState<WindowRow[]>([]);
  const [closures,setClosures]=useState<ClosureRow[]>([]);
+ const [courseBlocks,setCourseBlocks]=useState<CourseRow[]>([]);
+ const [externalEvents,setExternalEvents]=useState<ExternalRow[]>([]);
  const [calendarSync,setCalendarSync]=useState<{status:string;last_success_at:string|null;last_error:string|null}|null>(null);
  const [newWindow,setNewWindow]=useState({weekday:1,venue_id:'talenti',start_minute:540,end_minute:600,is_flexible:false});
 
@@ -159,12 +163,17 @@ function App(){
   void Promise.all([
    supabase.from('availability_windows').select('*').order('weekday').order('start_minute'),
    supabase.from('calendar_closures').select('*').order('start_date'),
-   supabase.from('google_calendar_sync').select('status,last_success_at,last_error').eq('id',1).maybeSingle()
-  ]).then(([w,cl,sync])=>{
+   supabase.from('google_calendar_sync').select('status,last_success_at,last_error').eq('id',1).maybeSingle(),
+   supabase.from('calendar_course_blocks').select('*').order('weekday').order('on_date'),
+   supabase.from('external_calendar_events').select('id,calendar_id,original_event_id,venue_id,starts_at,ends_at,is_course,blocks_booking,needs_review')
+    .gte('ends_at',new Date().toISOString()).order('starts_at').limit(100)
+  ]).then(([w,cl,sync,course,events])=>{
     if(!live)return;
     if(!w.error)setAvailabilityWindows((w.data||[]) as WindowRow[]);
     if(!cl.error)setClosures((cl.data||[]) as ClosureRow[]);
     if(!sync.error)setCalendarSync(sync.data);
+    if(!course.error)setCourseBlocks((course.data||[]) as CourseRow[]);
+    if(!events.error)setExternalEvents((events.data||[]) as ExternalRow[]);
   });
   return()=>{live=false};
  },[profile?.id,profile?.role,coachTab]);
@@ -369,6 +378,21 @@ function App(){
   setAvailabilityWindows(v=>[...v,data as WindowRow].sort((a,b)=>a.weekday-b.weekday||a.start_minute-b.start_minute));
   submitMsg('Finestra aggiunta. Le disponibilità vengono ricalcolate dal server.');
  };
+ const saveCourseBlock=async(row:CourseRow,patch:Partial<CourseRow>)=>{
+  if(!supabase)return;
+  const {error}=await supabase.from('calendar_course_blocks').update(patch).eq('id',row.id);
+  if(error){submitMsg(error.message,'error');return}
+  setCourseBlocks(rows=>rows.map(x=>x.id===row.id?{...x,...patch}:x));
+ };
+ const classifyExternal=async(row:ExternalRow,venue_id:string)=>{
+  if(!supabase)return;
+  const {error}=await supabase.rpc('coach_classify_external_event',{
+   p_id:row.id,p_venue_id:venue_id,p_is_course:row.is_course,p_blocks_booking:row.blocks_booking
+  });
+  if(error){submitMsg(error.message,'error');return}
+  setExternalEvents(rows=>rows.map(x=>x.id===row.id?{...x,venue_id,needs_review:false}:x));
+  submitMsg('Sede evento verificata. L’agenda viene aggiornata dal server.');
+ };
  const saveClosure=async(cl:ClosureRow,patch:Partial<ClosureRow>)=>{
   if(!supabase)return;
   const {error}=await supabase.from('calendar_closures').update(patch).eq('id',cl.id);
@@ -486,7 +510,23 @@ function App(){
       <label className="check-row tiny"><input type="checkbox" checked={cl.is_active} onChange={e=>void saveClosure(cl,{is_active:e.target.checked})}/>Blocca date</label>
       {cl.review_status==='proposed'&&<Button variant="outline" onClick={()=>void saveClosure(cl,{review_status:'confirmed'})}>CONFERMA CHIUSURA</Button>}
     </div>):<p className="small-muted">Nessuna chiusura proposta.</p>}
-    <p className="footnote">Sono presenti anche corsi ricorrenti con validità fino al 30 novembre ed eventi con sede da verificare. Una finestra flessibile non autorizza a ignorare corsi o viaggi. Le modifiche non spostano automaticamente le prenotazioni già confermate.</p>
+    <h3 className="schedule-subtitle">Palinsesto corsi e impegni da verificare</h3>
+    <p className="section-intro">Ricorrenze confermate dal documento solo per 19/10–30/11/2026. Gli eventi TRX senza fine o sede verificata restano bloccanti: prima di renderli disponibili occorre classificare gli impegni reali.</p>
+    <div className="schedule-window-list">{courseBlocks.map(b=><div key={b.id} className="schedule-window">
+     <div><b>{b.title}</b><small>{b.on_date||dayNames[(b.weekday||1)-1]} · {formatStartMinute(b.start_minute)}–{formatStartMinute(b.end_minute)} {b.needs_review?'· Da verificare':''}</small></div>
+     <label>Sede<select value={b.venue_id||''} onChange={e=>void saveCourseBlock(b,{venue_id:e.target.value||null,needs_review:!e.target.value})}>
+      <option value="">Non classificata</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
+     </select></label>
+     <label className="check-row tiny"><input type="checkbox" checked={b.is_active} onChange={e=>void saveCourseBlock(b,{is_active:e.target.checked})}/>Blocca</label>
+    </div>)}</div>
+    <h3 className="schedule-subtitle">Eventi sincronizzati da Google</h3>
+    {externalEvents.length?externalEvents.map(e=><div key={e.id} className="schedule-window">
+     <div><b>{new Date(e.starts_at).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'})}</b><small>{e.needs_review?'Sede da classificare':'Sede verificata'} · Evento occupante {e.blocks_booking?'sì':'no'}</small></div>
+     <label>Sede<select value={e.venue_id||''} onChange={ev=>{if(ev.target.value)void classifyExternal(e,ev.target.value)}}>
+      <option value="">Da classificare</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
+     </select></label>
+    </div>):<p className="small-muted">Nessun evento sincronizzato. Configura la funzione di sincronizzazione Google prima di usare l’agenda come calendario reale.</p>}
+    <p className="footnote">Una finestra flessibile non autorizza a ignorare corsi o viaggi. Le modifiche agli eventi di Google vengono soltanto lette, mai scritte sui calendari esterni. Le modifiche non spostano automaticamente le prenotazioni già confermate.</p>
     </section>}
    {coachTab==='services'&&<section className="coach-content"><Title eyebrow="LISTINO" sub="Prezzi e disponibilità dei servizi.">SERVIZI</Title>{services.map(s=><div key={s.id} className="admin-product"><div><b>{s.name}</b><small>{s.kind==='quote'?'Su preventivo':`${s.duration_minutes} min`}</small></div><div className="product-actions">{s.kind==='paid'&&<label>€ <input type="number" min="0" step="0.5" defaultValue={s.price_cents/100} onBlur={e=>{const price=Math.round(Number(e.target.value)*100);if(price>=0&&price!==s.price_cents)void updateService(s,{price_cents:price})}}/></label>}<button type="button" role="switch" aria-label={`Servizio ${s.name} attivo`} aria-checked={s.active} className={`switch ${s.active?'on':''}`} onClick={()=>void updateService(s,{active:!s.active})}><i/></button></div></div>)}<Title eyebrow="OFFERTE">PACCHETTI</Title>{packs.map(p=><div className="admin-product" key={p.id}><div><b>{p.name}</b><small>{p.credits} lezioni · {p.description}</small></div><div className="product-actions"><strong>{currency(p.price_cents)}</strong><span className="soft-tag">Stripe da collegare</span></div></div>)}<Title eyebrow="PROMOZIONI">CODICI SCONTO</Title>{codes.map(c=><div key={c.code} className="admin-product"><div><b>{c.code}</b><small>{c.percent_off}% · Validità {c.valid_days_from_contact||'nessun limite'} giorni</small></div><button role="switch" aria-checked={c.active} aria-label={`${c.code} attivo`} className={`switch ${c.active?'on':''}`} onClick={()=>void saveCode({...c,active:!c.active})}><i/></button></div>)}</section>}
    {coachTab==='marketing'&&<section className="coach-content"><Title eyebrow="CONDIVISIONE" sub="QR code, link e codice promozionale pronti da condividere.">QR CODE E LINK</Title><div className="qr-card"><div className="qr-image">{qr?<img src={qr} alt={`QR per accedere all'app con codice ${promo}`}/>:<QrCode size={75}/>}</div><div><h3>QR CODE PRENOTAZIONI</h3><p>Mostra o condividi il QR per aprire l'app con il codice promozionale già inserito.</p>{qr&&<a className="button button-outline" href={qr} download="ale-coach-qr.png">SCARICA QR <ArrowRight size={15}/></a>}</div></div><div className="marketing-link"><div><b>LINK DA CONDIVIDERE</b><small>{shareUrl}</small></div><button aria-label="Copia link" title="Copia link" onClick={()=>{void navigator.clipboard?.writeText(shareUrl);submitMsg('Link copiato')}}><ExternalLink size={18}/></button></div><div className="marketing-link"><div><b>CODICE PROMOZIONALE</b><small>{promo} · 15% sulla prima lezione individuale, senza cumulo con altre offerte.</small></div><button aria-label="Copia codice promozionale" title="Copia codice promozionale" onClick={()=>{void navigator.clipboard?.writeText(promo);submitMsg('Codice copiato')}}><Tag size={18}/></button></div></section>}
