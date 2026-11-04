@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { ArrowLeft, ArrowRight, Bell, CalendarCheck, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, CreditCard, Dumbbell, ExternalLink, Gift, Instagram, LockKeyhole, LogOut, MapPin, Menu, MessageCircle, QrCode, Settings2, ShieldCheck, Sparkles, Tag, TicketPercent, UserRound, Users, Wallet, X, Zap } from 'lucide-react';
 import type { Booking, ClientTab, CoachTab, Discount, Notice, Pack, PaymentMode, Profile, Service, Venue, Wallet as CreditWallet } from './types';
-import { currency, dateLabel, demoBooking, demoPacks, demoServices, demoVenues, nextDates, previewProfile, ready, sources, stateLabels, supabase, timeLabel, whatsappLink, formatStartMinute, previewSlots } from './lib';
+import { currency, dateLabel, nextDates, ready, sources, stateLabels, supabase, timeLabel, whatsappLink, formatStartMinute } from './lib';
 import { blockUnreviewedLegal, legal, legalPaths } from './legal';
 import { serviceRules, packageRules } from './v2Catalog';
 
@@ -20,11 +20,6 @@ const dayNames=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'
 const iconByService:Record<string,typeof Zap>={single:Zap,couple:Users,check:CalendarCheck,start:Dumbbell,intro:MessageCircle,other:Sparkles};
 const promo='ALECOACH15';
 const fromUrl=()=>{const q=new URLSearchParams(location.search);return {source:q.get('source')||'direct',code:(q.get('code')||'').toUpperCase(),referral:q.get('ref')||''};};
-const storageBookings='ale-coach-preview-bookings-v1';
-const storageAllow='ale-coach-preview-allow';
-const storageNotices='ale-coach-preview-notices';
-function demoRead<T>(key:string,fallback:T):T{try{const s=localStorage.getItem(key);return s?JSON.parse(s) as T:fallback}catch{return fallback}}
-function demoWrite<T>(key:string,value:T){try{localStorage.setItem(key,JSON.stringify(value))}catch{/* private mode */}}
 const errorText=(e:unknown)=>e instanceof Error?e.message:typeof e==='object'&&e&&'message' in e?String(e.message):'Operazione non riuscita';
 function Logo({small=false}:{small?:boolean}){return <div className={`brand ${small?'brand-small':''}`}><span>///</span> ALE <b>COACH</b></div>}
 function Button({children,variant='primary',disabled=false,onClick,type='button',className=''}:{children:ReactNode;variant?:'primary'|'outline'|'quiet'|'dark';disabled?:boolean;onClick?:()=>void;type?:'button'|'submit';className?:string}){return <button type={type} onClick={onClick} disabled={disabled} className={`button button-${variant} ${className}`}>{children}</button>}
@@ -44,8 +39,8 @@ function App(){
  const [message,setMessage]=useState<{mode:'ok'|'error'|'info';text:string}|null>(null);
  const [authMode,setAuthMode]=useState<'signin'|'signup'|'reset'>('signin');
  const [authForm,setAuthForm]=useState({name:'',phone:'',email:'',password:''});
- const [services,setServices]=useState<Service[]>(demoServices);
- const [venues,setVenues]=useState<Venue[]>(demoVenues);
+ const [services,setServices]=useState<Service[]>([]);
+ const [venues,setVenues]=useState<Venue[]>([]);
  const [availabilityWindows,setAvailabilityWindows]=useState<WindowRow[]>([]);
  const [closures,setClosures]=useState<ClosureRow[]>([]);
  const [courseBlocks,setCourseBlocks]=useState<CourseRow[]>([]);
@@ -53,11 +48,11 @@ function App(){
  const [calendarSync,setCalendarSync]=useState<{status:string;last_success_at:string|null;last_error:string|null}|null>(null);
  const [newWindow,setNewWindow]=useState({weekday:1,venue_id:'talenti',start_minute:540,end_minute:600,is_flexible:false});
 
- const [packs,setPacks]=useState<Pack[]>(demoPacks);
+ const [packs,setPacks]=useState<Pack[]>([]);
  const [codes,setCodes]=useState<Discount[]>([{code:promo,percent_off:15,active:true,uses:0,first_purchase_only:true,valid_days_from_contact:null}]);
- const [bookings,setBookings]=useState<Booking[]>(()=>ready?[]:demoRead(storageBookings,[demoBooking()]));
- const [clients,setClients]=useState<Profile[]>(()=>ready?[]:[{...previewProfile('client'),allow_in_person:demoRead(storageAllow,false)}]);
- const [notices,setNotices]=useState<Notice[]>(()=>ready?[]:demoRead(storageNotices,[]));
+ const [bookings,setBookings]=useState<Booking[]>([]);
+ const [clients,setClients]=useState<Profile[]>([]);
+ const [notices,setNotices]=useState<Notice[]>([]);
  const [wallets,setWallets]=useState<CreditWallet[]>([]);
  const [selectedService,setSelectedService]=useState<Service|null>(null);
  const [step,setStep]=useState<Step>('details');
@@ -76,10 +71,8 @@ function App(){
  const [allowMenu,setAllowMenu]=useState(false);
  const [pushEnabled,setPushEnabled]=useState(false);
  const [termsOk,setTermsOk]=useState(false);
- const [previewNote,setPreviewNote]=useState(false);
  const attrib=useRef(fromUrl());
  const pendingAction=useRef<string|null>(null);
- const isPreview=!ready;
  const isCoach=profile?.role==='coach';
  const myBookings=useMemo(()=>bookings.filter(b=>isCoach||b.client_id===profile?.id).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()),[bookings,isCoach,profile?.id]);
  const myNotices=useMemo(()=>notices.filter(n=>n.recipient_id===profile?.id),[notices,profile?.id]);
@@ -139,14 +132,9 @@ function App(){
   const c=supabase.channel('ale-realtime-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'bookings'},()=>{void refresh()}).on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:`recipient_id=eq.${user.id}`},()=>{void refresh()}).subscribe();
   return()=>{void supabase!.removeChannel(c)};
  },[user,refresh]);
- useEffect(()=>{if(!ready){demoWrite(storageBookings,bookings);demoWrite(storageNotices,notices)}},[bookings,notices]);
  useEffect(()=>{window.scrollTo({top:0,behavior:'smooth'})},[screen,clientTab,coachTab,step,selectedService]);
  useEffect(()=>{
   if(!selectedService||selectedService.kind==='quote'||!selectedDay)return;
-  if(!supabase){
-   setAvailableHours(previewSlots(selectedService,selectedDay,venuePreference,bookings));
-   return;
-  }
   let active=true;
   void supabase.rpc('available_slots_v2',{
    p_service_id:selectedService.id,p_day:selectedDay,p_venue_preference:venuePreference
@@ -186,7 +174,6 @@ function App(){
   const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}});
   if(error)submitMsg(error.message,'error');
  };
- const previewLogin=(role:'client'|'coach')=>{const p=previewProfile(role);if(role==='client')p.allow_in_person=demoRead(storageAllow,false);setProfile(p);setScreen(role==='coach'?'coach':'client');submitMsg('Modalità anteprima: dati salvati solo in questo browser.','info')};
  const logout=async()=>{if(supabase)await supabase.auth.signOut();setUser(null);setProfile(null);setSelectedService(null);setScreen('landing');setClientTab('home');setCoachTab('overview')};
  const authenticate=async(e:React.FormEvent)=>{
   e.preventDefault();if(!supabase){submitMsg('Configura Supabase per attivare la registrazione.','error');return}
@@ -210,7 +197,7 @@ function App(){
  const releaseHold=()=>{setHoldUntil(null);if(supabase&&profile)void supabase.rpc('release_slot_hold_v2')};
  const chooseSlot=async(slot:{start_minute:number;venue_id:string})=>{
   if(!selectedService)return;
-  if(!supabase){setSelectedHour(slot.start_minute);setSelectedVenue(slot.venue_id);return}
+  if(!supabase)return;
   setBusy(true);
   try{
    const {data,error}=await supabase.rpc('reserve_slot_v2',{
@@ -225,7 +212,7 @@ function App(){
 
  const changeProfile=async(patch:Partial<Pick<Profile,'full_name'|'phone'|'virgin_member'>>)=>{
   if(!profile)return;
-  if(!supabase){setProfile({...profile,...patch});submitMsg('Profilo aggiornato in anteprima');return}
+  if(!supabase)return;
   setBusy(true);const {error}=await supabase.from('profiles').update(patch).eq('id',profile.id);setBusy(false);
   if(error){submitMsg(error.message,'error');return}setProfile({...profile,...patch});submitMsg('Profilo aggiornato');
  };
@@ -267,15 +254,6 @@ function App(){
   if(blockUnreviewedLegal){submitMsg('Prenotazioni non attive: informative legali non ancora approvate.','error');return}
   setBusy(true);
   try{
-   if(!supabase){
-    const discount=promoInput.trim().toUpperCase()===promo&&selected.id==='single'?15:0;
-    const b:Booking={...demoBooking(),id:crypto.randomUUID(),client_id:'client-preview',service_id:selected.id,venue_id:selected.kind==='quote'?null:selectedVenue,
-      starts_at:selected.kind==='quote'?null:new Date(`${selectedDay}T${formatStartMinute(selectedHour!)}:00`).toISOString(),duration_minutes:selected.duration_minutes,
-      payment_mode:selected.kind==='free'||selected.kind==='quote'?'none':selectedMode,status:'pending',payment_status:'unpaid',base_amount_cents:selected.price_cents,
-      amount_cents:Math.round(selected.price_cents*(100-discount)/100),discount_percent:discount,promo_code:discount?promo:null,details:bookingDetails,
-      source:attrib.current.source,referral:attrib.current.referral,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+86400000).toISOString()};
-    setBookings(v=>[b,...v]);submitMsg('Richiesta inviata! Ale dovrà confermarla.');finishWizard();return;
-   }
    const details={...bookingDetails};
    const {error}=await supabase.rpc('create_booking_v2',{p_service_id:selected.id,p_venue_id:selectedVenue,p_day:selected.kind==='quote'?null:selectedDay,p_start_minute:selected.kind==='quote'?null:selectedHour,p_details:details,p_payment_mode:selected.kind==='free'||selected.kind==='quote'?'none':selectedMode,p_code:promoInput.toUpperCase().trim()||null,p_source:attrib.current.source,p_referral:attrib.current.referral||null});
    if(error)throw error;
@@ -285,25 +263,24 @@ function App(){
  const coachAction=async(b:Booking,action:'approve'|'reject'|'quote')=>{
   setBusy(true);
   try{
-   if(!supabase){
-    const status=action==='reject'?'rejected':action==='quote'?'quoted':b.payment_mode==='online'?'awaiting_payment':'confirmed';
-    setBookings(rows=>rows.map(x=>x.id===b.id?{...x,status,approved_at:new Date().toISOString(),amount_cents:action==='quote'?Number(quoteValues[b.id])*100:x.amount_cents,payment_status:status==='confirmed'?'due_in_person':status==='awaiting_payment'?'awaiting':x.payment_status}:x));
-   }else{
-    const cents=action==='quote'?Math.round(Number(quoteValues[b.id])*100):null;
-    if(action==='quote'&&(!cents||cents<=0)){submitMsg('Inserisci un prezzo valido.','error');setBusy(false);return}
-    const {error}=await supabase.rpc('coach_decide_booking',{p_booking_id:b.id,p_action:action,p_quote_cents:cents});if(error)throw error;
-   }
+   if(!supabase)throw new Error('Supabase non configurato');
+   const cents=action==='quote'?Math.round(Number(quoteValues[b.id])*100):null;
+   if(action==='quote'&&(!cents||cents<=0)){submitMsg('Inserisci un prezzo valido.','error');setBusy(false);return}
+   const {error}=await supabase.rpc('coach_decide_booking',{p_booking_id:b.id,p_action:action,p_quote_cents:cents});
+   if(error)throw error;
    submitMsg(action==='reject'?'Richiesta rifiutata':action==='quote'?'Preventivo inviato':'Richiesta approvata');void refresh();
   }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
  const setPaymentMode=async(b:Booking,mode:'online'|'in_person')=>{
-  if(!supabase){setBookings(rows=>rows.map(x=>x.id===b.id?{...x,payment_mode:mode}:x));return}
+  if(!supabase)return;
   const {error}=await supabase.rpc('coach_set_booking_method',{p_booking_id:b.id,p_mode:mode});if(error)submitMsg(error.message,'error');else void refresh();
  };
  const setInPerson=async(c:Profile,allow:boolean)=>{
   setBusy(true);
-  try{if(supabase){const {error}=await supabase.rpc('coach_set_in_person',{p_client_id:c.id,p_allowed:allow});if(error)throw error}
-   else{demoWrite(storageAllow,allow);if(profile?.role==='client')setProfile({...profile,allow_in_person:allow})}
+  try{
+   if(!supabase)throw new Error('Supabase non configurato');
+   const {error}=await supabase.rpc('coach_set_in_person',{p_client_id:c.id,p_allowed:allow});
+   if(error)throw error;
    setClients(v=>v.map(x=>x.id===c.id?{...x,allow_in_person:allow}:x));submitMsg(allow?'Pagamento in palestra abilitato':'Pagamento in palestra disabilitato');void refresh();
   }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
@@ -324,8 +301,8 @@ function App(){
   if(!confirm('Vuoi disdire questa prenotazione?'))return;
   setBusy(true);
   try{
-   if(!supabase){setBookings(rows=>rows.map(x=>x.id===b.id?{...x,status:'cancelled',cancelled_at:new Date().toISOString()}:x))}
-   else if(b.payment_mode==='online'&&b.payment_status==='paid'){
+   if(!supabase)throw new Error('Supabase non configurato');
+   if(b.payment_mode==='online'&&b.payment_status==='paid'){
     const {data,error}=await supabase.functions.invoke('cancel-booking',{body:{bookingId:b.id}});if(error||data?.error)throw Error(data?.error||error?.message||'Rimborso non riuscito');
    }else{const {error}=await supabase.rpc('cancel_unpaid_booking',{p_booking_id:b.id});if(error)throw error}
    submitMsg('Prenotazione disdetta');void refresh();
@@ -333,8 +310,8 @@ function App(){
  };
  const inPersonPaid=async(b:Booking)=>{
   setBusy(true);try{
-   if(!supabase)setBookings(rows=>rows.map(x=>x.id===b.id?{...x,payment_status:'paid',paid_at:new Date().toISOString()}:x));
-   else{const {error}=await supabase.rpc('coach_mark_in_person_paid',{p_booking_id:b.id});if(error)throw error}
+   if(!supabase)throw new Error('Supabase non configurato');
+   const {error}=await supabase.rpc('coach_mark_in_person_paid',{p_booking_id:b.id});if(error)throw error;
    submitMsg('Pagamento in presenza registrato');void refresh();
   }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
@@ -356,7 +333,7 @@ function App(){
    setPushEnabled(true);submitMsg('Notifiche push abilitate su questo dispositivo.');
   }catch(e){submitMsg(errorText(e),'error')}
  };
- const updateService=async(s:Service,patch:Partial<Service>)=>{if(!supabase){setServices(rows=>rows.map(x=>x.id===s.id?{...x,...patch}:x));return}const {error}=await supabase.from('services').update(patch).eq('id',s.id);if(error)submitMsg(error.message,'error');else setServices(rows=>rows.map(x=>x.id===s.id?{...x,...patch}:x))};
+ const updateService=async(s:Service,patch:Partial<Service>)=>{if(!supabase)return;const {error}=await supabase.from('services').update(patch).eq('id',s.id);if(error)submitMsg(error.message,'error');else setServices(rows=>rows.map(x=>x.id===s.id?{...x,...patch}:x))};
  const saveWindow=async(w:WindowRow,patch:Partial<WindowRow>)=>{
   if(!supabase)return;
   if((patch.start_minute!==undefined&&patch.start_minute%15!==0)||
@@ -400,7 +377,7 @@ function App(){
   if(error){submitMsg(error.message,'error');return}
   setClosures(rows=>rows.map(x=>x.id===cl.id?{...x,...patch}:x));
  };
- const saveCode=async(value:Discount)=>{if(!supabase){setCodes(rows=>rows.map(c=>c.code===value.code?value:c));return}const {error}=await supabase.from('discount_codes').update({active:value.active,percent_off:value.percent_off}).eq('code',value.code);if(error)submitMsg(error.message,'error');else setCodes(rows=>rows.map(c=>c.code===value.code?value:c))};
+ const saveCode=async(value:Discount)=>{if(!supabase)return;const {error}=await supabase.from('discount_codes').update({active:value.active,percent_off:value.percent_off}).eq('code',value.code);if(error)submitMsg(error.message,'error');else setCodes(rows=>rows.map(c=>c.code===value.code?value:c))};
  const activeServices=services.filter(s=>s.active).sort((a,b)=>a.sort_order-b.sort_order);
  const activePacks=packs.filter(p=>p.active).sort((a,b)=>a.sort_order-b.sort_order);
  const bookingForm=selected&&screen==='client'&&!isCoach;
@@ -413,11 +390,10 @@ function App(){
  const inPersonTotal=bookings.filter(b=>b.payment_status==='due_in_person').reduce((n,b)=>n+b.amount_cents,0);
  const coachNav:{id:CoachTab;label:string}[]=[{id:'overview',label:'Dashboard'},{id:'requests',label:'Richieste'},{id:'agenda',label:'Agenda'},{id:'clients',label:'Clienti'},{id:'hours',label:'Orari'},{id:'services',label:'Listino'},{id:'marketing',label:'Marketing'}];
  const shareUrl=typeof window==='undefined'?'':`${window.location.origin}/?source=club&code=${promo}`;
+ if(!ready||!supabase)return <main className="cloud-unavailable" role="alert"><Logo/><h1>Configurazione cloud non disponibile</h1><p>L'app richiede Supabase Cloud per accedere, prenotare e gestire le lezioni. Nessun dato simulato viene caricato.</p><a href="mailto:info@alecoach.online">Contatta info@alecoach.online</a></main>;
  return <div className={`app-shell ${screen==='coach'?'coach-shell':''}`}>
-  {!ready&&<div className="demo-environment-banner" role="status"><ShieldCheck size={15}/> ANTEPRIMA DIMOSTRATIVA · Dati fittizi salvati solo in questo browser. Nessuna prenotazione o pagamento reale.</div>}
   <header className="site-header"><div className="header-inner"><button aria-label="Vai alla home" className="logo-button" onClick={()=>{setSelectedService(null);setScreen(profile?(isCoach?'coach':'client'):'landing')}}><Logo small/></button>
    <div className="header-actions">{profile?<><span className="greeting">{isCoach?'Ciao Ale':`Ciao, ${profile.full_name.split(' ')[0]||'atleta'}`}</span><button className="icon-button" aria-label="Esci dall'account" onClick={()=>void logout()}><LogOut size={18}/></button></>:<Button variant="outline" onClick={()=>{setScreen('auth');setAuthMode('signin')}}>Accedi <ArrowRight size={15}/></Button>}</div></div></header>
-  {isPreview&&<div className="preview-banner"><div><strong>ANTEPRIMA INTERATTIVA</strong> · Dati locali, senza database o incassi reali.</div><button onClick={()=>setPreviewNote(v=>!v)}>{previewNote?'Chiudi':'Dettagli'}</button>{previewNote&&<p>Questa pubblicazione serve per testare il percorso. Login Supabase, Stripe e push server saranno effettivi solo dopo configurazione del progetto e delle chiavi.</p>}</div>}
   {message&&<div className={`flash flash-${message.mode}`} role="status">{alertTitle(message.mode)}<span>{message.text}</span><button aria-label="Chiudi avviso" onClick={()=>setMessage(null)}><X size={16}/></button></div>}
   {booting?<div className="loading"><div className="spinner"/>Caricamento in corso...</div>:<>
   {screen==='landing'&&<main className="client-layout landing-page">
@@ -437,7 +413,6 @@ function App(){
     <Button type="submit" disabled={busy||!onlineReady||(authMode==='signup'&&(!privacyNoticeSeen||blockUnreviewedLegal))}>{busy?'Caricamento...':authMode==='signup'?'REGISTRATI':authMode==='reset'?'INVIA LINK':'ACCEDI'} <ArrowRight size={17}/></Button></form>
     {import.meta.env.VITE_GOOGLE_ENABLED==='true'&&!blockUnreviewedLegal&&<><div className="oauth-separator">oppure</div>{authMode!=='signup'&&<label className="check-row terms"><input type="checkbox" checked={privacyNoticeSeen} onChange={e=>setPrivacyNoticeSeen(e.target.checked)}/><span>Ho preso visione dell'<a href={legalPaths.privacy} target="_blank" rel="noopener noreferrer">informativa privacy</a> prima di continuare con Google.</span></label>}<Button variant="outline" className="google-login" disabled={!privacyNoticeSeen} onClick={()=>void googleLogin()}>CONTINUA CON GOOGLE</Button></>}
     <div className="auth-switch">{authMode==='signin'?<><button onClick={()=>setAuthMode('signup')}>Non hai un account? Registrati</button><button onClick={()=>setAuthMode('reset')}>Password dimenticata?</button></>:<button onClick={()=>setAuthMode('signin')}>Hai già un account? Accedi</button>}</div>
-    {isPreview&&<div className="preview-logins"><span>ANTEPRIMA DEL FLUSSO, SENZA ACCOUNT REALI</span><Button variant="dark" onClick={()=>previewLogin('client')}><UserRound size={17}/> Entra come cliente demo</Button><Button variant="outline" onClick={()=>previewLogin('coach')}><Dumbbell size={17}/> Entra come coach demo</Button></div>}
    </div><p className="security-note"><ShieldCheck size={15}/> Login protetto da Supabase Auth quando configurato</p></main>}
   {screen==='client'&&profile&&<main className="client-layout client-page">
    <div className="app-welcome"><div><div className="signature">il tuo percorso, {profile.full_name.split(' ')[0]}</div><h1>ALLENATI CON <em>ALE.</em></h1></div><div className="profile-bubble">{profile.full_name.charAt(0)||'A'}</div></div>
