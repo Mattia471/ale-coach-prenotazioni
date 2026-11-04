@@ -16,7 +16,10 @@ export const legalReady = Boolean(
   legal.contactEmail && legal.version
 );
 // Le iscrizioni commerciali restano disabilitate fino all'approvazione delle informative.
-export const blockUnreviewedLegal = import.meta.env.PROD && !legalReady;
+// Accesso pre-lancio con allowlist reale sul database (private.on_signup).
+// Non equivale all'approvazione legale e non abilita la vendita al pubblico.
+export const internalQa = import.meta.env.VITE_PRELAUNCH_QA === 'true';
+export const blockUnreviewedLegal = import.meta.env.PROD && !legalReady && !internalQa;
 export const legalPaths = {
   privacy: '/privacy',
   terms: '/termini',
