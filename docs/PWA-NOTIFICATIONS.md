@@ -3,9 +3,11 @@
 ## Stato: cloud QA, 4 novembre 2026
 
 - PWA: manifest `display:standalone`, `id:/`, `scope:/`, service worker `/sw.js`.
-- UX: banner non bloccante all'apertura dell'app per l'account autenticato,
-  con azione esplicita **ATTIVA NOTIFICHE**, dismiss per la sessione e nessuna
-  ripetizione quando la sottoscrizione di questo dispositivo risulta registrata.
+- UX: invito non bloccante già nella schermata iniziale, con pulsante
+  **ACCEDI E ATTIVA**. Dopo il login, l'azione esplicita **ATTIVA NOTIFICHE**
+  consente di richiedere il permesso; nessun prompt di sistema automatico.
+  Il banner si può chiudere per la sessione e non ricompare quando la
+  sottoscrizione di questo dispositivo risulta già registrata.
 - iOS: le notifiche Web Push richiedono iOS/iPadOS 16.4+, installazione della
   web app nella schermata Home e un tap dell'utente; il banner spiega il percorso.
 - Input mobile di testo/select/textarea a 16px sui dispositivi touch: riduce
