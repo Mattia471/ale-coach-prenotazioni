@@ -72,7 +72,7 @@ and not exists(
   e.ends_at + make_interval(mins=>10+case when e.venue_id is distinct from p_venue then 45 else 0 end),'[)')
  && tstzrange(p_start,p_start+make_interval(mins=>p_duration+10),'[)')
 );
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.create_booking_v2(p_service_id text, p_venue_id text, p_day date, p_start_minute integer, p_details jsonb DEFAULT '{}'::jsonb, p_payment_mode text DEFAULT 'online'::text, p_code text DEFAULT NULL::text, p_source text DEFAULT 'direct'::text, p_referral text DEFAULT NULL::text)
  RETURNS uuid
@@ -157,7 +157,7 @@ begin
 exception when exclusion_violation or unique_violation then
  raise exception 'Questo orario o la promozione sono già riservati';
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.coach_decide_booking(p_booking_id uuid, p_action text, p_quote_cents integer DEFAULT NULL::integer)
  RETURNS text
@@ -253,7 +253,7 @@ begin
  end loop;
  return n;
 end;
-$function$
+$function$;
 
 
 -- Solo webhook autenticato con service_role tras aver verificato una
