@@ -7,11 +7,11 @@
 | Fase | Attività essenziali | Stato al 4 novembre 2026 |
 | --- | --- | --- |
 | **Giorno 1 · 4 novembre** | Cloud, Auth riservato, migrazioni, RLS, Stripe test preparato e domini | **Parzialmente completato**. Database e Vercel attivi, mail dominio confermata, sicurezza e protezione Stripe implementate. SMTP, redirect e segreti Stripe da verificare; nessuna vendita live. |
-| **Giorno 2 · 5 novembre** | Stripe preautorizzazione/cattura, calendario Google vero, webhook e test concorrenti | **In corso**. Preautorizzazione Stripe, webhook, decisione del coach e UI cloud implementati il 4 novembre; richiede test carta Stripe e Google OAuth reale. |
+| **Giorno 2 · 5 novembre** | Stripe preautorizzazione/cattura, agenda interna, webhook e test concorrenti | **In corso**. Preautorizzazione Stripe, webhook, decisione del coach e UI cloud implementati il 4 novembre; richiede test completo su carta Stripe e disponibilità interna. |
 | **Giorno 3 · 6 novembre** | QA completa, GDPR e termini approvati, backup/restore, dominio Cloudflare, monitoraggio e GO | **Non eseguito**. Non si pubblica commercialmente con P0 aperti. |
 
 I giorni indicano la sequenza prevista, **non garantiscono il lancio**:
-conferme Google e pagamenti veri restano bloccati finché non superano i test.
+controlli anti-overbooking, sicurezza e pagamenti veri restano bloccati finché non superano i test.
 
 ### Stato Giorno 1 e controlli verificati
 
@@ -44,10 +44,10 @@ Per la configurazione Stripe senza condividere credenziali:
 | Autenticazione | Supabase Auth | Tabelle e trigger presenti; configurazione URL e SMTP da ultimare |
 | Catalogo e calendario | PostgreSQL + RLS + RPC | Popolati, primo test slot riuscito |
 | Cron scadenze | `ale-coach-expire-bookings` | Attivo ogni cinque minuti |
-| Edge Functions | Checkout, cancel, webhook, push, Google sync | Distribuite, import runtime compatibile con Supabase Cloud; servizi esterni da collegare |
+| Edge Functions | Checkout, cancel, webhook, push | Distribuite e attive per QA. Il codice Google Sync rimane disabilitato e fuori ambito base |
 | Email dominio | `info@alecoach.online` | Casella creata dal cliente, SMTP Supabase da collegare |
 | Stripe | Account creato dal coach | Edge Functions protette e runtime corretto; segreti test e webhook firmato da configurare |
-| Google Calendar | Account del coach | **Non autorizzato** |
+| Google Calendar | Extra futuro su richiesta | **Escluso dalla release e dal preventivo base** |
 | Sito definitivo | Cloudflare Pages e `alecoach.online` | Da configurare dopo i gate |
 
 ## Configurazione account coach e login
@@ -61,7 +61,7 @@ Per la configurazione Stripe senza condividere credenziali:
 ## Configurazione servizi
 
 - **Stripe:** aggiungere i Secrets alle Edge Functions solo nell'account Supabase, endpoint webhook firmato e pagamento in modalità test prima delle chiavi live. La v2 richiede preautorizzazione/cattura differita, ancora da implementare. Non usare il checkout iniziale per incassi reali.
-- **Google Calendar:** ottenere consenso e credenziali OAuth del coach con sola lettura; configurare calendario/i, refresh token e job di sincronizzazione server-side con Vault. Le conferme sono deliberatamente bloccate quando la sincronizzazione è assente o obsoleta.
+- **Agenda interna:** usare finestre, corsi, chiusure, lezioni e buffer sede come unica fonte operativa. Il coach deve aggiornare manualmente gli impegni esterni. Google Calendar è una integrazione opzionale da concordare e preventivare separatamente, non è un gate di rilascio.
 - **Push:** configurare VAPID e secret Webhook prima di dichiararle attive; permission browser su azione esplicita.
 - **Supabase Cron:** il job scadenza di prenotazioni è già attivo in produzione. Monitorare `cron.job_run_details`.
 

@@ -10,7 +10,7 @@ Non utilizzare Docker, database locale o seed automatici. Il database è reale: 
 - [x] Webhook Stripe Sandbox ascolta completamento, scadenza, cattura e annullamento.
 - [x] Deploy Vercel sul dominio di collaudo; build TypeScript e test esistenti superati.
 - [ ] **Da testare**: checkout con carta Stripe di prova e webhook firmato `requires_capture`.
-- [ ] **Da testare**: approvazione e incasso con Google Calendar sincronizzato, rifiuto, doppie esecuzioni, scadenza autorizzazione e compensazione.
+- [ ] **Da testare**: approvazione e incasso usando l'agenda interna, rifiuto, doppie esecuzioni, scadenza autorizzazione e compensazione.
 - [ ] Blocco GO LIVE: cron automatico per annullare preautorizzazioni scadute e riconciliazione degli errori dopo l'incasso.
 
 ## Checkpoint del giorno 1, 4 novembre 2026
@@ -25,7 +25,7 @@ Non utilizzare Docker, database locale o seed automatici. Il database è reale: 
 - [ ] Segreti Stripe test configurati nell'account del coach e sottoscrizione webhook firmato, vedi [STRIPE-SETUP.md](STRIPE-SETUP.md).
 - [ ] Verificare un webhook Stripe **firmato**, con evento test e idempotenza.
 - [ ] Preautorizzazione/cattura manuale v2: **non ancora implementata**.
-- [ ] Google Calendar effettivamente collegato e sync recente prima di approvare qualsiasi pagamento.
+- [x] Backend indipendente da Google Calendar per il controllo di prenotazioni interne (migrazione di release base applicata).
 
 ## Già verificato
 
@@ -60,13 +60,9 @@ Non utilizzare Docker, database locale o seed automatici. Il database è reale: 
 - [ ] Il coach modifica fasce/chiusure senza consentire collisioni sulle prenotazioni già confermate.
 - [ ] Cron scadenze funziona su una richiesta scaduta senza prenotazioni reali coinvolte.
 
-## Google Calendar
+## Google Calendar (extra opzionale escluso dalla v1)
 
-- [ ] OAuth autorizzato dall'account Google del coach e calendario/i corretti in lettura.
-- [ ] Sincronizzazione pianificata, eventi ricorrenti, duplicati, eccezioni e cancellazioni correttamente gestiti.
-- [ ] Eventi non classificati bloccano slot con margine prudenziale; coach classifica sede.
-- [ ] Mancata sincronizzazione oltre 15 minuti blocca le conferme senza nascondere errori.
-- [ ] Nessun evento privato di terzi viene esposto al browser di altri clienti.
+Non è un prerequisito per pubblicare l'app base. Non attivare OAuth, token o cron senza richiesta e preventivo aggiuntivo. Per la release attuale verificare invece che il coach possa approvare dopo i controlli interni e che il database rifiuti sovrapposizioni e giorni chiusi.
 
 ## Stripe, acquisti e rimborsi: **NON autorizzati per il live**
 
@@ -86,3 +82,13 @@ Non utilizzare Docker, database locale o seed automatici. Il database è reale: 
 - [ ] Correggere qualunque errore P0 prima della pubblicazione commerciale.
 
 **Regola:** finché i test contrassegnati per GDPR, pagamenti, concorrenza e calendario non sono completati, niente incassi reali e niente apertura al pubblico.
+
+
+## Regressione PWA mobile e recupero password (4 novembre 2026)
+
+- iPhone da schermata Home: aprire login, digitare e passare tra i campi senza zoom automatico né perdita del focus; verificare anche gli step di prenotazione e il tastierino degli orari.
+- Verificare che lo zoom manuale e le funzioni di accessibilità rimangano disponibili e che il layout non scorra lateralmente.
+- Da un account di collaudo autorizzato, richiedere il recupero password, aprire il link ricevuto via email, inserire due password diverse (errore atteso) e poi una coppia valida: confermare il salvataggio e il successivo accesso.
+- Link di recupero scaduto: la password non deve cambiare; richiedere un nuovo link. Verificare i redirect autorizzati su Supabase Auth e le mail via SMTP.
+- Push: controllare che il banner sia visibile dopo login sul dispositivo senza subscription, non richieda permessi in automatico e sparisca quando la subscription è registrata. Testare la ricezione reale a schermo bloccato.
+- La build e i test CI verificano la correttezza statica ma non sostituiscono i test E2E su iPhone, Stripe Sandbox e agenda interna.

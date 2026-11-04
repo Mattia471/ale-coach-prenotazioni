@@ -14,7 +14,7 @@ per pagamenti live.
   PaymentIntent, importo, proprietario e stato `requires_capture`: la richiesta
   diventa `pending`, visibile al coach.
 - Il coach usa la funzione protetta `decide-booking`: `approve` cattura
-  il pagamento soltanto se Google Calendar è aggiornato e lo slot è libero;
+  il pagamento soltanto se lo slot è libero nell'agenda interna;
   `reject` annulla la preautorizzazione.
 - Il cliente può riprendere un Checkout non completato oppure cancellare una
   preautorizzazione attraverso `cancel-booking`.
@@ -43,11 +43,11 @@ per pagamenti live.
    e **non sia `succeeded`**; in Supabase la richiesta deve risultare
    `pending` e `payment_status='authorized'`. Il coach la vede
    soltanto in questo stato.
-5. La cattura **non può essere testata finché il calendario Google
-   del coach non è collegato e sincronizzato** e finché non esiste un
-   account effettivamente autorizzato al ruolo coach.
+5. Per provare la cattura serve un account con ruolo coach verificato e
+   il controllo della disponibilità nell'agenda interna. Google Calendar
+   non è necessario né incluso nella prima release.
 6. Ripristinare `STRIPE_PAYMENTS_ENABLED=false` terminato il test
-   se Google Calendar, notifiche, rimborsi e pulizia automatica
+   se notifiche, rimborsi e pulizia automatica
    delle autorizzazioni scadute non sono ancora validati.
 
 ### Ancora da completare prima del rilascio
@@ -56,7 +56,7 @@ per pagamenti live.
   in `pending` oltre 24 ore, con annullamento server-side sicuro.
 - Test E2E della cattura, rifiuto, eventi duplicati, errori DB dopo
   incasso e compensazione di eventuali pagamenti da rimborsare.
-- Collegamento OAuth Google Calendar reale e conferme basate su dati freschi.
+- Verifica completa dell'agenda interna, inclusi corsi, trasferimenti e due clienti che competono per lo stesso slot.
 - Ruolo coach assegnato solo dopo verifica dell'identità, GDPR approvato,
   SMTP transazionale e dominio definitivo.
 - Il preventivo `other` e gli abbonamenti Continuity richiedono
@@ -119,7 +119,7 @@ Per lezioni singole l'obiettivo è:
 3. Stripe Checkout autorizza la carta con **`payment_intent_data.capture_method=manual`**:
    il cliente completa l'autenticazione, il denaro non viene ancora incassato.
 4. Webhook firmato conferma `requires_capture`; la prenotazione resta in attesa del coach.
-5. Il coach approva, il server ricontrolla Google Calendar e cattura **una sola volta**;
+5. Il coach approva, il server ricontrolla l'agenda interna e cattura **una sola volta**;
    la conferma definitiva arriva dopo riscontro Stripe.
 6. In caso di rifiuto/scadenza si annulla l'autorizzazione; mai indicarla come rimborso
    di un addebito già incassato.
@@ -143,7 +143,7 @@ Documentazione ufficiale:
 - [ ] Pagamento test che produce `requires_capture`, senza incasso.
 - [ ] Rifiuto coach, scadenza e retry: nessuna carta addebitata.
 - [ ] Doppio webhook e doppio clic del coach: una sola cattura o rimborso.
-- [ ] Pagamento già autorizzato ma Google non aggiornato: nessuna conferma, niente addebito.
+- [ ] Pagamento già autorizzato ma slot interno occupato o giornata chiusa: nessuna cattura.
 - [ ] Disponibilità cross-sede: un solo posto per coach, sempre.
 - [ ] Sconto ALECOACH15 applicato dal server, non alterabile nel browser.
 - [ ] Flex 5 e 10: un solo wallet di crediti per checkout pagato.

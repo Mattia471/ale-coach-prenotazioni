@@ -9,7 +9,7 @@ const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{
  status,headers:{...cors,'Content-Type':'application/json'}
 });
 
-// Approva: verifica Google/slot in DB -> cattura su Stripe -> conferma in DB.
+// Approva: ricontrolla slot, corsi, trasferimenti e chiusure nell'agenda interna -> cattura Stripe -> conferma nel DB.
 // Rifiuta: annulla autorizzazione su Stripe -> rifiuta in DB.
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});

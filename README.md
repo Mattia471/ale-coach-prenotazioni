@@ -15,8 +15,8 @@ Applicativo React + TypeScript + Vite dedicato ad Alessandro Cola e alle lezioni
 | Promo ALECOACH15 | 15% prima individuale (55 € → 46,75 €) |
 | Flex 5 / Flex 10 | 250 € / 450 €; pagamento Stripe da collaudare |
 | Continuity 4 / 8 | Catalogo 150 / 260 € al mese, **non ancora acquistabili** |
-| Supabase Edge Functions | Pubblicate: checkout, annullamento, webhook, notifiche e Google sync |
-| Google Calendar | Funzione pronta, ma **non collegata** all'account del coach; conferme bloccate se sync assente |
+| Supabase Edge Functions | Checkout, decisioni, webhook Stripe e notifiche push; integrazione Google disattivata |
+| Google Calendar | **Non incluso nella release base.** Possibile estensione a pagamento, solo su richiesta del coach |
 | Stripe | Sandbox del coach collegata, webhook 4 eventi e preautorizzazione/cattura manuale implementate; collaudo end-to-end e abilitazione test ancora necessari |
 | Email di dominio e Auth | `info@alecoach.online` registrato e confermato; redirect di Auth e SMTP personalizzato da verificare |
 | GDPR | Informative in bozza; registrazioni limitate da allowlist cloud, lancio commerciale ancora bloccato |
@@ -33,7 +33,7 @@ Browser (Vercel)
              ├─ PostgreSQL: servizi, prenotazioni, sedi, pacchetti, calendari
              ├─ RLS e RPC: autorizzazioni e concorrenza
              ├─ Storage privato (upload documenti disabilitato)
-             └─ Edge Functions: Stripe, push, Google Calendar
+             └─ Edge Functions: Stripe e notifiche push (Google non attivato)
 ```
 
 **Supabase project ref:** `mmtnzjdvvlouiwgrydlf`
@@ -62,7 +62,7 @@ Le impostazioni Auth (Site URL, Redirect URLs, SMTP) si configurano nella Dashbo
 
 Le migrazioni versionate sono in `supabase/migrations/` e sono state applicate in ordine al progetto cloud. **Non ripetere migrazioni manualmente se già presenti nello storico Supabase**. Usare una nuova migrazione per cambi successivi.
 
-Prima di aprire a clienti reali, completare i controlli RLS, l'accesso coach, gli orari concorrenti, la sincronizzazione Google, le politiche di rimborso, backup e la gestione GDPR. Le funzioni `SECURITY DEFINER` sono intenzionalmente disponibili ai soli ruoli autorizzati con controlli server-side; non a `anon`.
+Prima di aprire a clienti reali, completare i controlli RLS, l'accesso coach, i controlli anti-conflitto dell'agenda interna, le politiche di rimborso, backup e la gestione GDPR. Le funzioni `SECURITY DEFINER` sono intenzionalmente disponibili ai soli ruoli autorizzati con controlli server-side; non a `anon`.
 
 ## Comandi del progetto
 

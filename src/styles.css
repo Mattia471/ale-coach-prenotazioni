@@ -74,7 +74,7 @@ html{overflow-x:clip;-webkit-text-size-adjust:100%;text-size-adjust:100%;overscr
 body{overflow-x:clip;overscroll-behavior-x:none}
 button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation}
 @media (pointer:coarse){
- input,textarea,select{font-size:max(16px,1em)}
+ input:not([type="checkbox"]):not([type="radio"]),textarea,select{font-size:16px}
 }
 .app-shell{min-height:100dvh}
 @media (prefers-reduced-motion:reduce){

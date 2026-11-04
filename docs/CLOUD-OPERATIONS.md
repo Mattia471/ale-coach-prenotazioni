@@ -17,7 +17,7 @@ senza record nella allowlist, la transazione Auth viene rifiutata dal server.
 Le informative `/privacy`, `/termini` e `/cookie` sono ancora bozze. Usare soltanto
 account autorizzati e dati minimi; non inserire dati sanitari o di terzi.
 Non accettare pagamenti live prima del completamento dell'adeguamento GDPR
-e dei controlli Stripe/Google.
+e dei controlli Stripe e dell'agenda interna.
 
 Per aggiungere un collaudatore, un amministratore autorizzato può eseguire dal SQL Editor:
 ```sql
@@ -76,8 +76,8 @@ La promozione deve essere eseguita **solo dopo conferma dell'identità del vero 
 | Account coach | **Non ancora assegnato**: nessun utente è stato creato automaticamente |
 | Nuove prenotazioni | RPC live e anti-overbooking su DB, test E2E multiutente da eseguire |
 | Promozione `ALECOACH15` | Verifica server; test su account cliente necessario |
-| Google Calendar | Edge Function online, **OAuth e cron di sync non configurati** |
-| Conferme coach | Bloccate se la sincronizzazione Google non è recente, per evitare overbooking |
+| Google Calendar | **Non incluso nella prima release**; backend dormiente, attivabile solo mediante progetto extra concordato |
+| Conferme coach | Consentite senza Google, previa verifica server di slot, corsi, chiusure e spostamenti |
 | Stripe | Edge Functions online, **chiavi e preautorizzazione v2 non pronti** |
 | Push e email transazionali | Predisposte, servizi esterni non ancora collegati |
 | GDPR | Informative non finali; accesso ristretto, nessun uso commerciale |
