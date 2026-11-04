@@ -87,9 +87,22 @@ Deno.serve(async (req)=>{
     }
     pageToken=data.nextPageToken;
    }while(pageToken);
+   // Mantieni la classificazione manuale effettuata dal coach (venue/course),
+   // altrimenti il polling cancellerebbe le correzioni a ogni sincronizzazione.
+   const {data:reviewed,error:reviewError}=await admin.from('external_calendar_events')
+    .select('original_event_id,venue_id,is_course,blocks_booking')
+    .eq('calendar_id',calendarId).eq('needs_review',false);
+   if(reviewError)throw reviewError;
+   const manual=new Map((reviewed||[]).map(e=>[e.original_event_id,e]));
+   const merged=collected.map(event=>{
+    const previous=manual.get(event.original_event_id);
+    if(!previous)return event;
+    return {...event,venue_id:previous.venue_id,is_course:previous.is_course,
+      blocks_booking:previous.blocks_booking,needs_review:false};
+   });
    // Applicare tutte le modifiche, poi scartare gli eventi rimossi nel range.
-   for(let i=0;i<collected.length;i+=100){
-    const {error}=await admin.from('external_calendar_events').upsert(collected.slice(i,i+100),
+   for(let i=0;i<merged.length;i+=100){
+    const {error}=await admin.from('external_calendar_events').upsert(merged.slice(i,i+100),
       {onConflict:'calendar_id,original_event_id'});
     if(error)throw error;
    }
