@@ -21,6 +21,48 @@ Deno.serve(async req=>{
   const {bookingId}=await req.json();
   const {data:b,error}=await admin.from('bookings').select('*').eq('id',bookingId).single();
   if(error||!b||b.client_id!==user.id)return json({error:'Prenotazione non trovata'},404);
+  // Prima dell'approvazione si ANNULLA solo la preautorizzazione:
+  // mai un rimborso di fondi che non sono stati incassati.
+  const isBeforeApproval=b.payment_mode==='online'&&
+   (b.status==='authorizing'||
+     b.status==='pending'&&['authorized','unpaid'].includes(b.payment_status)||
+     b.status==='processing'&&b.stripe_decision==='cancel');
+  if(isBeforeApproval){
+   const userDb=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_ANON_KEY')!,{
+    global:{headers:{Authorization:`Bearer ${token}`}},
+    auth:{persistSession:false,autoRefreshToken:false}
+   });
+   const {error:claimError}=await userDb.rpc('claim_booking_cancellation',{p_booking_id:b.id});
+   if(claimError)return json({error:claimError.message},409);
+   const stripe=new Stripe(key);
+   let piId:string|null=b.stripe_payment_intent_id;
+   if(b.stripe_checkout_session_id){
+    const session=await stripe.checkout.sessions.retrieve(b.stripe_checkout_session_id);
+    if(session.status==='open'){
+     await stripe.checkout.sessions.expire(session.id,{},{
+      idempotencyKey:`ale-cancel-checkout-v2-${b.id}`
+     });
+    }
+    if(session.status==='complete')
+     piId=typeof session.payment_intent==='string'?session.payment_intent:session.payment_intent?.id||null;
+   }
+   if(piId){
+    const pi=await stripe.paymentIntents.retrieve(piId);
+    if(pi.metadata.booking_id!==b.id||pi.metadata.kind!=='booking_authorization')
+     throw new Error('Autorizzazione Stripe non corrispondente alla richiesta');
+    if(pi.status==='requires_capture'){
+     await stripe.paymentIntents.cancel(pi.id,{},{
+      idempotencyKey:`ale-cancel-authorization-v2-${b.id}`
+     });
+    }else if(pi.status!=='canceled')
+     return json({error:'La transazione necessita di verifica del supporto'},409);
+   }
+   const {error:completeError}=await admin.rpc('complete_booking_decision',{
+    p_booking_id:b.id,p_action:'cancel',p_intent_id:b.stripe_payment_intent_id
+   });
+   if(completeError)throw completeError;
+   return json({ok:true,authorizationReleased:true});
+  }
   if(b.status!=='confirmed'||b.payment_status!=='paid'||b.payment_mode!=='online'||!b.stripe_payment_intent_id)return json({error:'Prenotazione non rimborsabile online'},409);
   if(!b.starts_at||new Date(b.starts_at).getTime()-Date.now()<24*3600000)return json({error:'Il limite per la disdetta gratuita è di 24 ore prima'},409);
   const stripe=new Stripe(key);
