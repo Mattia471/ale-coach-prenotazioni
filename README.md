@@ -17,6 +17,20 @@ RLS, backup e ripristino richiedono ancora collaudo su backend locale e cloud**.
 Nessun pagamento reale deve essere abilitato prima di superare i controlli GO / NO-GO. Le pagine `/privacy`, `/termini`, `/cookie` sono BOZZE: per il rilascio commerciale è obbligatorio completarle e farle approvare. Il build Cloudflare `npm run release:build` blocca i placeholder e le configurazioni legali mancanti.
 Su Supabase Free il servizio può fermarsi per inattività e non include backup giornalieri.
 
+## Demo online e proprietà degli ambienti
+
+La demo temporanea è sul **Vercel personale dello sviluppatore**; il backend definitivo è
+**Supabase Cloud dell'account Ale Coach**, e il sito commerciale sarà su
+**Cloudflare Pages del cliente** con dominio `alecoach.online` ed email
+`info@alecoach.online`. Nessun trasferimento del database è necessario al momento
+di passare da Vercel a Cloudflare.
+
+Leggi la [guida Vercel + Supabase + Cloudflare](docs/VERCEL-SUPABASE-STAGING.md).
+Con nessuna credenziale Supabase pubblica configurata, il frontend rimane in
+**demo sintetica** e non gestisce prenotazioni reali. Il rilascio commerciale
+continua a richiedere il gate legale e tutte le prove P0.
+Non inserire mai segreti in variabili `VITE_*`.
+
 ## Stack
 
 - React 19, TypeScript, Vite 7, Tailwind CSS 4 e CSS custom per il brand Ale Coach
