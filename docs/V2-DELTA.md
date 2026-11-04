@@ -39,3 +39,7 @@ Configurare Supabase Edge Secrets: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIEN
 - Controlli GDPR, condizioni contrattuali, backup, cron, pagamento e fatturazione.
 
 **Stato: nessun permesso ai pagamenti live finché questi blocchi P0 non sono risolti.**
+
+
+## Ambito commerciale confermato: Google Calendar opzionale
+La sincronizzazione Google Calendar è esclusa dalla prima release e dal prezzo base. Potrà essere sviluppata e fatturata separatamente soltanto su richiesta del coach. L'agenda interna consente invece blocchi orari manuali e chiusure di intere giornate, senza alcun account Google collegato.
