@@ -82,33 +82,56 @@ try{
   confirm(upload.status===403||(upload.status===400&&/row.level|policy|permission/i.test(uploadError)),
    'RLS Storage blocca upload di documenti anche tramite API diretta');
 
-  const promo=await db('/rest/v1/discount_codes?select=active&code=eq.ALECOACH10');
-  assert(promo?.[0]?.active,'ALECOACH10 deve essere attivo per questo collaudo');
+  const promo=await db('/rest/v1/discount_codes?select=code,active,percent_off&code=eq.ALECOACH15');
+  confirm(promo?.[0]?.active===true&&promo[0].percent_off===15,'ALECOACH15 attivo al 15%');
+  const oldPromo=await db('/rest/v1/discount_codes?select=active&code=eq.ALECOACH10');
+  confirm(oldPromo?.[0]?.active===false,'ALECOACH10 precedente disattivato');
+  const prices=await db('/rest/v1/services?select=id,price_cents&id=in.(single,couple,check,start)');
+  const money=Object.fromEntries(prices.map(x=>[x.id,x.price_cents]));
+  confirm(money.single===5500&&money.couple===8000&&money.check===3500&&money.start===5000,
+    'Listino v2 corretto nei centesimi');
+  const oldRpc=await request('/rest/v1/rpc/available_slots',{
+   method:'POST',body:{p_service_id:'single',p_day:dayInRome(3)}
+  });
+  confirm(!oldRpc.ok,'RPC orario intero legacy non più accessibile ai clienti');
 
   let choice;
   for(let offset=2;offset<=7&&!choice;offset++){
     const day=dayInRome(offset);
     const [intro,single]=await Promise.all([
-      request('/rest/v1/rpc/available_slots',{method:'POST',body:{p_service_id:'intro',p_day:day}}),
-      request('/rest/v1/rpc/available_slots',{method:'POST',body:{p_service_id:'single',p_day:day}}),
+      request('/rest/v1/rpc/available_slots_v2',{method:'POST',
+       body:{p_service_id:'intro',p_day:day,p_venue_preference:'indifferente'}}),
+      request('/rest/v1/rpc/available_slots_v2',{method:'POST',
+       body:{p_service_id:'single',p_day:day,p_venue_preference:'indifferente'}}),
     ]);
-    if(!intro.ok||!single.ok)throw Error('RPC available_slots non disponibile');
-    for(const i of intro.data||[]){
-      const hours=(single.data||[]).map(x=>x.hour).filter(h=>h>=i.hour+1);
-      if(hours.length>=2){choice={day,introHour:i.hour,first:hours[0],second:hours[1]};break}
+    if(!intro.ok||!single.ok)throw Error('RPC available_slots_v2 non disponibile');
+    for(const slot of intro.data||[]){
+      const later=(single.data||[]).filter(x=>x.venue_id===slot.venue_id&&x.start_minute>=slot.start_minute+60);
+      if(later.length>=2){choice={day,introHour:slot.start_minute,venue:slot.venue_id,
+       first:later[0].start_minute,second:later[1].start_minute};break}
     }
   }
   assert(choice,'Nessun giorno con 3 slot disponibili: libera orari test oppure riprova.');
   console.log(`Collaudo: ${choice.day}, slot ${choice.introHour}, ${choice.first}, ${choice.second}`);
 
-  const book=(token,service,hour,p_code)=>request('/rest/v1/rpc/create_booking',{
+  const book=(token,service,startMinute,p_code)=>request('/rest/v1/rpc/create_booking_v2',{
     method:'POST',token,
     body:{
-      p_service_id:service,p_venue_id:'talenti',p_day:choice.day,p_hour:hour,
+      p_service_id:service,p_venue_id:choice.venue,p_day:choice.day,p_start_minute:startMinute,
       p_details:service==='single'?{discipline:'Hyrox'}:{},
       p_payment_mode:'online',...(p_code?{p_code}:{}),
     },
   });
+  confirm(choice.introHour%15===0&&choice.first%15===0,'Griglia slot a multipli di 15 minuti');
+  // Hold: un utente blocca 10 minuti lo stesso slot su tutte le sedi.
+  const holdA=await request('/rest/v1/rpc/reserve_slot_v2',{method:'POST',token:a.token,
+   body:{p_service_id:'intro',p_day:choice.day,p_start_minute:choice.introHour,p_venue_id:choice.venue}});
+  confirm(holdA.ok&&Date.parse(holdA.data)>Date.now(),'Hold tecnico di 10 minuti creato');
+  const holdB=await request('/rest/v1/rpc/reserve_slot_v2',{method:'POST',token:b.token,
+   body:{p_service_id:'intro',p_day:choice.day,p_start_minute:choice.introHour,p_venue_id:choice.venue}});
+  confirm(!holdB.ok,'Un secondo cliente non può riservare uno slot già tenuto');
+  const released=await request('/rest/v1/rpc/release_slot_hold_v2',{method:'POST',token:a.token,body:{}});
+  confirm(released.ok,'Hold liberato dopo cambio idea');
   const collision=await Promise.all([
     book(a.token,'intro',choice.introHour),
     book(b.token,'intro',choice.introHour),
@@ -128,12 +151,20 @@ try{
     confirm(verify[0].status==='pending','Il browser non può confermare da solo una prenotazione');
   }
 
-  const discounted=await book(a.token,'single',choice.first,'ALECOACH10');
+  const discounted=await book(a.token,'single',choice.first,'ALECOACH15');
   confirm(discounted.ok&&typeof discounted.data==='string','Prima richiesta scontata accettata');
-  if(discounted.ok)bookingIds.push(discounted.data);
-  const repeated=await book(a.token,'single',choice.second,'ALECOACH10');
+  if(discounted.ok){
+   bookingIds.push(discounted.data);
+   const amount=await db(`/rest/v1/bookings?select=amount_cents,discount_percent&id=eq.${discounted.data}`);
+   confirm(amount?.[0]?.amount_cents===4675&&amount?.[0]?.discount_percent===15,
+    'Prima individuale a 46,75 €: promo applicata solo dal server');
+  }
+  const repeated=await book(a.token,'single',choice.second,'ALECOACH15');
   confirm(!repeated.ok,'Una seconda prenotazione attiva con lo stesso sconto viene respinta');
 
+  const hiddenEvents=await request('/rest/v1/external_calendar_events?select=id',{token:a.token});
+  confirm(!hiddenEvents.ok||(hiddenEvents.data||[]).length===0,
+   'Gli impegni Google esterni non sono esposti ai clienti');
   console.log(`\nOK: ${assertionCount} controlli applicativi superati. Utenti di prova eliminati.`);
 }catch(e){
   console.error('❌ Test di integrazione fallito:',e instanceof Error?e.message:String(e));
