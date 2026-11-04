@@ -1,5 +1,5 @@
 import Stripe from 'npm:stripe@22.0.0';
-import { createClient } from 'npm:@supabase/supabase-js@2.76.0';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const appUrl=Deno.env.get('PUBLIC_APP_URL')||'';
 const cors={ 'Access-Control-Allow-Origin': appUrl||'null', 'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods':'POST, OPTIONS' };
