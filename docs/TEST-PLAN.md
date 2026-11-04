@@ -92,3 +92,13 @@ Non è un prerequisito per pubblicare l'app base. Non attivare OAuth, token o cr
 - Link di recupero scaduto: la password non deve cambiare; richiedere un nuovo link. Verificare i redirect autorizzati su Supabase Auth e le mail via SMTP.
 - Push: controllare che il banner sia visibile dopo login sul dispositivo senza subscription, non richieda permessi in automatico e sparisca quando la subscription è registrata. Testare la ricezione reale a schermo bloccato.
 - La build e i test CI verificano la correttezza statica ma non sostituiscono i test E2E su iPhone, Stripe Sandbox e agenda interna.
+
+
+## Agenda base senza integrazione Google (feature premium esclusa)
+- [ ] Accedere come coach: Disponibilità > blocco orario manuale. Inserire impegno di 60 minuti, verificare che gli slot in entrambe le sedi risultino bloccati tenendo conto dei 45 minuti di trasferimento.
+- [ ] Disattivare e riattivare un blocco, verificare la disponibilità pubblica; eliminare un blocco manuale e verificare la ricomparsa dello slot.
+- [ ] Creare una chiusura per intera giornata; verificare che non si possano prenotare nuovi slot nel giorno e che gli altri giorni restino invariati.
+- [ ] Ripetere come cliente: la RLS deve impedire insert, update e delete su calendar_course_blocks e calendar_closures.
+- [ ] Lezioni già confermate: blocchi manuali successivi non devono annullarle né incassare automaticamente; verificare l'avviso e un eventuale conflitto manualmente.
+- [ ] Stripe Sandbox: per prenotazione in attesa, la conferma controlla sempre l'agenda interna senza richiedere Google Calendar.
+- [ ] Nessun account o credenziale Google da attivare; l'integrazione si realizzerà solo su richiesta con un preventivo separato.
