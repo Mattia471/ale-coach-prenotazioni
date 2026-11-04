@@ -4,17 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "local:start": "supabase start && node scripts/sync-local-env.mjs && node scripts/seed-local-users.mjs",
-    "local:status": "supabase status",
-    "local:stop": "supabase stop",
-    "local:env": "node scripts/sync-local-env.mjs",
-    "local:seed": "node scripts/seed-local-users.mjs",
-    "local:reset": "supabase db reset && node scripts/seed-local-users.mjs",
-    "local:check": "node --test scripts/*.test.mjs",
-    "local:integration": "node scripts/local-integration.mjs",
+    "test": "node --test scripts/release-check.test.mjs",
     "release:check": "node scripts/release-check.mjs",
     "release:build": "npm run release:check && npm run build"
   },
