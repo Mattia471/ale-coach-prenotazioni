@@ -753,7 +753,31 @@ function App(){
      <label className="check-row tiny"><input type="checkbox" checked={newWindow.is_flexible} onChange={e=>setNewWindow(v=>({...v,is_flexible:e.target.checked}))}/>Flessibile</label>
      <Button variant="outline" onClick={()=>void createWindow()}>AGGIUNGI FASCIA</Button>
     </div>
-    <h3 className="schedule-subtitle">Chiusure da verificare</h3>
+
+    <h3 className="schedule-subtitle">Impegni personali e blocchi orari</h3>
+    <p className="section-intro">Nella versione base gli impegni esterni si inseriscono qui manualmente. Il server li considera per gli orari prenotabili e per i trasferimenti tra le sedi.</p>
+    <div className="schedule-create">
+     <label>Data<input type="date" value={newBlock.on_date} onChange={e=>setNewBlock(v=>({...v,on_date:e.target.value}))}/></label>
+     <label>Descrizione<input type="text" maxLength={120} placeholder="Es. Appuntamento privato" value={newBlock.title} onChange={e=>setNewBlock(v=>({...v,title:e.target.value}))}/></label>
+     <label>Luogo<select value={newBlock.venue_id} onChange={e=>setNewBlock(v=>({...v,venue_id:e.target.value}))}><option value="">Non specificato</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
+     <label>Da<input type="time" step={900} value={formatStartMinute(newBlock.start_minute)} onChange={e=>setNewBlock(v=>({...v,start_minute:asMinute(e.target.value)}))}/></label>
+     <label>A<input type="time" step={900} value={formatStartMinute(newBlock.end_minute)} onChange={e=>setNewBlock(v=>({...v,end_minute:asMinute(e.target.value)}))}/></label>
+     <Button variant="outline" disabled={busy} onClick={()=>void createManualBlock()}>BLOCCA ORARIO</Button>
+    </div>
+    <div className="schedule-window-list">{courseBlocks.filter(b=>b.source_ref==='manual').map(b=><div key={b.id} className="schedule-window">
+     <div><b>{b.title}</b><small>{b.on_date} · {formatStartMinute(b.start_minute)}–{formatStartMinute(b.end_minute)} · {venues.find(v=>v.id===b.venue_id)?.name||'Luogo non specificato'}</small></div>
+     <label className="check-row tiny"><input type="checkbox" checked={b.is_active} onChange={e=>void saveCourseBlock(b,{is_active:e.target.checked})}/>Blocca</label>
+     <Button variant="quiet" disabled={busy} onClick={()=>void deleteManualBlock(b)}>ELIMINA</Button>
+    </div>)}</div>
+    <p className="footnote">Le indisponibilità impediscono nuove prenotazioni, ma non cancellano lezioni già confermate. Controlla la tua agenda prima di bloccare un impegno.</p>
+    <h3 className="schedule-subtitle">Chiusure per intere giornate</h3>
+    <div className="schedule-create">
+     <label>Dal<input type="date" value={newClosure.start_date} onChange={e=>setNewClosure(v=>({...v,start_date:e.target.value,end_date:v.end_date||e.target.value}))}/></label>
+     <label>Al<input type="date" min={newClosure.start_date||undefined} value={newClosure.end_date} onChange={e=>setNewClosure(v=>({...v,end_date:e.target.value}))}/></label>
+     <label>Motivo<input type="text" maxLength={120} placeholder="Es. Ferie" value={newClosure.reason} onChange={e=>setNewClosure(v=>({...v,reason:e.target.value}))}/></label>
+     <Button variant="outline" disabled={busy} onClick={()=>void createClosure()}>BLOCCA GIORNI</Button>
+    </div>
+    <h3 className="schedule-subtitle">Chiusure esistenti</h3>
     {closures.length?closures.map(cl=><div key={cl.id} className="schedule-closure">
       <div><b>{cl.start_date} → {cl.end_date}</b><small>{cl.reason} · {cl.review_status==='proposed'?'Proposta da confermare':'Confermata'}</small></div>
       <label className="check-row tiny"><input type="checkbox" checked={cl.is_active} onChange={e=>void saveClosure(cl,{is_active:e.target.checked})}/>Blocca date</label>
@@ -761,7 +785,7 @@ function App(){
     </div>):<p className="small-muted">Nessuna chiusura proposta.</p>}
     <h3 className="schedule-subtitle">Palinsesto corsi e impegni da verificare</h3>
     <p className="section-intro">Ricorrenze confermate dal documento solo per 19/10–30/11/2026. Gli eventi TRX senza fine o sede verificata restano bloccanti: prima di renderli disponibili occorre classificare gli impegni reali.</p>
-    <div className="schedule-window-list">{courseBlocks.map(b=><div key={b.id} className="schedule-window">
+    <div className="schedule-window-list">{courseBlocks.filter(b=>b.source_ref!=='manual').map(b=><div key={b.id} className="schedule-window">
      <div><b>{b.title}</b><small>{b.on_date||dayNames[(b.weekday||1)-1]} · {formatStartMinute(b.start_minute)}–{formatStartMinute(b.end_minute)} {b.needs_review?'· Da verificare':''}</small></div>
      <label>Sede<select value={b.venue_id||''} onChange={e=>void saveCourseBlock(b,{venue_id:e.target.value||null,needs_review:!e.target.value})}>
       <option value="">Non classificata</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
