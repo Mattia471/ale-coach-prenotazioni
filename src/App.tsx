@@ -28,6 +28,42 @@ function Status({status}:{status:Booking['status']}){return <span className={`st
 function Labeled({label,children,required=false}:{label:string;children:ReactNode;required?:boolean}){return <label className="field"><span>{label}{required?' *':''}</span>{children}</label>}
 function Empty({title,desc}:{title:string;desc:string}){return <div className="empty-state"><CalendarDays size={31}/><h3>{title}</h3><p>{desc}</p></div>}
 function alertTitle(mode:'ok'|'error'|'info'){return mode==='error'?<CircleHelp size={18}/>:mode==='ok'?<CheckCircle2 size={18}/>:<Sparkles size={18}/>}
+// Foto tratta dalla scheda professionale pubblica Virgin Active.
+// Prima del lancio commerciale, il titolare deve confermare il diritto d'uso
+// oppure sostituirla con uno scatto autorizzato di Alessandro.
+const coachPortraitUrl='https://www.virginactive.it/images/default-source/trainers/3efbdbad-e9b7-4fc7-987b-c243786b410d_web-jpg.jpg?sfvrsn=8e7cbf83_2';
+const coachProfessionalProfile='https://www.virginactive.it/people/alessandro--cola-a-cola';
+
+function CoachPhoto({avatar=false}:{avatar?:boolean}){
+ const [unavailable,setUnavailable]=useState(false);
+ return unavailable
+  ? <span className={avatar?'coach-photo-fallback coach-photo-fallback-avatar':'coach-photo-fallback'} aria-label="Alessandro Cola">AC</span>
+  : <img className={avatar?'coach-photo-avatar':'coach-photo-image'}
+    src={coachPortraitUrl}
+    alt="Alessandro Cola, personal trainer"
+    loading={avatar?'eager':'lazy'}
+    decoding="async"
+    onError={()=>setUnavailable(true)}/>;
+}
+
+function CoachIntroduction({compact=false}:{compact?:boolean}){
+ return <section className={`coach-introduction ${compact?'coach-introduction-compact':''}`}
+    aria-label="Conosci il personal trainer Alessandro Cola">
+  <div className="coach-introduction-portrait">
+   <CoachPhoto/>
+   <span className="coach-introduction-portrait-badge">IL TUO COACH</span>
+  </div>
+  <div className="coach-introduction-content">
+   <div className="eyebrow">/// PRIMA DI TUTTO, LA PERSONA</div>
+   <h2>CONOSCI <em>ALE.</em></h2>
+   <p>Alessandro Cola ti segue di persona, con un allenamento costruito sui tuoi obiettivi. Specializzato in forza, allenamento funzionale e preparazione atletica.</p>
+   <div className="coach-introduction-tags"><span>Scienze Motorie</span><span>Forza &amp; TRX</span><span>Preparazione atletica</span></div>
+   <a className="coach-introduction-link" href={coachProfessionalProfile}
+      target="_blank" rel="noopener noreferrer">Scopri il profilo professionale <ExternalLink size={14}/></a>
+  </div>
+ </section>;
+}
+
 function App(){
  const [screen,setScreen]=useState<Screen>('landing');
  const [clientTab,setClientTab]=useState<ClientTab>('home');
@@ -554,8 +590,8 @@ function App(){
   {message&&<div className={`flash flash-${message.mode}`} role="status">{alertTitle(message.mode)}<span>{message.text}</span><button aria-label="Chiudi avviso" onClick={()=>setMessage(null)}><X size={16}/></button></div>}
   {booting?<div className="loading"><div className="spinner"/>Caricamento in corso...</div>:<>
   {screen==='landing'&&<main className="client-layout landing-page">
-   <section className="hero"><div className="hero-lines" aria-hidden="true">///</div><div className="eyebrow">PERSONAL TRAINING · ROMA</div><h1>NON BASTA<br/>ALLENARSI.<br/><em>CONTA COME<br/>LO FAI.</em></h1><p>Un percorso su misura, un appuntamento alla volta. Prenota i tuoi allenamenti con Alessandro Cola.</p><div className="hero-identity"><div className="avatar-mark">AC</div><div><div className="signature">by Ale Coach</div><span>Personal Trainer · Hyrox Academy Level One</span></div></div><Button onClick={()=>{setScreen('auth');setAuthMode('signup')}}>INIZIA IL TUO PERCORSO <ArrowRight size={18}/></Button></section>
-   <div className="mini-locations"><MapPin size={17}/><span>Virgin Active Roma Talenti</span><b>·</b><span>Nuovo Salario</span></div>
+   <section className="hero"><div className="hero-lines" aria-hidden="true">///</div><div className="eyebrow">PERSONAL TRAINING · ROMA</div><h1>NON BASTA<br/>ALLENARSI.<br/><em>CONTA COME<br/>LO FAI.</em></h1><p>Un percorso su misura, un appuntamento alla volta. Prenota i tuoi allenamenti con Alessandro Cola.</p><div className="hero-identity"><div className="avatar-mark"><CoachPhoto avatar/></div><div><div className="signature">by Ale Coach</div><span>Personal Trainer · Hyrox Academy Level One</span></div></div><Button onClick={()=>{setScreen('auth');setAuthMode('signup')}}>INIZIA IL TUO PERCORSO <ArrowRight size={18}/></Button></section>
+   <div className="mini-locations"><MapPin size={17}/><span>Virgin Active Roma Talenti</span><b>·</b><span>Nuovo Salario</span></div><CoachIntroduction/>
    <section className="promo-panel"><div><Tag size={20}/><b>PRIMA LEZIONE, -15%</b></div><p>Usa il codice <strong>{promo}</strong> sulla prima lezione individuale a pagamento. Lo sconto viene verificato prima dell'autorizzazione.</p><button onClick={()=>{void navigator.clipboard?.writeText(promo);submitMsg('Codice copiato')}}>Copia codice <ChevronRight size={16}/></button></section>
    <section><Title eyebrow="SCEGLI IL TUO ALLENAMENTO" sub="Allenarsi bene parte dal servizio giusto.">COSTRUIAMO IL TUO PERCORSO</Title><div className="service-list">{activeServices.map(s=>{const Icon=iconByService[s.id]||Zap;return <div key={s.id} className="service-entry"><button className="service-card" onClick={()=>beginBooking(s)}><div className="service-icon"><Icon size={24}/></div><div className="service-copy"><h3>{s.name}</h3><p>{s.description}</p><small>{s.kind==='quote'?'Da concordare':`${s.duration_minutes} minuti`}</small></div><div className="service-price">{s.kind==='free'?'GRATIS':s.kind==='quote'?'SU PREVENTIVO':currency(s.price_cents)}<ChevronRight size={18}/></div></button><details className="service-details"><summary>Dettagli e regole</summary><p>{serviceRules[s.id]||s.description}</p></details></div>})}</div></section>
    <section className="packages-area"><Title eyebrow="PIÙ RISULTATI, PIÙ CONTINUITÀ">PACCHETTI E ABBONAMENTI</Title><div className="packages-list">{activePacks.map(p=><div key={p.id} className="package-card"><div><h3>{p.name}</h3><p>{p.description}</p><small>{p.credits} lezioni · {p.type==='subscription'?'Rinnovo mensile, minimo 2 mesi':'Pagamento unico'}</small><details className="service-details"><summary>Dettagli e regole</summary><p>{packageRules[p.id]}</p></details></div><b>{currency(p.price_cents)}{p.type==='subscription'&&<small> / mese</small>}</b></div>)}</div><p className="footnote">I pacchetti Flex si pagano con Stripe solo dopo il collegamento dell’account. I Continuity sono illustrati con le condizioni v2, ma il rinnovo automatico non è ancora attivo.</p></section>
@@ -593,7 +629,7 @@ function App(){
     </div>}
    </section>:<>
    {clientTab==='home'&&<><section className="client-hero"><div className="eyebrow">/// IL TUO PROSSIMO OBIETTIVO</div><h2>UNA LEZIONE<br/><em>ALLA VOLTA.</em></h2><p>Il momento giusto per migliorare è adesso.</p><div className="client-hero-lines">///</div></section>
-    <div className="source-chip"><Sparkles size={15}/>{sourceLabel}</div>
+    <CoachIntroduction compact/><div className="source-chip"><Sparkles size={15}/>{sourceLabel}</div>
     <div className="metric-row"><div className="metric"><span>Prossime lezioni</span><strong>{myBookings.filter(b=>b.status==='confirmed'&&b.starts_at&&new Date(b.starts_at)>new Date()).length}</strong></div><div className="metric"><span>Da confermare</span><strong>{myBookings.filter(b=>b.status==='pending').length}</strong></div><div className="metric"><span>Crediti residui</span><strong>{creditCount}</strong></div></div>
     <section className="promo-panel"><div><Gift size={19}/><b>LA PRIMA LEZIONE È SPECIALE</b></div><p><strong>-15% sulla prima individuale:</strong> 55 € → 46,75 € con il codice <strong>{promo}</strong>. Nessun cumulo.</p><button onClick={()=>{void navigator.clipboard?.writeText(promo);submitMsg('Codice copiato')}}>Copia codice <ChevronRight size={16}/></button></section>
     <section><Title eyebrow="SCEGLI IL TUO ALLENAMENTO">PRENOTA CON ALE</Title><div className="service-list">{activeServices.map(s=>{const Icon=iconByService[s.id]||Zap;return <div key={s.id} className="service-entry"><button className="service-card" onClick={()=>beginBooking(s)}><div className="service-icon"><Icon size={23}/></div><div className="service-copy"><h3>{s.name}</h3><p>{s.description}</p><small>{s.duration_minutes} min</small></div><div className="service-price">{s.kind==='free'?'GRATIS':s.kind==='quote'?'PREVENTIVO':currency(s.price_cents)}<ChevronRight size={16}/></div></button><details className="service-details"><summary>Dettagli e regole</summary><p>{serviceRules[s.id]||s.description}</p></details></div>})}</div></section>
