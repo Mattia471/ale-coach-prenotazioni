@@ -67,3 +67,33 @@
 .package-buy b small{font-size:11px;font-weight:600;color:#8b7578}
 @media(max-width:640px){.service-details{margin-top:4px}.service-entry .service-card{gap:8px}}
 
+
+/* PWA mobile: evita lo zoom automatico iOS quando si apre un input da 12/14px,
+   il doppio tocco e gli spostamenti orizzontali del layout. */
+html{overflow-x:clip;-webkit-text-size-adjust:100%;text-size-adjust:100%;overscroll-behavior-x:none}
+body{overflow-x:clip;overscroll-behavior-x:none}
+button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation}
+@media (pointer:coarse){
+ input,textarea,select{font-size:max(16px,1em)}
+}
+.app-shell{min-height:100dvh}
+@media (prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+}
+
+/* Invito push visibile dall'avvio, senza coprire contenuti o bloccare i tap. */
+.push-permission-banner{position:relative;z-index:20;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;width:min(calc(100% - 24px),1080px);margin:12px auto 2px;padding:16px 17px;background:#fff;border:1px solid #e8dfe0;border-left:4px solid #e1001a;border-radius:15px;box-shadow:0 6px 22px rgba(36,20,24,.08)}
+.push-permission-banner__icon{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#fff0f2;color:#d6001c}
+.push-permission-banner__body{display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0}
+.push-permission-banner__copy{min-width:0}
+.push-permission-banner h3{font-family:Barlow,Arial,sans-serif;font-size:15px;font-weight:800;line-height:1.22;margin:2px 0 5px}
+.push-permission-banner p{font-size:12px;line-height:1.5;color:#645b5c;margin:0}
+.push-permission-banner__actions{display:flex;align-items:center;gap:8px;flex:none}
+.push-permission-banner__actions .button{font-size:15px;min-height:40px;padding:8px 14px;white-space:nowrap}
+.push-permission-banner__dismiss{border:0;border-radius:10px;padding:9px;color:#7f7375;background:#f5f2f2;display:grid;place-items:center}
+@media (max-width:650px){
+ .push-permission-banner{width:calc(100% - 24px);flex-wrap:wrap;gap:12px;margin-top:10px;padding:13px}
+ .push-permission-banner__body{width:100%}
+ .push-permission-banner__actions{width:100%;justify-content:space-between;padding-left:54px}
+ .push-permission-banner__actions .button{flex:1}
+}
