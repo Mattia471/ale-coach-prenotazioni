@@ -2,6 +2,36 @@
 
 **Stato al 4 novembre 2026:** il backend è sul Supabase Free dell'account Ale Coach e il frontend è online sul Vercel personale dello sviluppatore. **Non esistono più database o seed locali.** Il rilascio commerciale sul dominio **alecoach.online** resta subordinato al completamento dei controlli sicurezza, GDPR e pagamenti.
 
+## Piano operativo in tre giorni, con criteri GO/NO-GO
+
+| Fase | Attività essenziali | Stato al 4 novembre 2026 |
+| --- | --- | --- |
+| **Giorno 1 · 4 novembre** | Cloud, Auth riservato, migrazioni, RLS, Stripe test preparato e domini | **Parzialmente completato**. Database e Vercel attivi, mail dominio confermata, sicurezza e protezione Stripe implementate. SMTP, redirect e segreti Stripe da verificare; nessuna vendita live. |
+| **Giorno 2 · 5 novembre** | Stripe preautorizzazione/cattura, calendario Google vero, webhook e test concorrenti | **Non eseguito**. Richiede credenziali del coach, callback OAuth e collaudo con account di prova. |
+| **Giorno 3 · 6 novembre** | QA completa, GDPR e termini approvati, backup/restore, dominio Cloudflare, monitoraggio e GO | **Non eseguito**. Non si pubblica commercialmente con P0 aperti. |
+
+I giorni indicano la sequenza prevista, **non garantiscono il lancio**:
+conferme Google e pagamenti veri restano bloccati finché non superano i test.
+
+### Stato Giorno 1 e controlli verificati
+
+- [x] Supabase Ale Coach, Vercel personale, catalogo v2, migrazioni e cron cloud attivi.
+- [x] Un account `info@alecoach.online` con email confermata, senza assegnazione arbitraria ruolo coach.
+- [x] Accesso nuove registrazioni limitato a allowlist lato database; informativa ancora in revisione.
+- [x] Privilegi SQL rafforzati: niente TRUNCATE da browser e niente UPDATE anonimo sul catalogo.
+- [x] Stripe creato dal coach; funzioni checkout/cancel/webhook con abilitazione esplicita e test/live separati.
+- [x] Risolto l'errore Edge Runtime `Cannot find module tslib`; webhook risponde 503 disabilitato invece di crash.
+- [ ] Configurazione SMTP con `info@alecoach.online` come mittente verificato e test email ricevute.
+- [ ] Controllo dei redirect di Supabase Auth su Vercel e reset password.
+- [ ] Stripe test: secrets e webhook destination in Dashboard; la modalità test resta disabilitata finché non è testata.
+- [ ] Verificare identità del coach e assegnare il ruolo corretto.
+- [ ] Definire titolare, contatto privacy, conservazione dei dati e condizioni contrattuali.
+- [ ] Verificare backup esterno sicuro e procedure di ripristino.
+
+Per la configurazione Stripe senza condividere credenziali:
+[STRIPE-SETUP.md](STRIPE-SETUP.md). Per i test cloud:
+[CLOUD-OPERATIONS.md](CLOUD-OPERATIONS.md).
+
 ## Architettura attiva
 
 | Componente | Destinazione | Stato |
@@ -12,9 +42,9 @@
 | Autenticazione | Supabase Auth | Tabelle e trigger presenti; configurazione URL e SMTP da ultimare |
 | Catalogo e calendario | PostgreSQL + RLS + RPC | Popolati, primo test slot riuscito |
 | Cron scadenze | `ale-coach-expire-bookings` | Attivo ogni cinque minuti |
-| Edge Functions | Checkout, cancel, webhook, push, Google sync | Distribuite, fornitori esterni senza credenziali |
+| Edge Functions | Checkout, cancel, webhook, push, Google sync | Distribuite, import runtime compatibile con Supabase Cloud; servizi esterni da collegare |
 | Email dominio | `info@alecoach.online` | Casella creata dal cliente, SMTP Supabase da collegare |
-| Stripe | Account del coach | **Non configurato** |
+| Stripe | Account creato dal coach | Edge Functions protette e runtime corretto; segreti test e webhook firmato da configurare |
 | Google Calendar | Account del coach | **Non autorizzato** |
 | Sito definitivo | Cloudflare Pages e `alecoach.online` | Da configurare dopo i gate |
 
