@@ -6,6 +6,8 @@ Web app **mobile first** per Alessandro Cola, personal trainer a **Roma Talenti*
 
 ## Percorso verso la produzione (stato: **NON ANCORA LIVE PER INCASSI**)
 
+**SPECIFICA PIÙ RECENTE:** [Ale Coach v2 · differenze e conformità](docs/V2-DELTA.md), versione 4 novembre 2026. La v2 prevale sulla demo e sulle condizioni iniziali. Checkout con preautorizzazione, Continuity e sync Google devono essere completati e collaudati prima del rilascio live.
+
 Piano di pubblicazione con Cloudflare Pages Free, Supabase Free nell'account del cliente, Stripe e indirizzo email del dominio:
 **[Piano operativo in 3 giorni](docs/LAUNCH-3-DAYS.md)**, **[test obbligatori](docs/TEST-PLAN.md)**,
 **[video-guide cliente e coach](docs/VIDEO-GUIDES.md)** e **[piano GDPR](docs/GDPR-COMPLIANCE.md)**.
@@ -27,7 +29,7 @@ Su Supabase Free il servizio può fermarsi per inattività e non include backup 
 
 | Area | Flusso |
 | --- | --- |
-| Pubblica | Servizi, prezzi, pacchetti, sedi, promo `ALECOACH10`, entrata da link bio/DM/Meta/QR/referral |
+| Pubblica | Servizi, prezzi, pacchetti, sedi, promo `ALECOACH15`, entrata da link bio/DM/Meta/QR/referral |
 | Auth | Registrazione e login email/password; Google OAuth opzionale. Informativa privacy accessibile prima della registrazione. Il coach viene autorizzato solo dal database |
 | Cliente | Prenotazione a passi, controllo iscrizione Virgin Active, orari realmente liberi, conferma, stato, disdetta, notifiche interne, esportazione JSON dei principali dati personali |
 | Coach | Richieste da approvare/rifiutare, preventivi, agenda, segna incasso in palestra, autorizzazione individuale a pagare in sede |
@@ -36,7 +38,16 @@ Su Supabase Free il servizio può fermarsi per inattività e non include backup 
 | PWA | Installazione da browser, iscrizione Web Push con VAPID e function di inoltro da notifiche DB |
 | Privacy | Pagine Privacy/Condizioni/Cookie in bozza, richiesta di presa visione, link per esercizio diritti, upload documenti disabilitato anche a livello Storage RLS |
 
-**Regole principali:** `ALECOACH10` = **10%** entro **7 giorni** dal primo contatto, solo alla prima lezione pagata, non cumulabile. Pagamento **online obbligatorio** per impostazione predefinita, salvo autorizzazione esplicita individuale del coach. Richiesta da approvare entro 24 ore; dopo l’approvazione online il cliente ha fino a 90 minuti per completare il checkout. Disdetta gratuita almeno 24 ore prima. Nessun overbooking fra Talenti e Nuovo Salario. Le persone non iscritte a Virgin Active non possono prenotare.
+**Regole v2:** `ALECOACH15` = **15%** sulla prima lezione individuale da 55 € (**46,75 €**), non cumulabile. Vecchio ALECOACH15 disattivato, AMICO10 disattivato. Pagamento **online obbligatorio** per impostazione predefinita, salvo autorizzazione esplicita individuale del coach. Richiesta da approvare entro il primo tra 24 ore dall'invio e 2 ore prima della lezione. Slot da 15 minuti, prenotabili con 12 ore di anticipo e fino a 42 giorni avanti. Prima dell'invio, il cliente può riservare uno slot per 10 minuti. Disdetta gratuita almeno 24 ore prima. Nessun overbooking fra Talenti e Nuovo Salario. Le persone non iscritte a Virgin Active non possono prenotare. La v2 richiede autorizzazione della carta all'invio e incasso alla conferma: **questo flusso Stripe è ancora da implementare**. L'attuale codice usa Checkout dopo approvazione. I Continuity sono illustrati ma NON acquistabili.
+
+## Novità della specifica v2
+
+- **Prezzi:** individuale 55 €, Duo 80 €, check scheda 35 €, valutazione 50 €, colloquio gratuito; Flex 5 da 250 € / 3 mesi e Flex 10 da 450 € / 6 mesi.
+- **Continuity:** 4 lezioni a 150 €/mese e 8 lezioni a 260 €/mese, impegno iniziale 2 mesi. Catalogo presente, acquisti disabilitati finché non sarà sviluppato Stripe Billing.
+- **Calendario:** più finestre per sede, scelta Indifferente, 15 minuti, margini PT/corsi e trasferimento 45 min; chiusure e palinsesto stagionale da validare.
+- **Google Calendar:** funzione Edge predisposta alla lettura di più agende con OAuth e sync periodica; non è ancora collegata. Il DB blocca le conferme quando la sincronizzazione non è recente.
+- **Pagamenti v2:** preautorizzazione/incasso differito richiesta dalla specifica, **non ancora disponibile**. Nessun go-live con incassi finché Stripe non è allineato.
+- **Test:** `pnpm run local:integration` ora copre i nuovi RPC. Eseguire dopo le migrazioni, su Docker.
 
 ## Sviluppo locale con Docker (modalità predefinita)
 
@@ -146,8 +157,8 @@ Seleziona almeno l'evento `checkout.session.completed`. Il webhook usa il **raw 
 ## Marketing e codici
 
 La **sezione Marketing del coach mostra solo QR code scaricabile, link di prenotazione da copiare e
-codice promozionale ALECOACH10 da copiare**. QR e link puntano a
-`/?source=club&code=ALECOACH10`. Non contiene pulsanti Instagram, DM Meta o advertising.
+codice promozionale ALECOACH15 da copiare**. QR e link puntano a
+`/?source=club&code=ALECOACH15`. Non contiene pulsanti Instagram, DM Meta o advertising.
 Eventuali query di attribuzione legacy restano riconosciute dal backend, ma nessuna automazione
 Instagram viene dichiarata attiva.
 
