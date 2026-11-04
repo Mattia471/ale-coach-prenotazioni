@@ -7,7 +7,7 @@
 | Fase | Attività essenziali | Stato al 4 novembre 2026 |
 | --- | --- | --- |
 | **Giorno 1 · 4 novembre** | Cloud, Auth riservato, migrazioni, RLS, Stripe test preparato e domini | **Parzialmente completato**. Database e Vercel attivi, mail dominio confermata, sicurezza e protezione Stripe implementate. SMTP, redirect e segreti Stripe da verificare; nessuna vendita live. |
-| **Giorno 2 · 5 novembre** | Stripe preautorizzazione/cattura, calendario Google vero, webhook e test concorrenti | **Non eseguito**. Richiede credenziali del coach, callback OAuth e collaudo con account di prova. |
+| **Giorno 2 · 5 novembre** | Stripe preautorizzazione/cattura, calendario Google vero, webhook e test concorrenti | **In corso**. Preautorizzazione Stripe, webhook, decisione del coach e UI cloud implementati il 4 novembre; richiede test carta Stripe e Google OAuth reale. |
 | **Giorno 3 · 6 novembre** | QA completa, GDPR e termini approvati, backup/restore, dominio Cloudflare, monitoraggio e GO | **Non eseguito**. Non si pubblica commercialmente con P0 aperti. |
 
 I giorni indicano la sequenza prevista, **non garantiscono il lancio**:
@@ -23,7 +23,9 @@ conferme Google e pagamenti veri restano bloccati finché non superano i test.
 - [x] Risolto l'errore Edge Runtime `Cannot find module tslib`; webhook risponde 503 disabilitato invece di crash.
 - [ ] Configurazione SMTP con `info@alecoach.online` come mittente verificato e test email ricevute.
 - [ ] Controllo dei redirect di Supabase Auth su Vercel e reset password.
-- [ ] Stripe test: secrets e webhook destination in Dashboard; la modalità test resta disabilitata finché non è testata.
+- [x] Stripe test: chiavi e webhook destination configurati dal cliente, quattro eventi ascoltati sulla sandbox (chiavi non lette dalla chat).
+- [x] Codice preautorizzazione prima dell'invio, azioni server coach e frontend pubblicati sulla URL di collaudo.
+- [ ] Abilitare Stripe test per una prova controllata; verificare evento firmato, stato `requires_capture` e prenotazione invisibile al coach fino all'autorizzazione.
 - [ ] Verificare identità del coach e assegnare il ruolo corretto.
 - [ ] Definire titolare, contatto privacy, conservazione dei dati e condizioni contrattuali.
 - [ ] Verificare backup esterno sicuro e procedure di ripristino.
