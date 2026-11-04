@@ -70,6 +70,9 @@ function App(){
  const [qr,setQr]=useState('');
  const [allowMenu,setAllowMenu]=useState(false);
  const [pushEnabled,setPushEnabled]=useState(false);
+ const [pushBannerDismissed,setPushBannerDismissed]=useState(false);
+ const [pushPromptState,setPushPromptState]=useState<'checking'|'available'|'needs-install'|'blocked'|'unsupported'>('checking');
+ const [pushBusy,setPushBusy]=useState(false);
  const [termsOk,setTermsOk]=useState(false);
  const attrib=useRef(fromUrl());
  const pendingAction=useRef<string|null>(null);
@@ -371,19 +374,99 @@ function App(){
   const unreadList=myNotices.filter(n=>!n.read_at);setNotices(v=>v.map(n=>n.recipient_id===profile?.id?{...n,read_at:n.read_at||new Date().toISOString()}:n));
   if(supabase)for(const n of unreadList)await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('id',n.id);
  };
+ useEffect(()=>{
+  // Mostra il banner gia' al primo avvio dopo login, ma non richiedere
+  // automaticamente permessi: iOS/Chrome lo consentono solo dopo un tap.
+  let active=true;
+  setPushBannerDismissed(false);
+  setPushEnabled(false);
+  if(!profile?.id)return;
+  const isIos=/iPad|iPhone|iPod/.test(navigator.userAgent)
+   ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const standalone=window.matchMedia('(display-mode: standalone)').matches
+   ||Boolean((navigator as Navigator & {standalone?:boolean}).standalone);
+  if(isIos&&!standalone){
+   setPushPromptState('needs-install');return;
+  }
+  if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){
+   setPushPromptState('unsupported');return;
+  }
+  if(Notification.permission==='denied'){
+   setPushPromptState('blocked');return;
+  }
+  setPushPromptState('available');
+  void (async()=>{
+   try{
+    const reg=await navigator.serviceWorker.getRegistration();
+    const subscription=reg?await reg.pushManager.getSubscription():null;
+    if(!active||!subscription||Notification.permission!=='granted'||!supabase)return;
+    const {data}=await supabase.from('push_subscriptions').select('id')
+     .eq('user_id',profile.id).eq('endpoint',subscription.endpoint).maybeSingle();
+    if(active&&data)setPushEnabled(true);
+   }catch{
+    // In mancanza di subscription resta visibile l'invito.
+   }
+  })();
+  return()=>{active=false};
+ },[profile?.id]);
  const subscribePush=async()=>{
-  if(!supabase||!profile){submitMsg('Le push reali richiedono Supabase configurato.','info');return}
-  const key=String(import.meta.env.VITE_VAPID_PUBLIC_KEY||'');if(!key){submitMsg('La chiave pubblica Web Push non è stata ancora configurata.','info');return}
+  if(!supabase||!profile){submitMsg('Accedi al tuo account per attivare le notifiche.','info');return}
+  const isIos=/iPad|iPhone|iPod/.test(navigator.userAgent)
+   ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const standalone=window.matchMedia('(display-mode: standalone)').matches
+   ||Boolean((navigator as Navigator & {standalone?:boolean}).standalone);
+  if(isIos&&!standalone){
+   setPushPromptState('needs-install');
+   submitMsg('Su iPhone: apri il sito in Safari, premi Condividi → Aggiungi alla schermata Home; apri l’icona Ale Coach e attiva le notifiche.','info');
+   return;
+  }
+  if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){
+   setPushPromptState('unsupported');
+   submitMsg('Questo browser non supporta le notifiche push. Apri la PWA con Safari su iPhone o Chrome su Android.','info');
+   return;
+  }
+  if(Notification.permission==='denied'){
+   setPushPromptState('blocked');
+   submitMsg('Notifiche bloccate: abilita Ale Coach dalle impostazioni del browser o del dispositivo.','info');
+   return;
+  }
+  const key=String(import.meta.env.VITE_VAPID_PUBLIC_KEY||'').trim();
+  if(!key){
+   submitMsg('Servizio notifiche in configurazione: riprova dopo il prossimo aggiornamento dell’app.','info');
+   return;
+  }
+  setPushBusy(true);
   try{
-   if(!('serviceWorker' in navigator)||!('PushManager' in window))throw Error('Il dispositivo non supporta Web Push.');
-   const permission=await Notification.requestPermission();if(permission!=='granted')throw Error('Devi autorizzare le notifiche dalle impostazioni del telefono.');
-   const registration=await navigator.serviceWorker.ready;
-   const bytes=Uint8Array.from(atob(key.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
-   const subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
-   const data=subscription.toJSON();if(!data.keys)throw Error('Chiavi push non disponibili');
-   const {error}=await supabase.from('push_subscriptions').upsert({user_id:profile.id,endpoint:subscription.endpoint,p256dh:data.keys.p256dh,auth_key:data.keys.auth},{onConflict:'endpoint'});if(error)throw error;
-   setPushEnabled(true);submitMsg('Notifiche push abilitate su questo dispositivo.');
-  }catch(e){submitMsg(errorText(e),'error')}
+   // La richiesta di permesso e' immediata nel gesto dell'utente,
+   // per compatibilita' con Safari iOS PWA e Chrome Android.
+   const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();
+   if(permission!=='granted'){
+    if(permission==='denied')setPushPromptState('blocked');
+    throw Error('Permesso non concesso: potrai abilitarlo in seguito dalle impostazioni.');
+   }
+   const registration=await navigator.serviceWorker.register('/sw.js');
+   let subscription=await registration.pushManager.getSubscription();
+   if(!subscription){
+    const b64=key.replace(/-/g,'+').replace(/_/g,'/');
+    const padded=b64.padEnd(Math.ceil(b64.length/4)*4,'=');
+    const bytes=Uint8Array.from(atob(padded),ch=>ch.charCodeAt(0));
+    subscription=await registration.pushManager.subscribe({
+     userVisibleOnly:true,applicationServerKey:bytes
+    });
+   }
+   const data=subscription.toJSON();
+   if(!data.keys?.p256dh||!data.keys.auth)throw Error('Chiavi della sottoscrizione push non disponibili');
+   const {error}=await supabase.from('push_subscriptions').upsert({
+    user_id:profile.id,endpoint:subscription.endpoint,
+    p256dh:data.keys.p256dh,auth_key:data.keys.auth
+   },{onConflict:'endpoint'});
+   if(error)throw error;
+   setPushEnabled(true);
+   setPushBannerDismissed(true);
+   submitMsg('Notifiche push abilitate su questo dispositivo.');
+  }catch(e){
+   submitMsg(errorText(e),'error');
+  }finally{setPushBusy(false)}
  };
  const updateService=async(s:Service,patch:Partial<Service>)=>{if(!supabase)return;const {error}=await supabase.from('services').update(patch).eq('id',s.id);if(error)submitMsg(error.message,'error');else setServices(rows=>rows.map(x=>x.id===s.id?{...x,...patch}:x))};
  const saveWindow=async(w:WindowRow,patch:Partial<WindowRow>)=>{
@@ -448,6 +531,24 @@ function App(){
  if(!ready||!supabase)return <main className="cloud-unavailable" role="alert"><Logo/><h1>Configurazione cloud non disponibile</h1><p>L'app richiede Supabase Cloud per accedere, prenotare e gestire le lezioni. Nessun dato simulato viene caricato.</p><a href="mailto:info@alecoach.online">Contatta info@alecoach.online</a></main>;
  return <div className={`app-shell ${screen==='coach'?'coach-shell':''}`}>
   {internalQa&&<div className="demo-environment-banner" role="status"><ShieldCheck size={15}/> COLLAUDO CLOUD RISERVATO · Solo account autorizzati. Pagamenti Stripe esclusivamente sandbox; nessun incasso reale. Non inserire dati sanitari o di terze persone.</div>}
+  {profile&&!pushEnabled&&!pushBannerDismissed&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
+    <div className="push-permission-banner__body">
+     <span className="push-permission-banner__icon"><Bell size={21}/></span>
+     <div className="push-permission-banner__copy">
+      <h3>{pushPromptState==='blocked'?'Notifiche disattivate':pushPromptState==='needs-install'?'Ricevi le notifiche su iPhone':pushPromptState==='unsupported'?'Notifiche non supportate':'Non perdere aggiornamenti e prenotazioni'}</h3>
+      <p>{pushPromptState==='blocked'?'Il permesso è bloccato: puoi riattivarlo dalle impostazioni del dispositivo.':pushPromptState==='needs-install'?'Per attivarle, installa Ale Coach dalla schermata Home e riapri l’app.':pushPromptState==='unsupported'?'Utilizza un browser compatibile con le notifiche push.':'Attiva le notifiche per ricevere conferme, variazioni e aggiornamenti sulle tue lezioni.'}</p>
+     </div>
+    </div>
+    <div className="push-permission-banner__actions">
+     <Button variant="primary" disabled={pushBusy||pushPromptState==='checking'} onClick={()=>{
+      if(pushPromptState==='needs-install')submitMsg('Su iPhone apri Ale Coach in Safari, tocca Condividi → Aggiungi alla schermata Home e avvia l’app dall’icona.','info');
+      else if(pushPromptState==='blocked')submitMsg('Apri le impostazioni del dispositivo e consenti le notifiche per Ale Coach, quindi riavvia l’app.','info');
+      else if(pushPromptState==='unsupported')submitMsg('Apri Ale Coach con Safari su iOS dalla schermata Home o Chrome su Android.','info');
+      else void subscribePush();
+     }}>{pushBusy?'ATTIVAZIONE...':pushPromptState==='needs-install'?'COME INSTALLARE':pushPromptState==='blocked'?'COME RIATTIVARE':pushPromptState==='unsupported'?'INFORMAZIONI':'ATTIVA NOTIFICHE'}</Button>
+     <button type="button" className="push-permission-banner__dismiss" aria-label="Chiudi avviso notifiche" onClick={()=>setPushBannerDismissed(true)}><X size={17}/></button>
+    </div>
+   </section>}
   <header className="site-header"><div className="header-inner"><button aria-label="Vai alla home" className="logo-button" onClick={()=>{setSelectedService(null);setScreen(profile?(isCoach?'coach':'client'):'landing')}}><Logo small/></button>
    <div className="header-actions">{profile?<><span className="greeting">{isCoach?'Ciao Ale':`Ciao, ${profile.full_name.split(' ')[0]||'atleta'}`}</span><button className="icon-button" aria-label="Esci dall'account" onClick={()=>void logout()}><LogOut size={18}/></button></>:<Button variant="outline" onClick={()=>{setScreen('auth');setAuthMode('signin')}}>Accedi <ArrowRight size={15}/></Button>}</div></div></header>
   {message&&<div className={`flash flash-${message.mode}`} role="status">{alertTitle(message.mode)}<span>{message.text}</span><button aria-label="Chiudi avviso" onClick={()=>setMessage(null)}><X size={16}/></button></div>}
