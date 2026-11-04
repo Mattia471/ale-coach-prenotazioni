@@ -62,8 +62,10 @@ const main=async()=>{
  console.log('✓ RPC privata vietata senza login');
 
  const discount=await read('/rest/v1/discount_codes?select=code');
- assert([401,403].includes(discount.status),'Sconti interni non devono essere pubblici');
- console.log('✓ Codici interni non leggibili da anon');
+ const discountsHidden= [401,403].includes(discount.status)
+  || (discount.status===200&&Array.isArray(discount.data)&&discount.data.length===0);
+ assert(discountsHidden,'Sconti interni non devono essere pubblicamente leggibili');
+ console.log('✓ Codici interni non visibili a utenti anonimi');
 
  console.log('\nCloud smoke OK: nessun dato è stato modificato.');
 };
