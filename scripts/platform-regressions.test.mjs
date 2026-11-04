@@ -87,3 +87,16 @@ test('recupero password Supabase con conferma e senza link diretto allo stato cl
  assert.match(app,/newPassword!==confirmPassword/);
  assert.match(app,/passwordRecovery\?<div className="auth-card"/);
 });
+
+
+test('agenda base consente blocchi manuali senza Google Calendar',()=>{
+ const app=read('src/App.tsx');
+ assert.match(app,/const createManualBlock=async/);
+ assert.match(app,/calendar_course_blocks'\)\.insert/);
+ assert.match(app,/source_ref:'manual'/);
+ assert.match(app,/valid_from:newBlock\.on_date/);
+ assert.match(app,/const createClosure=async/);
+ assert.match(app,/calendar_closures'\)\.insert/);
+ const sql=read('supabase/migrations/20261104143000_v2_stripe_authorize_before_request.sql');
+ assert.match(sql,/private\.coach_slot_is_free/);
+});
