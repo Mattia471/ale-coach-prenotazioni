@@ -98,3 +98,32 @@ test('agenda base consente impegni e chiusure senza sincronizzazione Google',()=
  assert.match(app,/calendar_closures'\)\.insert/);
  assert.match(app,/courseBlocks\.filter\(b=>b\.source_ref!=='manual'\)/);
 });
+
+test('QA coach: notifiche accessibili da desktop e mobile, senza aprire Stripe',()=>{
+ const app=read('src/App.tsx');
+ const types=read('src/types.ts');
+ const css=read('src/styles.css');
+ assert.match(types,/CoachTab=.*'messages'.*'history'.*'more'/);
+ assert.match(app,/aria-label="Notifiche coach"/);
+ assert.match(app,/className="bottom-nav coach-bottom-nav"/);
+ assert.match(app,/NOTIFICHE COACH/);
+ assert.match(app,/void markNotices\(\)/);
+ assert.match(css,/@media\(max-width:719px\)/);
+});
+test('QA coach: disdette notificano il coach, con controllo idempotenza',()=>{
+ const sql=read('supabase/migrations/20261104164054_qa_coach_client_cancellation_notifications.sql');
+ assert.match(sql,/after update of status on public\.bookings/i);
+ assert.match(sql,/new\.status = 'cancelled'/i);
+ assert.match(sql,/v_actor <> new\.client_id/i);
+ assert.match(sql,/not exists \(/i);
+ assert.match(sql,/from public\.profiles p/i);
+ assert.match(sql,/p\.role = 'coach'/i);
+});
+test('QA coach: cronologia clienti e palinsesto visibili, sandbox distinta',()=>{
+ const app=read('src/App.tsx');
+ assert.match(app,/Storico lezioni/);
+ assert.match(app,/agenda-extra/);
+ assert.match(app,/DA VERIFICARE · SLOT BLOCCATI/);
+ assert.match(app,/INCASSI DI PROVA · SANDBOX/);
+ assert.match(app,/PROSSIME LEZIONI/);
+});
