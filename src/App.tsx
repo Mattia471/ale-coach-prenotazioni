@@ -152,7 +152,7 @@ function App(){
    p_service_id:selectedService.id,p_day:selectedDay,p_venue_preference:venuePreference
   }).then(({data,error})=>{
    if(active){
-    setAvailableHours(error?[]:(data||[]).map((x:{start_minute:number;venue_id:string})=>x));
+    setAvailableHours(error?[]:(data||[]).map((x:{start_minute:number;venue_id:string})=>x).filter((x:{start_minute:number;venue_id:string},i:number,arr:{start_minute:number;venue_id:string}[])=>arr.findIndex(y=>y.start_minute===x.start_minute&&y.venue_id===x.venue_id)===i));
     if(error)submitMsg(error.message,'error');
    }
   });
