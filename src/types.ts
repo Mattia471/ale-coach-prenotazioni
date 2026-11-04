@@ -10,5 +10,5 @@ export interface Booking {id:string;client_id:string;service_id:string;venue_id:
 export interface Notice{id:string;recipient_id:string;title:string;body:string;kind:string;booking_id:string|null;read_at:string|null;created_at:string}
 export interface Wallet{id:string;client_id:string;package_id:string;remaining:number;expires_at:string}
 export interface Discount {code:string;percent_off:number;active:boolean;first_purchase_only:boolean;valid_days_from_contact:number|null;uses:number}
-export type CoachTab='overview'|'requests'|'agenda'|'clients'|'hours'|'services'|'marketing';
+export type CoachTab='overview'|'requests'|'agenda'|'clients'|'hours'|'services'|'marketing'|'messages'|'history'|'more';
 export type ClientTab='home'|'bookings'|'messages'|'profile';
