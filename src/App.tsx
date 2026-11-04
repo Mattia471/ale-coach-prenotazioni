@@ -128,6 +128,36 @@ function App(){
  },[]);
  useEffect(()=>{void refresh()},[refresh]);
  useEffect(()=>{
+  if(!profile||!supabase)return;
+  const params=new URLSearchParams(window.location.search);
+  const payment=params.get('payment');
+  if(!payment)return;
+  if(payment==='authorized'){
+   setScreen(profile.role==='coach'?'coach':'client');
+   setClientTab('bookings');
+   submitMsg('Stripe ha ricevuto la tua autorizzazione di prova. La richiesta arriverà ad Ale dopo la verifica del webhook; nessun importo è stato incassato.','info');
+   void refresh();
+   const timer=window.setInterval(()=>void refresh(),3000);
+   const stop=window.setTimeout(()=>window.clearInterval(timer),30000);
+   window.history.replaceState({},'',window.location.pathname);
+   return()=>{window.clearInterval(timer);window.clearTimeout(stop)};
+  }
+  if(payment==='cancelled'){
+   setScreen(profile.role==='coach'?'coach':'client');
+   setClientTab('bookings');
+   submitMsg('Checkout interrotto. La richiesta non è stata inviata ad Ale: puoi riprendere o annullare l’autorizzazione.','info');
+   window.history.replaceState({},'',window.location.pathname);
+  }
+  if(payment==='success'){
+   setScreen(profile.role==='coach'?'coach':'client');
+   setClientTab('bookings');
+   submitMsg('Pagamento Stripe ricevuto. Attendi la conferma del server nella sezione Prenotazioni.','info');
+   void refresh();
+   window.history.replaceState({},'',window.location.pathname);
+  }
+ },[profile?.id,refresh]);
+
+ useEffect(()=>{
   if(!supabase||!user)return;
   const c=supabase.channel('ale-realtime-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'bookings'},()=>{void refresh()}).on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:`recipient_id=eq.${user.id}`},()=>{void refresh()}).subscribe();
   return()=>{void supabase!.removeChannel(c)};
