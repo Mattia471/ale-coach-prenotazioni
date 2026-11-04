@@ -1,5 +1,68 @@
 # Ale Coach · Giorno 1, configurazione Stripe (solo account del coach)
 
+## Aggiornamento implementativo del 4 novembre 2026 (sandbox)
+
+Il nuovo flusso è stato **implementato nel codice e pubblicato sul cloud di test**.
+Non è ancora stato validato con un Checkout Stripe completo e non è autorizzato
+per pagamenti live.
+
+- Cliente invia una richiesta online: RPC `create_booking_v2` crea lo stato
+  privato `authorizing`, invisibile al coach.
+- Il frontend apre Stripe Checkout con `payment_intent_data.capture_method=manual`.
+  La carta viene **autorizzata**, senza incassare denaro.
+- Dopo `checkout.session.completed` firmato, il webhook verifica Session,
+  PaymentIntent, importo, proprietario e stato `requires_capture`: la richiesta
+  diventa `pending`, visibile al coach.
+- Il coach usa la funzione protetta `decide-booking`: `approve` cattura
+  il pagamento soltanto se Google Calendar è aggiornato e lo slot è libero;
+  `reject` annulla la preautorizzazione.
+- Il cliente può riprendere un Checkout non completato oppure cancellare una
+  preautorizzazione attraverso `cancel-booking`.
+- Il webhook Stripe Sandbox riceve quattro eventi:
+  `checkout.session.completed`, `checkout.session.expired`,
+  `payment_intent.succeeded`, `payment_intent.canceled`.
+- Supabase Edge Functions distribuite:
+  `create-checkout`, `stripe-webhook`, `decide-booking`,
+  `cancel-booking`.
+- La build Vite e quattro test esistenti superano il controllo; **non sono
+  test end-to-end del pagamento**.
+
+### Attivazione solo per collaudo controllato
+
+1. Controllare in Supabase Edge Function Secrets:
+   `STRIPE_ENVIRONMENT=test`, `STRIPE_SECRET_KEY=sk_test_...`,
+   `STRIPE_WEBHOOK_SECRET=whsec_...` e
+   `PUBLIC_APP_URL=https://ale-coach-prenotazioni.vercel.app`.
+2. Impostare **`STRIPE_PAYMENTS_ENABLED=true`** soltanto dopo
+   aver verificato che le credenziali siano realmente **di test**.
+3. Aprire il sito Vercel con un account del collaudo autorizzato.
+   Al termine della prenotazione a pagamento, cliccare su
+   **AUTORIZZA CARTA SU STRIPE**; utilizzare esclusivamente una
+   carta Stripe di prova (per esempio 4242 4242 4242 4242).
+4. Controllare in Stripe Sandbox che l'intent sia `requires_capture`
+   e **non sia `succeeded`**; in Supabase la richiesta deve risultare
+   `pending` e `payment_status='authorized'`. Il coach la vede
+   soltanto in questo stato.
+5. La cattura **non può essere testata finché il calendario Google
+   del coach non è collegato e sincronizzato** e finché non esiste un
+   account effettivamente autorizzato al ruolo coach.
+6. Ripristinare `STRIPE_PAYMENTS_ENABLED=false` terminato il test
+   se Google Calendar, notifiche, rimborsi e pulizia automatica
+   delle autorizzazioni scadute non sono ancora validati.
+
+### Ancora da completare prima del rilascio
+
+- Riconciliazione automatica delle autorizzazioni Stripe lasciate
+  in `pending` oltre 24 ore, con annullamento server-side sicuro.
+- Test E2E della cattura, rifiuto, eventi duplicati, errori DB dopo
+  incasso e compensazione di eventuali pagamenti da rimborsare.
+- Collegamento OAuth Google Calendar reale e conferme basate su dati freschi.
+- Ruolo coach assegnato solo dopo verifica dell'identità, GDPR approvato,
+  SMTP transazionale e dominio definitivo.
+- Il preventivo `other` e gli abbonamenti Continuity richiedono
+  ulteriori flussi di acquisto dedicati.
+
+
 Aggiornato il 4 novembre 2026. Integrazione sul solo Supabase Cloud del cliente.
 Non creare ambienti Docker, non salvare segreti in repository, Vercel o browser.
 
