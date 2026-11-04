@@ -1,28 +1,18 @@
-# Ale Coach: sviluppo locale isolato (Supabase CLI 2.121.0 + Docker Desktop).
-# Non specificare porte: lo stack sperimentale le assegna a ogni progetto.
-# Questa configurazione non va applicata alla produzione del cliente.
-project_id = "ale-coach-local"
-
-[experimental]
-stack = true
+# Ale Coach: unico database Supabase Cloud di proprietà del cliente.
+# Non avviare Docker o stack Supabase locale. Migrazioni versionate in supabase/migrations.
+project_id = "mmtnzjdvvlouiwgrydlf"
 
 [auth]
 enabled = true
-site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://127.0.0.1:5173/**", "http://localhost:5173/**"]
+site_url = "https://ale-coach-prenotazioni.vercel.app"
+additional_redirect_urls = ["https://ale-coach-prenotazioni.vercel.app/**", "https://alecoach.online/**", "https://www.alecoach.online/**"]
 enable_signup = true
 
 [auth.email]
 enable_signup = true
-# Sviluppo: login immediato, nessuna email reale. In produzione riattivare la conferma.
-enable_confirmations = false
-
-[local_smtp]
-enabled = true
+enable_confirmations = true
 
 [db.seed]
-# Il catalogo è già inserito nella migrazione iniziale; gli account demo
-# vengono creati da uno script Node SOLO dopo aver verificato l'URL locale.
 enabled = false
 
 [functions.create-checkout]
