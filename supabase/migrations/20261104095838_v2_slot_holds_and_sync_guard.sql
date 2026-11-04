@@ -23,7 +23,7 @@ grant select on public.slot_holds to authenticated;
 -- Il controllo esclude i hold dei concorrenti, ma consente di prenotare il proprio hold.
 create or replace function public.available_slots_v2(p_service_id text,p_day date,p_venue_preference text default 'indifferente')
 returns table(start_minute integer,venue_id text) language plpgsql stable security definer set search_path='' as $slots$
-declare v_service public.services%rowtype;v_window public.availability_windows%rowtype;v_min integer;v_start timestamptz;
+declare v_service public.services%rowtype;v_window public.availability_windows%rowtype;v_min integer;v_start timestamptz;v_offer text;
 begin
  select * into v_service from public.services where id=p_service_id and active and kind<>'quote';
  if not found or p_day is null or p_venue_preference not in ('talenti','nuovo_salario','indifferente') then return; end if;
@@ -31,7 +31,7 @@ begin
  if exists(select 1 from public.calendar_closures where is_active and p_day between start_date and end_date) then return; end if;
  for v_window in select w.* from public.availability_windows w
    where w.weekday=extract(isodow from p_day)::integer and w.is_active
-    and (p_venue_preference='indifferente' or w.venue_id=p_venue_preference)
+    and (p_venue_preference='indifferente' or w.venue_id=p_venue_preference or w.is_flexible)
    order by w.start_minute,w.venue_id
  loop
   for v_min in select generate_series(v_window.start_minute,
@@ -40,17 +40,25 @@ begin
    v_start:=(p_day::text||' '||lpad((v_min/60)::text,2,'0')||':'||
     lpad((v_min%60)::text,2,'0'))::timestamp at time zone 'Europe/Rome';
    if v_start < now()+interval '12 hours' or v_start > now()+interval '42 days' then continue; end if;
-   if private.coach_slot_is_free(v_start,v_service.duration_minutes,v_window.venue_id,null)
+   -- Una fascia flessibile puo' offrire anche il club alternativo, ma
+   -- SOLO se disponibilita' e trasferimenti sono leciti su quel club.
+   for v_offer in select offered.id from public.venues offered
+    where (offered.id=v_window.venue_id or v_window.is_flexible)
+      and (p_venue_preference='indifferente' or offered.id=p_venue_preference)
+    order by offered.id
+   loop
+   if private.coach_slot_is_free(v_start,v_service.duration_minutes,v_offer,null)
      and not exists(
       select 1 from public.slot_holds sh
       where sh.expires_at>now() and sh.client_id is distinct from auth.uid()
        and tstzrange(sh.starts_at -
-         case when sh.venue_id is distinct from v_window.venue_id then interval '45 minutes' else interval '0' end,
+         case when sh.venue_id is distinct from v_offer then interval '45 minutes' else interval '0' end,
          sh.ends_at+interval '10 minutes'+
-         case when sh.venue_id is distinct from v_window.venue_id then interval '45 minutes' else interval '0' end,'[)')
+         case when sh.venue_id is distinct from v_offer then interval '45 minutes' else interval '0' end,'[)')
        && tstzrange(v_start,v_start+make_interval(mins=>v_service.duration_minutes+10),'[)')
      )
-   then start_minute:=v_min;venue_id:=v_window.venue_id;return next; end if;
+   then start_minute:=v_min;venue_id:=v_offer;return next; end if;
+   end loop;
   end loop;
  end loop;
 end;
