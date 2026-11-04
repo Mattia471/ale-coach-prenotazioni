@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.76.0';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 /**
  * Sincronizzazione Google Calendar, sola lettura, con credenziali del coach.
