@@ -8,6 +8,10 @@ import { blockUnreviewedLegal, legal, legalPaths } from './legal';
 
 type Screen='landing'|'auth'|'client'|'coach';
 type Step='details'|'when'|'review';
+type WindowRow={id:number;weekday:number;venue_id:string;start_minute:number;end_minute:number;is_flexible:boolean;is_active:boolean};
+type ClosureRow={id:number;start_date:string;end_date:string;reason:string;is_active:boolean;review_status:'proposed'|'confirmed'};
+const asMinute=(value:string)=>{const [h,m]=value.split(':').map(Number);return h*60+m};
+
 const disciplines=['Forza / Sala pesi','TRX','GRID','Calisthenics','Hyrox','Flexability','Cross Active'];
 const dayNames=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
 const iconByService:Record<string,typeof Zap>={single:Zap,couple:Users,check:CalendarCheck,start:Dumbbell,intro:MessageCircle,other:Sparkles};
@@ -40,6 +44,11 @@ function App(){
  const [services,setServices]=useState<Service[]>(demoServices);
  const [venues,setVenues]=useState<Venue[]>(demoVenues);
  const [hours,setHours]=useState<WorkingHours[]>(demoHours);
+ const [availabilityWindows,setAvailabilityWindows]=useState<WindowRow[]>([]);
+ const [closures,setClosures]=useState<ClosureRow[]>([]);
+ const [calendarSync,setCalendarSync]=useState<{status:string;last_success_at:string|null;last_error:string|null}|null>(null);
+ const [newWindow,setNewWindow]=useState({weekday:1,venue_id:'talenti',start_minute:540,end_minute:600,is_flexible:false});
+
  const [packs,setPacks]=useState<Pack[]>(demoPacks);
  const [codes,setCodes]=useState<Discount[]>([{code:promo,percent_off:15,active:true,uses:0,first_purchase_only:true,valid_days_from_contact:null}]);
  const [bookings,setBookings]=useState<Booking[]>(()=>ready?[]:demoRead(storageBookings,[demoBooking()]));
@@ -145,6 +154,21 @@ function App(){
   });
   return()=>{active=false};
  },[selectedService,selectedDay,venuePreference,bookings]);
+ useEffect(()=>{
+  if(!supabase||profile?.role!=='coach'||coachTab!=='hours')return;
+  let live=true;
+  void Promise.all([
+   supabase.from('availability_windows').select('*').order('weekday').order('start_minute'),
+   supabase.from('calendar_closures').select('*').order('start_date'),
+   supabase.from('google_calendar_sync').select('status,last_success_at,last_error').eq('id',1).maybeSingle()
+  ]).then(([w,cl,sync])=>{
+    if(!live)return;
+    if(!w.error)setAvailabilityWindows((w.data||[]) as WindowRow[]);
+    if(!cl.error)setClosures((cl.data||[]) as ClosureRow[]);
+    if(!sync.error)setCalendarSync(sync.data);
+  });
+  return()=>{live=false};
+ },[profile?.id,profile?.role,coachTab]);
  useEffect(()=>{if(coachTab!=='marketing')return;void import('qrcode').then(({default:QRCode})=>QRCode.toDataURL(`${location.origin}/?source=club&code=${promo}`,{width:320,margin:2,color:{dark:'#1b1515',light:'#ffffff'}})).then(setQr).catch(()=>setQr(''))},[coachTab]);
  const googleLogin=async()=>{
   if(!privacyNoticeSeen){submitMsg('Prima di usare Google, prendi visione dell’informativa privacy.','info');return}
@@ -308,6 +332,34 @@ function App(){
   }catch(e){submitMsg(errorText(e),'error')}
  };
  const updateService=async(s:Service,patch:Partial<Service>)=>{if(!supabase){setServices(rows=>rows.map(x=>x.id===s.id?{...x,...patch}:x));return}const {error}=await supabase.from('services').update(patch).eq('id',s.id);if(error)submitMsg(error.message,'error');else setServices(rows=>rows.map(x=>x.id===s.id?{...x,...patch}:x))};
+ const saveWindow=async(w:WindowRow,patch:Partial<WindowRow>)=>{
+  if(!supabase)return;
+  if((patch.start_minute!==undefined&&patch.start_minute%15!==0)||
+     (patch.end_minute!==undefined&&patch.end_minute%15!==0)){
+    submitMsg('Gli orari devono essere multipli di 15 minuti.','error');return;
+  }
+  const start=patch.start_minute??w.start_minute,end=patch.end_minute??w.end_minute;
+  if(end<=start){submitMsg('La fine deve essere successiva all’inizio.','error');return}
+  const {error}=await supabase.from('availability_windows').update(patch).eq('id',w.id);
+  if(error){submitMsg(error.message,'error');return}
+  setAvailabilityWindows(rows=>rows.map(x=>x.id===w.id?{...x,...patch}:x));
+ };
+ const createWindow=async()=>{
+  if(!supabase)return;
+  if(newWindow.start_minute%15||newWindow.end_minute%15||newWindow.end_minute<=newWindow.start_minute){
+   submitMsg('Inserisci una finestra valida a intervalli di 15 minuti.','error');return;
+  }
+  const {data,error}=await supabase.from('availability_windows').insert({...newWindow,is_active:true}).select('*').single();
+  if(error){submitMsg(error.message,'error');return}
+  setAvailabilityWindows(v=>[...v,data as WindowRow].sort((a,b)=>a.weekday-b.weekday||a.start_minute-b.start_minute));
+  submitMsg('Finestra aggiunta. Le disponibilità vengono ricalcolate dal server.');
+ };
+ const saveClosure=async(cl:ClosureRow,patch:Partial<ClosureRow>)=>{
+  if(!supabase)return;
+  const {error}=await supabase.from('calendar_closures').update(patch).eq('id',cl.id);
+  if(error){submitMsg(error.message,'error');return}
+  setClosures(rows=>rows.map(x=>x.id===cl.id?{...x,...patch}:x));
+ };
  const updateHours=async(h:WorkingHours,patch:Partial<WorkingHours>)=>{if(!supabase){setHours(rows=>rows.map(x=>x.weekday===h.weekday?{...x,...patch}:x));return}const {error}=await supabase.from('working_hours').update(patch).eq('weekday',h.weekday);if(error)submitMsg(error.message,'error');else setHours(rows=>rows.map(x=>x.weekday===h.weekday?{...x,...patch}:x))};
  const saveCode=async(value:Discount)=>{if(!supabase){setCodes(rows=>rows.map(c=>c.code===value.code?value:c));return}const {error}=await supabase.from('discount_codes').update({active:value.active,percent_off:value.percent_off}).eq('code',value.code);if(error)submitMsg(error.message,'error');else setCodes(rows=>rows.map(c=>c.code===value.code?value:c))};
  const activeServices=services.filter(s=>s.active).sort((a,b)=>a.sort_order-b.sort_order);
@@ -391,7 +443,37 @@ function App(){
      <div className="request-footer"><div className="request-source"><Tag size={14}/>{sources[b.source]||b.source}{b.promo_code&&` · ${b.promo_code}`}</div>{s?.kind==='quote'?<><div className="field"><span>Il tuo preventivo (€)</span><input type="number" min="1" step="0.01" value={quoteValues[b.id]||''} onChange={e=>setQuoteValues(v=>({...v,[b.id]:e.target.value}))} placeholder="Es. 65.00"/></div><Button disabled={busy} onClick={()=>void coachAction(b,'quote')}>INVIA PREVENTIVO <ArrowRight size={15}/></Button></>:<><div className="payment-setting"><span>Pagamento:</span><select value={b.payment_mode} disabled={busy||!['online','in_person'].includes(b.payment_mode)} onChange={e=>void setPaymentMode(b,e.target.value as 'online'|'in_person')}><option value="online">Anticipato online</option>{c?.allow_in_person&&<option value="in_person">Di persona</option>}{b.payment_mode==='none'&&<option value="none">Gratuito</option>}{b.payment_mode==='credit'&&<option value="credit">Credito</option>}</select></div><div className="actions"><Button variant="outline" disabled={busy} onClick={()=>void coachAction(b,'reject')}>RIFIUTA <X size={15}/></Button><Button disabled={busy} onClick={()=>void coachAction(b,'approve')}>APPROVA <Check size={16}/></Button></div></>}</div></article>})}</section>}
    {coachTab==='agenda'&&<section className="coach-content"><Title eyebrow="CALENDARIO" sub="Le lezioni confermate e i pagamenti in sede.">LA TUA AGENDA</Title>{futureBookings.length===0?<Empty title="Agenda libera" desc="Qui compariranno le lezioni confermate."/>:futureBookings.map(b=><article key={b.id} className="agenda-card"><div className="agenda-day"><strong>{b.starts_at?dateLabel(b.starts_at):'Da definire'}</strong><span>{b.starts_at?timeLabel(b.starts_at):'--:--'}</span></div><div className="agenda-detail"><b>{services.find(s=>s.id===b.service_id)?.name}</b><span>{clients.find(c=>c.id===b.client_id)?.full_name||'Cliente'} · {venues.find(v=>v.id===b.venue_id)?.name}</span><span>{b.payment_mode==='in_person'&&b.payment_status==='due_in_person'?'Da incassare in palestra':b.payment_status==='paid'?'Pagata':b.payment_mode==='credit'?'Credito usato':'Gratuita'}</span></div>{b.payment_mode==='in_person'&&b.payment_status==='due_in_person'&&<Button variant="outline" disabled={busy} onClick={()=>void inPersonPaid(b)}>SEGNA PAGATA</Button>}</article>)}</section>}
    {coachTab==='clients'&&<section className="coach-content"><Title eyebrow="RELAZIONI" sub="Puoi autorizzare ogni cliente al pagamento in presenza.">I TUOI CLIENTI</Title><div className="info-panel"><LockKeyhole size={18}/><p>Per impostazione predefinita ogni nuovo cliente deve pagare online. L'interruttore cambia solo il permesso del cliente selezionato.</p></div>{clients.length===0?<Empty title="Nessun cliente registrato" desc="I nuovi iscritti compariranno qui."/>:clients.map(c=><div className="client-row" key={c.id}><div className="mini-avatar">{c.full_name.charAt(0)||'C'}</div><div className="client-row-info"><b>{c.full_name||'Cliente'}</b><small>{c.email}</small><span>{c.allow_in_person?'Fidelizzato · può pagare in palestra':'Pagamento anticipato obbligatorio'}</span></div><button type="button" className={`switch ${c.allow_in_person?'on':''}`} aria-label={`Pagamento in presenza per ${c.full_name}`} role="switch" aria-checked={c.allow_in_person} disabled={busy} onClick={()=>void setInPerson(c,!c.allow_in_person)}><i/></button></div>)}</section>}
-   {coachTab==='hours'&&<section className="coach-content"><Title eyebrow="DISPONIBILITÀ">ORARI SETTIMANALI</Title><p className="section-intro">Gli slot mostrati ai clienti dipendono da queste fasce orarie e dalle lezioni già prenotate. Una lezione occupa tempo in entrambe le sedi.</p>{hours.map(h=><div className="hour-card" key={h.weekday}><div><b>{dayNames[h.weekday-1]}</b><label className="check-row tiny"><input type="checkbox" checked={h.is_open} onChange={e=>void updateHours(h,{is_open:e.target.checked})}/> Aperto</label></div><div className="hour-times"><label>Da <select disabled={!h.is_open} value={h.start_hour} onChange={e=>void updateHours(h,{start_hour:Math.min(Number(e.target.value),h.end_hour-1)})}>{Array.from({length:17},(_,i)=>i+6).map(x=><option key={x} value={x}>{String(x).padStart(2,'0')}:00</option>)}</select></label><label>A <select disabled={!h.is_open} value={h.end_hour} onChange={e=>void updateHours(h,{end_hour:Math.max(Number(e.target.value),h.start_hour+1)})}>{Array.from({length:17},(_,i)=>i+7).map(x=><option key={x} value={x}>{String(x).padStart(2,'0')}:00</option>)}</select></label></div></div>)}</section>}
+   {coachTab==='hours'&&<section className="coach-content"><Title eyebrow="DISPONIBILITÀ · V2">SEDE, CORSI E FASCE</Title>
+    <p className="section-intro">La tua agenda è una sola tra le due palestre. Le finestre proposte non garantiscono slot liberi: corsi, appuntamenti, pause e trasferimenti vengono sottratti automaticamente dal server.</p>
+    <div className="calendar-sync-note"><ShieldCheck size={18}/>
+     <div><b>Google Calendar: {calendarSync?.status==='connected'?'collegato':'non ancora sincronizzato'}</b>
+      <p>{calendarSync?.last_success_at?`Ultimo aggiornamento: ${dateLabel(calendarSync.last_success_at)} alle ${timeLabel(calendarSync.last_success_at)}`:'Le lezioni ricorrenti caricate dal documento coprono solo il periodo 19/10–30/11/2026. Collega il calendario operativo prima del lancio per aggiornare occupazioni e modifiche.'}</p>
+     </div></div>
+    <h3 className="schedule-subtitle">Finestre settimanali</h3>
+    <div className="schedule-window-list">{availabilityWindows.map(w=><div className="schedule-window" key={w.id}>
+     <div><b>{dayNames[w.weekday-1]}</b><small>{venues.find(v=>v.id===w.venue_id)?.name||w.venue_id}</small></div>
+     <label>Da<input type="time" step={900} defaultValue={formatStartMinute(w.start_minute)} disabled={!w.is_active} onBlur={e=>{const m=asMinute(e.target.value);if(m!==w.start_minute)void saveWindow(w,{start_minute:m})}}/></label>
+     <label>A<input type="time" step={900} defaultValue={formatStartMinute(w.end_minute)} disabled={!w.is_active} onBlur={e=>{const m=asMinute(e.target.value);if(m!==w.end_minute)void saveWindow(w,{end_minute:m})}}/></label>
+     <label className="check-row tiny"><input type="checkbox" checked={w.is_flexible} onChange={e=>void saveWindow(w,{is_flexible:e.target.checked})}/>Flessibile</label>
+     <label className="check-row tiny"><input type="checkbox" checked={w.is_active} onChange={e=>void saveWindow(w,{is_active:e.target.checked})}/>Attiva</label>
+    </div>)}</div>
+    <h3 className="schedule-subtitle">Aggiungi fascia</h3>
+    <div className="schedule-create">
+     <label>Giorno<select value={newWindow.weekday} onChange={e=>setNewWindow(v=>({...v,weekday:Number(e.target.value)}))}>{dayNames.map((d,i)=><option key={d} value={i+1}>{d}</option>)}</select></label>
+     <label>Sede<select value={newWindow.venue_id} onChange={e=>setNewWindow(v=>({...v,venue_id:e.target.value}))}>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
+     <label>Da<input type="time" step={900} value={formatStartMinute(newWindow.start_minute)} onChange={e=>setNewWindow(v=>({...v,start_minute:asMinute(e.target.value)}))}/></label>
+     <label>A<input type="time" step={900} value={formatStartMinute(newWindow.end_minute)} onChange={e=>setNewWindow(v=>({...v,end_minute:asMinute(e.target.value)}))}/></label>
+     <label className="check-row tiny"><input type="checkbox" checked={newWindow.is_flexible} onChange={e=>setNewWindow(v=>({...v,is_flexible:e.target.checked})}/>Flessibile</label>
+     <Button variant="outline" onClick={()=>void createWindow()}>AGGIUNGI FASCIA</Button>
+    </div>
+    <h3 className="schedule-subtitle">Chiusure da verificare</h3>
+    {closures.length?closures.map(cl=><div key={cl.id} className="schedule-closure">
+      <div><b>{cl.start_date} → {cl.end_date}</b><small>{cl.reason} · {cl.review_status==='proposed'?'Proposta da confermare':'Confermata'}</small></div>
+      <label className="check-row tiny"><input type="checkbox" checked={cl.is_active} onChange={e=>void saveClosure(cl,{is_active:e.target.checked})}/>Blocca date</label>
+      {cl.review_status==='proposed'&&<Button variant="outline" onClick={()=>void saveClosure(cl,{review_status:'confirmed'})}>CONFERMA CHIUSURA</Button>}
+    </div>):<p className="small-muted">Nessuna chiusura proposta.</p>}
+    <p className="footnote">Sono presenti anche corsi ricorrenti con validità fino al 30 novembre ed eventi con sede da verificare. Una finestra flessibile non autorizza a ignorare corsi o viaggi. Le modifiche non spostano automaticamente le prenotazioni già confermate.</p>
+    </section>}
    {coachTab==='services'&&<section className="coach-content"><Title eyebrow="LISTINO" sub="Prezzi e disponibilità dei servizi.">SERVIZI</Title>{services.map(s=><div key={s.id} className="admin-product"><div><b>{s.name}</b><small>{s.kind==='quote'?'Su preventivo':`${s.duration_minutes} min`}</small></div><div className="product-actions">{s.kind==='paid'&&<label>€ <input type="number" min="0" step="0.5" defaultValue={s.price_cents/100} onBlur={e=>{const price=Math.round(Number(e.target.value)*100);if(price>=0&&price!==s.price_cents)void updateService(s,{price_cents:price})}}/></label>}<button type="button" role="switch" aria-label={`Servizio ${s.name} attivo`} aria-checked={s.active} className={`switch ${s.active?'on':''}`} onClick={()=>void updateService(s,{active:!s.active})}><i/></button></div></div>)}<Title eyebrow="OFFERTE">PACCHETTI</Title>{packs.map(p=><div className="admin-product" key={p.id}><div><b>{p.name}</b><small>{p.credits} lezioni · {p.description}</small></div><div className="product-actions"><strong>{currency(p.price_cents)}</strong><span className="soft-tag">Stripe da collegare</span></div></div>)}<Title eyebrow="PROMOZIONI">CODICI SCONTO</Title>{codes.map(c=><div key={c.code} className="admin-product"><div><b>{c.code}</b><small>{c.percent_off}% · Validità {c.valid_days_from_contact||'nessun limite'} giorni</small></div><button role="switch" aria-checked={c.active} aria-label={`${c.code} attivo`} className={`switch ${c.active?'on':''}`} onClick={()=>void saveCode({...c,active:!c.active})}><i/></button></div>)}</section>}
    {coachTab==='marketing'&&<section className="coach-content"><Title eyebrow="CONDIVISIONE" sub="QR code, link e codice promozionale pronti da condividere.">QR CODE E LINK</Title><div className="qr-card"><div className="qr-image">{qr?<img src={qr} alt={`QR per accedere all'app con codice ${promo}`}/>:<QrCode size={75}/>}</div><div><h3>QR CODE PRENOTAZIONI</h3><p>Mostra o condividi il QR per aprire l'app con il codice promozionale già inserito.</p>{qr&&<a className="button button-outline" href={qr} download="ale-coach-qr.png">SCARICA QR <ArrowRight size={15}/></a>}</div></div><div className="marketing-link"><div><b>LINK DA CONDIVIDERE</b><small>{shareUrl}</small></div><button aria-label="Copia link" title="Copia link" onClick={()=>{void navigator.clipboard?.writeText(shareUrl);submitMsg('Link copiato')}}><ExternalLink size={18}/></button></div><div className="marketing-link"><div><b>CODICE PROMOZIONALE</b><small>{promo} · 15% sulla prima lezione individuale, senza cumulo con altre offerte.</small></div><button aria-label="Copia codice promozionale" title="Copia codice promozionale" onClick={()=>{void navigator.clipboard?.writeText(promo);submitMsg('Codice copiato')}}><Tag size={18}/></button></div></section>}
    <div className="coach-footer-note"><Settings2 size={15}/> Pannello riservato al coach. Autorizzazioni verificate dal database in modalità reale.</div>
