@@ -567,21 +567,22 @@ function App(){
  if(!ready||!supabase)return <main className="cloud-unavailable" role="alert"><Logo/><h1>Configurazione cloud non disponibile</h1><p>L'app richiede Supabase Cloud per accedere, prenotare e gestire le lezioni. Nessun dato simulato viene caricato.</p><a href="mailto:info@alecoach.online">Contatta info@alecoach.online</a></main>;
  return <div className={`app-shell ${screen==='coach'?'coach-shell':''}`}>
   {internalQa&&<div className="demo-environment-banner" role="status"><ShieldCheck size={15}/> COLLAUDO CLOUD RISERVATO · Solo account autorizzati. Pagamenti Stripe esclusivamente sandbox; nessun incasso reale. Non inserire dati sanitari o di terze persone.</div>}
-  {profile&&!pushEnabled&&!pushBannerDismissed&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
+  {(profile||(!booting&&screen==='landing'))&&!pushEnabled&&!pushBannerDismissed&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
     <div className="push-permission-banner__body">
      <span className="push-permission-banner__icon"><Bell size={21}/></span>
      <div className="push-permission-banner__copy">
-      <h3>{pushPromptState==='blocked'?'Notifiche disattivate':pushPromptState==='needs-install'?'Ricevi le notifiche su iPhone':pushPromptState==='unsupported'?'Notifiche non supportate':'Non perdere aggiornamenti e prenotazioni'}</h3>
-      <p>{pushPromptState==='blocked'?'Il permesso è bloccato: puoi riattivarlo dalle impostazioni del dispositivo.':pushPromptState==='needs-install'?'Per attivarle, installa Ale Coach dalla schermata Home e riapri l’app.':pushPromptState==='unsupported'?'Utilizza un browser compatibile con le notifiche push.':'Attiva le notifiche per ricevere conferme, variazioni e aggiornamenti sulle tue lezioni.'}</p>
+      <h3>{!profile?'Non perdere gli aggiornamenti di Ale Coach':pushPromptState==='blocked'?'Notifiche disattivate':pushPromptState==='needs-install'?'Ricevi le notifiche su iPhone':pushPromptState==='unsupported'?'Notifiche non supportate':'Non perdere aggiornamenti e prenotazioni'}</h3>
+      <p>{!profile?'Accedi per ricevere sul telefono conferme, variazioni e aggiornamenti delle tue lezioni.':pushPromptState==='blocked'?'Il permesso è bloccato: puoi riattivarlo dalle impostazioni del dispositivo.':pushPromptState==='needs-install'?'Per attivarle, installa Ale Coach dalla schermata Home e riapri l’app.':pushPromptState==='unsupported'?'Utilizza un browser compatibile con le notifiche push.':'Attiva le notifiche per ricevere conferme, variazioni e aggiornamenti sulle tue lezioni.'}</p>
      </div>
     </div>
     <div className="push-permission-banner__actions">
-     <Button variant="primary" disabled={pushBusy||pushPromptState==='checking'} onClick={()=>{
+     <Button variant="primary" disabled={pushBusy||(Boolean(profile)&&pushPromptState==='checking')} onClick={()=>{
+      if(!profile){setScreen('auth');setAuthMode('signin');return;}
       if(pushPromptState==='needs-install')submitMsg('Su iPhone apri Ale Coach in Safari, tocca Condividi → Aggiungi alla schermata Home e avvia l’app dall’icona.','info');
       else if(pushPromptState==='blocked')submitMsg('Apri le impostazioni del dispositivo e consenti le notifiche per Ale Coach, quindi riavvia l’app.','info');
       else if(pushPromptState==='unsupported')submitMsg('Apri Ale Coach con Safari su iOS dalla schermata Home o Chrome su Android.','info');
       else void subscribePush();
-     }}>{pushBusy?'ATTIVAZIONE...':pushPromptState==='needs-install'?'COME INSTALLARE':pushPromptState==='blocked'?'COME RIATTIVARE':pushPromptState==='unsupported'?'INFORMAZIONI':'ATTIVA NOTIFICHE'}</Button>
+     }}>{!profile?'ACCEDI E ATTIVA':pushBusy?'ATTIVAZIONE...':pushPromptState==='needs-install'?'COME INSTALLARE':pushPromptState==='blocked'?'COME RIATTIVARE':pushPromptState==='unsupported'?'INFORMAZIONI':'ATTIVA NOTIFICHE'}</Button>
      <button type="button" className="push-permission-banner__dismiss" aria-label="Chiudi avviso notifiche" onClick={()=>setPushBannerDismissed(true)}><X size={17}/></button>
     </div>
    </section>}
