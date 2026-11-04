@@ -56,3 +56,13 @@
 .schedule-create{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:15px;background:#f8f4f3;border-radius:14px}
 .schedule-closure .button{min-height:36px;font-size:11px}
 @media(max-width:640px){.venue-choice{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.venue-choice button{font-size:10px;flex-direction:column;padding:9px 5px}.schedule-window{align-items:flex-start}.schedule-window>div{flex-basis:100%}.schedule-create>*{flex:1 1 43%}.schedule-create .button{flex:1 1 100%}.slot-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Dettagli e regole per ogni servizio/pacchetto, senza modali. */
+.service-entry{min-width:0;display:flex;flex-direction:column;border-radius:14px}
+.service-entry>.service-card{width:100%;margin:0}
+.service-details{margin:6px 0 10px;padding:10px 13px;border:1px solid #eadedf;background:#fff;border-radius:10px}
+.service-details summary{cursor:pointer;font-size:12px;font-weight:800;color:#a21931;list-style-position:inside}
+.service-details p{font-size:12px;line-height:1.65;color:#66595b;margin:10px 0 3px}
+.package-card .service-details{margin:9px 0 0}
+.package-buy b small{font-size:11px;font-weight:600;color:#8b7578}
+@media(max-width:640px){.service-details{margin-top:4px}.service-entry .service-card{gap:8px}}
