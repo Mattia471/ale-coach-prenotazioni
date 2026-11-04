@@ -134,7 +134,7 @@ function App(){
  },[user,refresh]);
  useEffect(()=>{window.scrollTo({top:0,behavior:'smooth'})},[screen,clientTab,coachTab,step,selectedService]);
  useEffect(()=>{
-  if(!selectedService||selectedService.kind==='quote'||!selectedDay)return;
+  if(!supabase||!selectedService||selectedService.kind==='quote'||!selectedDay)return;
   let active=true;
   void supabase.rpc('available_slots_v2',{
    p_service_id:selectedService.id,p_day:selectedDay,p_venue_preference:venuePreference
@@ -252,6 +252,7 @@ function App(){
   if(selected.id==='other'&&!bookingDetails.description?.trim()){submitMsg('Descrivi la richiesta.','error');return}
   if(!termsOk){submitMsg('Accetta le condizioni di prenotazione.','error');return}
   if(blockUnreviewedLegal){submitMsg('Prenotazioni non attive: informative legali non ancora approvate.','error');return}
+  if(!supabase)return;
   setBusy(true);
   try{
    const details={...bookingDetails};
