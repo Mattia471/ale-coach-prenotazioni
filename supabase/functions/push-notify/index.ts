@@ -1,5 +1,5 @@
 import webpush from 'npm:web-push@3.6.7';
-import { createClient } from 'npm:@supabase/supabase-js@2.76.0';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 // Richiamabile solo da un webhook DB configurato con header x-ale-push-secret.
 Deno.serve(async req=>{
  if(req.method!=='POST')return new Response('Method not allowed',{status:405});
