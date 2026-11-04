@@ -232,10 +232,10 @@ begin
  if (p_day::timestamp at time zone 'Europe/Rome') < now()+interval '12 hours'
     or (p_day::timestamp at time zone 'Europe/Rome') > now()+interval '42 days' then return; end if;
  if exists(select 1 from public.calendar_closures where is_active and p_day between start_date and end_date) then return; end if;
- for v_window in select * from public.availability_windows
-   where weekday=extract(isodow from p_day)::integer and is_active
-    and (p_venue_preference='indifferente' or venue_id=p_venue_preference)
-   order by start_minute,venue_id
+ for v_window in select w.* from public.availability_windows w
+   where w.weekday=extract(isodow from p_day)::integer and w.is_active
+    and (p_venue_preference='indifferente' or w.venue_id=p_venue_preference)
+   order by w.start_minute,w.venue_id
  loop
   for v_min in select generate_series(v_window.start_minute,
     v_window.end_minute-v_service.duration_minutes,15)
