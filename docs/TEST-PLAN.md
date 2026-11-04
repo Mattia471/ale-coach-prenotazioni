@@ -16,7 +16,7 @@
 - [ ] Scadenza 24 ore tramite cron con test su record scaduti.
 
 ## Pagamenti
-- [ ] `ALECOACH10` 10% prima lezione entro 7 giorni; tentativo seconda lezione e codice scaduto respinti.
+- [ ] `ALECOACH15` 15% sulla prima individuale: 55,00 € → 46,75 €; altre offerte, secondo utilizzo e richieste in corso respinti.
 - [ ] Il browser non può cambiare prezzo/percentuale o confermare pagamento con REST.
 - [ ] Coach abilita pagamento in palestra solo al cliente scelto.
 - [ ] Senza autorizzazione, RPC in_person respinta.
@@ -29,7 +29,7 @@
 ## PWA / marketing
 - [ ] Installa PWA Android e iOS (iOS: aggiungere alla Home), richiedi consenso push su gesto esplicito.
 - [ ] Notifica in-app, push con VAPID e rimozione endpoint scaduti.
-- [ ] Link Instagram bio/DM FORZA/Meta/QR ALECOACH10 registrano la fonte corretta.
+- [ ] Link Instagram bio/DM FORZA/Meta/QR ALECOACH15 registrano la fonte corretta.
 - [ ] Nessun account o dato personale presente nell'archivio pubblicato.
 
 ## QA manuale
@@ -50,8 +50,8 @@ npm run build
 
 `local:integration` usa esclusivamente l'API localhost e **crea due clienti temporanei**
 per verificare RLS, autorizzazioni, collisioni vere tra utenti diversi e coupon
-ALECOACH10. Elimina gli utenti al termine; non va eseguito su un database cloud.
-Richiede almeno tre slot consecutivi liberi tra domani+2 e domani+7 e il promo attivo.
+ALECOACH15. Elimina gli utenti al termine; non va eseguito su un database cloud.
+Richiede almeno almeno tre slot disponibili tra domani+2 e domani+7 e il promo attivo.
 
 ## Nuove prove P0 prima dei pagamenti live
 - [ ] Due click simultanei sul checkout della **stessa** prenotazione restituiscono una sola sessione Stripe, con retry dopo scadenza.
@@ -82,3 +82,20 @@ Richiede almeno tre slot consecutivi liberi tra domani+2 e domani+7 e il promo a
 - [ ] Video-guide usano solo account e dati fittizi, mai credenziali o documenti reali.
 
 Guida: [GDPR-COMPLIANCE.md](GDPR-COMPLIANCE.md).
+
+## Specifica v2 del 4 novembre 2026: test addizionali P0
+
+- [ ] Applicare nell'ordine le migrazioni v2 del 04/11; nessun errore PL/pgSQL (controllare query con colonne OUT).
+- [ ] Lista prezzi server 55/80/35/50 €, Flex 250/450 €, Continuity 150/260 €; importi storici inalterati.
+- [ ] Promo ALECOACH15 15% solo prima singola (€46,75), ALECOACH10/AMICO10 non attivi.
+- [ ] 15/30/45/60 minuti: griglia start ogni 15, rispetto di tutti gli slot, 12 ore/42 giorni e timezone Europe/Rome.
+- [ ] Blocchi corsi e buffer, trasferimento 45 min su entrambi i club, stesso coach unico; 2 utenti non prenotano in parallelo stesso tempo.
+- [ ] Hold 10 minuti: uno per account, un secondo account non riserva stessa fascia, cambio slot rilascia precedente, TTL scaduto torna prenotabile.
+- [ ] 11–13 e 21–22 novembre chiusi; coach conferma o disattiva solo con motivo.
+- [ ] Ricorrenze e variazioni del calendario Google sul vero account autorizzato; copia GRID e sede sconosciuta bloccanti.
+- [ ] Mancata Google sync >15 min blocca APPROVE e conferma, senza incasso; recupero dopo sync ripristina correttamente.
+- [ ] Stripe v2 **manual capture** prima dell'invio, rifiuto e scadenza annullano autorizzazione, approvazione cattura una sola volta. **NON ANCORA IMPLEMENTATO**.
+- [ ] Continuity pagamento iniziale due mesi, 4/8 crediti mensili, riporto 1 credito 14 giorni, extra 37,50/32,50 €. **NON ANCORA IMPLEMENTATO**.
+- [ ] Riprogrammazione atomica, non cancellare prima il vecchio slot; coach cancellazione e rimborsi riconciliati. **NON ANCORA COMPLETO**.
+
+Fonte e stato: [V2-DELTA.md](V2-DELTA.md).
