@@ -50,12 +50,29 @@ export const previewSlots=(service:Service,day:string,preference:string,existing
  const date=new Date(day+'T12:00:00');const dow=(date.getDay()+6)%7+1;
  if(['2026-11-11','2026-11-12','2026-11-13','2026-11-21','2026-11-22'].includes(day))return [];
  const now=Date.now();
+ const weekly=[
+  [1,'talenti',1050,1095],[1,'talenti',1215,1260],
+  [2,'talenti',600,645],[2,'talenti',780,840],
+  [3,'nuovo_salario',810,855],[4,'talenti',1125,1170],
+  [5,'nuovo_salario',795,840],[6,'nuovo_salario',645,690],
+  [6,'nuovo_salario',705,750]
+ ] as const;
+ const courses:{venue:string;start:number;end:number}[]=
+  day>='2026-10-19'&&day<='2026-11-30'
+   ?weekly.filter(c=>c[0]===dow).map(c=>({venue:c[1],start:c[2],end:c[3]})):[];
+ if(day==='2026-11-06')courses.push({venue:'talenti',start:1140,end:1200});
+ if(day==='2026-11-16')courses.push({venue:'unknown',start:975,end:1035});
  return demoWindows.filter(w=>w.weekday===dow&&(preference==='indifferente'||w.venue_id===preference))
  .flatMap(w=>Array.from({length:Math.floor((w.end_minute-w.start_minute-service.duration_minutes)/15)+1},(_,i)=>({
   start_minute:w.start_minute+i*15,venue_id:w.venue_id
  }))).filter(slot=>{
   const dateTime=new Date(`${day}T${formatStartMinute(slot.start_minute)}:00`).getTime();
   if(dateTime<now+12*3600000||dateTime>now+42*86400000)return false;
+  if(courses.some(course=>{
+    const travel=course.venue!==slot.venue_id?45:0;
+    return slot.start_minute<course.end+10+travel &&
+      slot.start_minute+service.duration_minutes+10>course.start-15-travel;
+  }))return false;
   return !existing.some(b=>['pending','awaiting_payment','confirmed'].includes(b.status)&&b.starts_at&&
    dateTime<(Date.parse(b.starts_at)+b.duration_minutes*60000+10*60000+ (slot.venue_id!==b.venue_id?45*60000:0))&&
    dateTime+(service.duration_minutes+10+(slot.venue_id!==b.venue_id?45:0))*60000>Date.parse(b.starts_at));
