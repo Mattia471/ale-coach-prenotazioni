@@ -189,7 +189,7 @@ begin
  values(v_b.client_id,case v_status when 'confirmed' then 'Lezione confermata' when 'awaiting_payment' then 'Richiesta approvata: completa il pagamento' when 'quoted' then 'Preventivo ricevuto' else 'Richiesta rifiutata' end,
   case v_status when 'confirmed' then 'La tua lezione è stata confermata da Ale.' when 'awaiting_payment' then 'Completa il pagamento online per confermare la lezione.' when 'quoted' then 'Ale ha preparato un preventivo per te.' else 'Nessun addebito. Puoi scegliere un altro orario.' end,'booking_update',p_booking_id);
  return v_status;
-end; $function$
+end; $function$;
 
 CREATE OR REPLACE FUNCTION public.coach_set_booking_method(p_booking_id uuid, p_mode text)
  RETURNS void
@@ -208,7 +208,7 @@ begin
   raise exception 'Abilita prima il pagamento in presenza per questo cliente';
  end if;
  update public.bookings set payment_mode=p_mode where id=p_booking_id;
-end; $function$
+end; $function$;
 
 CREATE OR REPLACE FUNCTION public.cancel_unpaid_booking(p_booking_id uuid)
  RETURNS void
@@ -227,7 +227,7 @@ begin
  update public.bookings set status='cancelled',cancelled_at=now(),payment_status=case when v_b.payment_mode='credit' then 'refunded' else 'unpaid' end where id=p_booking_id;
  if v_b.credit_wallet_id is not null then update public.wallet_credits set remaining=remaining+1 where id=v_b.credit_wallet_id; end if;
  insert into public.notifications(recipient_id,title,body,kind,booking_id) values(v_b.client_id,'Lezione disdetta','La prenotazione è stata cancellata.','booking_cancelled',p_booking_id);
-end; $function$
+end; $function$;
 
 CREATE OR REPLACE FUNCTION public.expire_stale_bookings()
  RETURNS integer
