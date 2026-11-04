@@ -11,7 +11,7 @@ type Screen='landing'|'auth'|'client'|'coach';
 type Step='details'|'when'|'review';
 type WindowRow={id:number;weekday:number;venue_id:string;start_minute:number;end_minute:number;is_flexible:boolean;is_active:boolean};
 type ClosureRow={id:number;start_date:string;end_date:string;reason:string;is_active:boolean;review_status:'proposed'|'confirmed'};
-type CourseRow={id:number;title:string;venue_id:string|null;weekday:number|null;on_date:string|null;start_minute:number;end_minute:number;is_active:boolean;needs_review:boolean};
+type CourseRow={id:number;title:string;venue_id:string|null;weekday:number|null;on_date:string|null;start_minute:number;end_minute:number;is_active:boolean;needs_review:boolean;source_ref:string|null};
 const asMinute=(value:string)=>{const [h,m]=value.split(':').map(Number);return h*60+m};
 
 const disciplines=['Forza / Sala pesi','TRX','GRID','Calisthenics','HYROX','Flessibilità','Cross Active'];
@@ -80,6 +80,8 @@ function App(){
  const [closures,setClosures]=useState<ClosureRow[]>([]);
  const [courseBlocks,setCourseBlocks]=useState<CourseRow[]>([]);
  const [newWindow,setNewWindow]=useState({weekday:1,venue_id:'talenti',start_minute:540,end_minute:600,is_flexible:false});
+ const [newBlock,setNewBlock]=useState({on_date:'',title:'',venue_id:'',start_minute:540,end_minute:600});
+ const [newClosure,setNewClosure]=useState({start_date:'',end_date:'',reason:''});
 
  const [packs,setPacks]=useState<Pack[]>([]);
  const [codes,setCodes]=useState<Discount[]>([{code:promo,percent_off:15,active:true,uses:0,first_purchase_only:true,valid_days_from_contact:null}]);
@@ -553,6 +555,63 @@ function App(){
   setAvailabilityWindows(v=>[...v,data as WindowRow].sort((a,b)=>a.weekday-b.weekday||a.start_minute-b.start_minute));
   submitMsg('Finestra aggiunta. Le disponibilità vengono ricalcolate dal server.');
  };
+ const createManualBlock=async()=>{
+  if(!supabase||busy)return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(newBlock.on_date)||!newBlock.title.trim()){
+   submitMsg('Inserisci una data e una descrizione dell’impegno.','error');return;
+  }
+  if(newBlock.start_minute<0||newBlock.end_minute>1440||
+    newBlock.start_minute%15!==0||newBlock.end_minute%15!==0||
+    newBlock.end_minute<=newBlock.start_minute){
+   submitMsg('L’orario deve essere valido, con intervalli di 15 minuti.','error');return;
+  }
+  setBusy(true);
+  try{
+   const {data,error}=await supabase.from('calendar_course_blocks').insert({
+    title:newBlock.title.trim().slice(0,120),venue_id:newBlock.venue_id||null,
+    weekday:null,on_date:newBlock.on_date,valid_from:newBlock.on_date,
+    valid_until:newBlock.on_date,start_minute:newBlock.start_minute,
+    end_minute:newBlock.end_minute,before_minutes:0,after_minutes:0,
+    needs_review:false,is_active:true,source_ref:'manual'
+   }).select('*').single();
+   if(error)throw error;
+   setCourseBlocks(v=>[...v,data as CourseRow].sort((a,b)=>(a.on_date||'').localeCompare(b.on_date||'')));
+   setNewBlock(v=>({...v,title:''}));
+   submitMsg('Impegno salvato. I nuovi slot sovrapposti non saranno prenotabili.');
+  }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
+ };
+ const deleteManualBlock=async(b:CourseRow)=>{
+  if(!supabase||busy||b.source_ref!=='manual')return;
+  setBusy(true);
+  try{
+   const {data,error}=await supabase.from('calendar_course_blocks')
+    .delete().eq('id',b.id).eq('source_ref','manual').select('id');
+   if(error)throw error;
+   if(!data?.length)throw Error('Impegno non eliminato. Ricarica la pagina e riprova.');
+   setCourseBlocks(rows=>rows.filter(x=>x.id!==b.id));
+   submitMsg('Impegno eliminato. Le disponibilità vengono ricalcolate.');
+  }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
+ };
+ const createClosure=async()=>{
+  if(!supabase||busy)return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(newClosure.start_date)||
+     !/^\d{4}-\d{2}-\d{2}$/.test(newClosure.end_date)||
+     newClosure.end_date<newClosure.start_date||!newClosure.reason.trim()){
+   submitMsg('Controlla le date e il motivo della chiusura.','error');return;
+  }
+  setBusy(true);
+  try{
+   const {data,error}=await supabase.from('calendar_closures').insert({
+    start_date:newClosure.start_date,end_date:newClosure.end_date,
+    reason:newClosure.reason.trim().slice(0,120),is_active:true,
+    review_status:'confirmed'
+   }).select('*').single();
+   if(error)throw error;
+   setClosures(rows=>[...rows,data as ClosureRow].sort((a,b)=>a.start_date.localeCompare(b.start_date)));
+   setNewClosure({start_date:'',end_date:'',reason:''});
+   submitMsg('Chiusura salvata: l’app bloccherà i nuovi appuntamenti in queste date.');
+  }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
+ };
  const saveCourseBlock=async(row:CourseRow,patch:Partial<CourseRow>)=>{
   if(!supabase)return;
   const {error}=await supabase.from('calendar_course_blocks').update(patch).eq('id',row.id);
@@ -693,7 +752,30 @@ function App(){
      <label className="check-row tiny"><input type="checkbox" checked={newWindow.is_flexible} onChange={e=>setNewWindow(v=>({...v,is_flexible:e.target.checked}))}/>Flessibile</label>
      <Button variant="outline" onClick={()=>void createWindow()}>AGGIUNGI FASCIA</Button>
     </div>
-    <h3 className="schedule-subtitle">Chiusure da verificare</h3>
+    <h3 className="schedule-subtitle">Impegni personali e blocchi orari</h3>
+    <p className="section-intro">Nella versione base gli impegni esterni si inseriscono qui manualmente. Il server li considera per gli orari prenotabili e per i trasferimenti tra le sedi.</p>
+    <div className="schedule-create">
+     <label>Data<input type="date" value={newBlock.on_date} onChange={e=>setNewBlock(v=>({...v,on_date:e.target.value}))}/></label>
+     <label>Descrizione<input type="text" maxLength={120} placeholder="Es. Appuntamento privato" value={newBlock.title} onChange={e=>setNewBlock(v=>({...v,title:e.target.value}))}/></label>
+     <label>Luogo<select value={newBlock.venue_id} onChange={e=>setNewBlock(v=>({...v,venue_id:e.target.value}))}><option value="">Non specificato</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
+     <label>Da<input type="time" step={900} value={formatStartMinute(newBlock.start_minute)} onChange={e=>setNewBlock(v=>({...v,start_minute:asMinute(e.target.value)}))}/></label>
+     <label>A<input type="time" step={900} value={formatStartMinute(newBlock.end_minute)} onChange={e=>setNewBlock(v=>({...v,end_minute:asMinute(e.target.value)}))}/></label>
+     <Button variant="outline" disabled={busy} onClick={()=>void createManualBlock()}>BLOCCA ORARIO</Button>
+    </div>
+    <div className="schedule-window-list">{courseBlocks.filter(b=>b.source_ref==='manual').map(b=><div key={b.id} className="schedule-window">
+     <div><b>{b.title}</b><small>{b.on_date} · {formatStartMinute(b.start_minute)}–{formatStartMinute(b.end_minute)} · {venues.find(v=>v.id===b.venue_id)?.name||'Luogo non specificato'}</small></div>
+     <label className="check-row tiny"><input type="checkbox" checked={b.is_active} onChange={e=>void saveCourseBlock(b,{is_active:e.target.checked})}/>Blocca</label>
+     <Button variant="quiet" disabled={busy} onClick={()=>void deleteManualBlock(b)}>ELIMINA</Button>
+    </div>)}</div>
+    <p className="footnote">Le indisponibilità impediscono nuove prenotazioni, ma non cancellano lezioni già confermate. Controlla la tua agenda prima di bloccare un impegno.</p>
+    <h3 className="schedule-subtitle">Chiusure per intere giornate</h3>
+    <div className="schedule-create">
+     <label>Dal<input type="date" value={newClosure.start_date} onChange={e=>setNewClosure(v=>({...v,start_date:e.target.value,end_date:v.end_date||e.target.value}))}/></label>
+     <label>Al<input type="date" min={newClosure.start_date||undefined} value={newClosure.end_date} onChange={e=>setNewClosure(v=>({...v,end_date:e.target.value}))}/></label>
+     <label>Motivo<input type="text" maxLength={120} placeholder="Es. Ferie" value={newClosure.reason} onChange={e=>setNewClosure(v=>({...v,reason:e.target.value}))}/></label>
+     <Button variant="outline" disabled={busy} onClick={()=>void createClosure()}>BLOCCA GIORNI</Button>
+    </div>
+    <h3 className="schedule-subtitle">Chiusure esistenti</h3>
     {closures.length?closures.map(cl=><div key={cl.id} className="schedule-closure">
       <div><b>{cl.start_date} → {cl.end_date}</b><small>{cl.reason} · {cl.review_status==='proposed'?'Proposta da confermare':'Confermata'}</small></div>
       <label className="check-row tiny"><input type="checkbox" checked={cl.is_active} onChange={e=>void saveClosure(cl,{is_active:e.target.checked})}/>Blocca date</label>
@@ -701,7 +783,7 @@ function App(){
     </div>):<p className="small-muted">Nessuna chiusura proposta.</p>}
     <h3 className="schedule-subtitle">Palinsesto corsi e impegni da verificare</h3>
     <p className="section-intro">Ricorrenze confermate dal documento solo per 19/10–30/11/2026. Gli eventi TRX senza fine o sede verificata restano bloccanti: prima di renderli disponibili occorre classificare gli impegni reali.</p>
-    <div className="schedule-window-list">{courseBlocks.map(b=><div key={b.id} className="schedule-window">
+    <div className="schedule-window-list">{courseBlocks.filter(b=>b.source_ref!=='manual').map(b=><div key={b.id} className="schedule-window">
      <div><b>{b.title}</b><small>{b.on_date||dayNames[(b.weekday||1)-1]} · {formatStartMinute(b.start_minute)}–{formatStartMinute(b.end_minute)} {b.needs_review?'· Da verificare':''}</small></div>
      <label>Sede<select value={b.venue_id||''} onChange={e=>void saveCourseBlock(b,{venue_id:e.target.value||null,needs_review:!e.target.value})}>
       <option value="">Non classificata</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}

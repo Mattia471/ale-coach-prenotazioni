@@ -87,3 +87,14 @@ test('recupero password Supabase con conferma e senza link diretto allo stato cl
  assert.match(app,/newPassword!==confirmPassword/);
  assert.match(app,/passwordRecovery\?<div className="auth-card"/);
 });
+
+
+test('agenda base consente impegni e chiusure senza sincronizzazione Google',()=>{
+ const app=read('src/App.tsx');
+ assert.match(app,/const createManualBlock=async/);
+ assert.match(app,/source_ref:'manual'/);
+ assert.match(app,/valid_from:newBlock\.on_date/);
+ assert.match(app,/const createClosure=async/);
+ assert.match(app,/calendar_closures'\)\.insert/);
+ assert.match(app,/courseBlocks\.filter\(b=>b\.source_ref!=='manual'\)/);
+});
