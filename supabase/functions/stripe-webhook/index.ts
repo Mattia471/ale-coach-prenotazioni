@@ -1,5 +1,5 @@
 import Stripe from 'npm:stripe@22.0.0';
-import { createClient } from 'npm:@supabase/supabase-js@2.76.0';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 // Il webhook NON usa l'autenticazione Supabase. Firma Stripe verificata sui byte grezzi.
 Deno.serve(async req=>{
  if(req.method!=='POST')return new Response('Method not allowed',{status:405});
