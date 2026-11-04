@@ -143,9 +143,19 @@ Deno.serve(async req=>{
     });
     if(completeError)throw completeError;
    }else if(['pending','authorizing','processing'].includes(booking.status)&&booking.stripe_payment_intent_id===pi.id){
-    const {error:updateError}=await admin.from('bookings').update({status:'expired',payment_status:'unpaid'})
-     .eq('id',booking.id).in('status',['pending','authorizing','processing']).select('id');
+    const {data:expired,error:updateError}=await admin.from('bookings')
+     .update({status:'expired',payment_status:'unpaid'})
+     .eq('id',booking.id).in('status',['pending','authorizing','processing'])
+     .eq('stripe_payment_intent_id',pi.id).select('id');
     if(updateError)throw updateError;
+    if(expired?.length){
+     const {error:noticeError}=await admin.from('notifications').insert({
+      recipient_id:booking.client_id,title:'Autorizzazione annullata',
+      body:'La richiesta non è più attiva. La preautorizzazione della carta è stata rilasciata senza incasso.',
+      kind:'booking_expired',booking_id:booking.id
+     });
+     if(noticeError)console.error('Cancellation notice failed',noticeError);
+    }
    }
    return new Response('Authorization canceled');
   }
