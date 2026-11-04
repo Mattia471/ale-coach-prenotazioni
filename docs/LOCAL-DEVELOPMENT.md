@@ -129,3 +129,18 @@ Alla consegna:
 - **Login non funziona**: controlla il profilo Auth e la tabella `public.profiles` nello Studio locale, poi `npm run local:seed`.
 - **Errore durante la migrazione**: esamina il log di `npm run local:start`; non azzerare Docker globalmente.
 - **Upload scheda**: il bucket privato `client-documents` esiste, ma la migrazione GDPR `20261103194607_gdpr_minimization.sql` rimuove la policy di upload. L'invio di documenti è **disabilitato anche via API**, in attesa di una valutazione sui dati sanitari.
+
+## Spec v2 del 4 novembre: migrazioni e collaudo
+
+Dopo il `git pull`, con Docker Desktop acceso e Supabase locale avviato:
+
+```powershell
+pnpm exec supabase migration up --local
+pnpm run local:integration
+pnpm run local:check
+pnpm run build
+```
+
+Le migrazioni del 4 novembre aggiornano il listino, sostituiscono ALECOACH10 con ALECOACH15, definiscono fasce multiple per sede, hold da 10 minuti, condizioni per la sync Google e blocchi delle conferme quando il calendario non è aggiornato. **Non applicare la vecchia funzione `create_booking` o `available_slots`**: le RPC v2 sono `create_booking_v2`, `available_slots_v2`, `reserve_slot_v2` e `release_slot_hold_v2`.
+
+La sync Google non può funzionare con la sola demo locale. Occorre un OAuth Google rilasciato dal coach, segreti nelle Edge Functions e un job di sincronizzazione. Fino a quella configurazione le conferme possono restare correttamente bloccate, per non rischiare overbooking. Dettagli: [V2-DELTA.md](V2-DELTA.md).
