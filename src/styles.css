@@ -97,3 +97,39 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
  .push-permission-banner__actions{width:100%;justify-content:space-between;padding-left:54px}
  .push-permission-banner__actions .button{flex:1}
 }
+
+/* Coach in primo piano: foto professionale, firma umana e prova di competenze. */
+.avatar-mark{overflow:hidden}
+.avatar-mark .coach-photo-avatar{width:100%;height:100%;object-fit:cover;object-position:center 21%;display:block}
+.avatar-mark .coach-photo-fallback-avatar{height:100%;width:100%;display:grid;place-items:center}
+.coach-introduction{display:grid;grid-template-columns:minmax(120px,37%) minmax(0,1fr);gap:16px;align-items:stretch;background:#fff;border:1px solid #e9e0e0;box-shadow:0 10px 25px rgba(42,18,24,.06);border-radius:19px;padding:12px;margin:10px 0 30px;overflow:hidden}
+.coach-introduction-portrait{position:relative;isolation:isolate;min-height:226px;background:#291e20;border-radius:13px;overflow:hidden}
+.coach-introduction-portrait .coach-photo-image{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;object-position:center 19%;display:block}
+.coach-photo-fallback{height:100%;width:100%;background:linear-gradient(150deg,#241b1d,#8e2633);color:white;font-family:'Barlow Condensed',Impact,sans-serif;font-size:58px;font-weight:900;display:grid;place-items:center}
+.coach-introduction-portrait-badge{position:absolute;z-index:1;left:8px;bottom:9px;background:#e1001a;color:#fff;font-family:'Barlow Condensed',Impact,sans-serif;font-style:italic;font-weight:900;letter-spacing:.75px;font-size:12px;border-radius:5px;padding:6px 8px}
+.coach-introduction-content{min-width:0;display:flex;align-items:flex-start;justify-content:center;flex-direction:column;padding:8px 7px 8px 0}
+.coach-introduction-content .eyebrow{font-size:10px;letter-spacing:.6px}
+.coach-introduction-content h2{margin:9px 0 11px;font-size:clamp(28px,6.8vw,39px);line-height:.92;font-style:italic;font-weight:900}
+.coach-introduction-content h2 em{color:#e1001a;font-style:inherit}
+.coach-introduction-content p{font-size:12px;line-height:1.55;color:#63585a;margin:0 0 11px}
+.coach-introduction-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:13px}
+.coach-introduction-tags span{font-size:9px;font-weight:800;border-radius:5px;padding:5px 7px;background:#f9edef;color:#9f1830}
+.coach-introduction-link{display:inline-flex;align-items:center;gap:5px;font-size:11px;line-height:1.35;color:#d1001d;font-weight:800;text-decoration:underline;text-underline-offset:2px}
+.coach-introduction-link:hover{color:#9d0014}
+.coach-introduction-compact{margin-top:17px;margin-bottom:19px}
+.coach-introduction-compact .coach-introduction-portrait{min-height:194px}
+.coach-introduction-compact .coach-introduction-content h2{font-size:31px}
+.coach-introduction-compact .coach-introduction-content p{font-size:11px}
+@media(max-width:430px){
+ .coach-introduction{grid-template-columns:112px minmax(0,1fr);gap:11px;padding:10px}
+ .coach-introduction-portrait{min-height:227px}
+ .coach-introduction-content{padding:4px 1px 4px 0}
+ .coach-introduction-content .eyebrow{font-size:8px;letter-spacing:.5px}
+ .coach-introduction-content h2{font-size:29px;margin:7px 0}
+ .coach-introduction-content p{font-size:11px;line-height:1.42;margin-bottom:7px}
+ .coach-introduction-tags{gap:4px;margin-bottom:9px}
+ .coach-introduction-tags span{font-size:8px;padding:4px 6px}
+ .coach-introduction-link{font-size:10px}
+ .coach-introduction-compact .coach-introduction-portrait{min-height:211px}
+ .coach-introduction-compact .coach-introduction-content h2{font-size:27px}
+}
