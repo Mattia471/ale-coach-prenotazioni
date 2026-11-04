@@ -78,6 +78,8 @@ Deno.serve(async req=>{
   // Richiesta storica online non ancora autorizzata: convertirla in checkout non
   // visibile al coach. Le nuove richieste partono direttamente da "authorizing".
   if(booking.status==='pending'&&booking.payment_status==='unpaid'&&!booking.stripe_checkout_session_id){
+   if(!booking.expires_at||Date.parse(booking.expires_at)<=Date.now())
+    return json({error:'Richiesta scaduta. Scegli nuovamente lo slot.'},409);
    const {data:converted,error:conversionError}=await admin.from('bookings')
     .update({status:'authorizing',expires_at:new Date(Date.now()+35*60000).toISOString()})
     .eq('id',booking.id).eq('status','pending').eq('payment_status','unpaid')
@@ -88,15 +90,14 @@ Deno.serve(async req=>{
   }
   if(booking.status!=='authorizing')
    return json({error:'La richiesta è già stata inoltrata, annullata oppure scaduta'},409);
-  if(!booking.expires_at||Date.parse(booking.expires_at)<Date.now()+31*60000)
-   return json({error:'Il periodo di autorizzazione è scaduto. Scegli nuovamente lo slot.'},409);
-
   if(booking.stripe_checkout_session_id){
    const previous=await stripe.checkout.sessions.retrieve(booking.stripe_checkout_session_id);
    if(previous.status==='open'&&previous.url)return json({url:previous.url});
    if(previous.status==='complete')return json({error:'Autorizzazione ricevuta: verifica lo stato della richiesta fra pochi istanti'},409);
    return json({error:'Checkout scaduto. Annulla la richiesta e scegli nuovamente lo slot.'},409);
   }
+  if(!booking.expires_at||Date.parse(booking.expires_at)<Date.now()+31*60000)
+   return json({error:'Il periodo per aprire un nuovo checkout è scaduto. Annulla e scegli nuovamente lo slot.'},409);
   const {data:serviceData}=await admin.from('services').select('name').eq('id',booking.service_id).single();
   const session=await stripe.checkout.sessions.create({
    mode:'payment',payment_method_types:['card'],customer_email:user.email,
