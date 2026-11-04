@@ -12,7 +12,7 @@ Fonte: `Ale_Coach_Specifica_Calendario_Listino.docx`, v2, 4 novembre 2026. Docum
 - Hold di **10 minuti** su slot selezionato, una riserva per utente, con operazioni server atomiche.
 - Chiusure provvisorie **11–13 novembre** e **21–22 novembre**, modificabili/approvabili dal coach.
 - Palinsesto GRID/HYROX/Cross Active/Calisthenics del documento solo **19 ottobre–30 novembre 2026**. Nov 6 HYROX un evento; Nov 16 TRX un evento **da verificare**: durata 16:15–17:15 è cautelativa, non dichiarata dal documento. Nessuna ricorrenza TRX generata.
-- La release base usa esclusivamente l'agenda interna. Google Calendar rimane un'integrazione opzionale, non attiva né inclusa nel prezzo iniziale.
+- La release base usa esclusivamente l'agenda interna: ora il coach può aggiungere blocchi orari una tantum e chiusure per intere giornate direttamente dalla schermata Disponibilità; questi dati vengono considerati dall'RPC anti-sovrapposizione. Google Calendar rimane un'integrazione **premium a preventivo separato**, da sviluppare e abilitare solo se richiesta in futuro. L'app non effettua sincronizzazioni Google nella release base.
 - Il trigger impedisce conferme sovrapposte o su giorni chiusi e la decisione Stripe ricontrolla gli slot interni prima della cattura.
 - Card “Dettagli e regole”, disciplina facoltativa e nuovo QR/link con ALECOACH15.
 - Upload di documenti potenzialmente sanitari ancora disabilitato lato UI e Storage RLS.
