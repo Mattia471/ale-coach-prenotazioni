@@ -61,7 +61,7 @@ Per la configurazione Stripe senza condividere credenziali:
 ## Configurazione servizi
 
 - **Stripe:** aggiungere i Secrets alle Edge Functions solo nell'account Supabase, endpoint webhook firmato e pagamento in modalità test prima delle chiavi live. La v2 richiede preautorizzazione/cattura differita, ancora da implementare. Non usare il checkout iniziale per incassi reali.
-- **Agenda interna:** usare finestre, corsi, chiusure, lezioni e buffer sede come unica fonte operativa. Il coach deve aggiornare manualmente gli impegni esterni. Google Calendar è una integrazione opzionale da concordare e preventivare separatamente, non è un gate di rilascio.
+- **Agenda interna:** unica fonte operativa per la release base, con finestre, corsi, blocchi orari manuali, chiusure e buffer tra sedi. Il coach può inserire a mano gli impegni esterni dalla schermata Disponibilità. Google Calendar NON è un requisito, non è incluso nell'offerta base e sarà sviluppato solo su richiesta con compenso aggiuntivo. Blocchi o chiusure nuovi non annullano automaticamente lezioni già confermate.
 - **Push:** configurare VAPID e secret Webhook prima di dichiararle attive; permission browser su azione esplicita.
 - **Supabase Cron:** il job scadenza di prenotazioni è già attivo in produzione. Monitorare `cron.job_run_details`.
 
