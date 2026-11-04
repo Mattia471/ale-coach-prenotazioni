@@ -66,29 +66,60 @@ Deno.serve(async req=>{
   }
   const bookingId=String(body.bookingId||'');
   if(!/^[a-f0-9-]{36}$/i.test(bookingId))return json({error:'Prenotazione non valida'},400);
-  const {data:booking,error}=await admin.from('bookings').select('id,client_id,service_id,status,payment_mode,amount_cents,approved_at,expires_at,stripe_checkout_session_id').eq('id',bookingId).single();
+  const {data:booking,error}=await admin.from('bookings').select(
+   'id,client_id,service_id,status,payment_mode,payment_status,amount_cents,expires_at,stripe_checkout_session_id,stripe_payment_intent_id'
+  ).eq('id',bookingId).single();
   if(error||!booking||booking.client_id!==user.id)return json({error:'Prenotazione non trovata'},404);
-  if(!['awaiting_payment','quoted'].includes(booking.status)||booking.payment_mode!=='online'&&booking.status!=='quoted')return json({error:'Pagamento non disponibile'},409);
-  if(!booking.expires_at||Date.parse(booking.expires_at)-Date.now()<32*60000)return json({error:'Tempo insufficiente per aprire il checkout. Contatta Ale per una nuova conferma.'},409);
-  if(!Number.isInteger(booking.amount_cents)||booking.amount_cents<50)return json({error:'Importo non valido'},409);
+  if(booking.payment_mode!=='online'||booking.stripe_payment_intent_id||
+    !Number.isInteger(booking.amount_cents)||booking.amount_cents<50)
+   return json({error:'Autorizzazione non disponibile'},409);
   if(!appUrl.startsWith('https://'))return json({error:'URL pubblico dell’app non configurato'},503);
+
+  // Richiesta storica online non ancora autorizzata: convertirla in checkout non
+  // visibile al coach. Le nuove richieste partono direttamente da "authorizing".
+  if(booking.status==='pending'&&booking.payment_status==='unpaid'&&!booking.stripe_checkout_session_id){
+   const {data:converted,error:conversionError}=await admin.from('bookings')
+    .update({status:'authorizing',expires_at:new Date(Date.now()+35*60000).toISOString()})
+    .eq('id',booking.id).eq('status','pending').eq('payment_status','unpaid')
+    .is('stripe_checkout_session_id',null).select('id').maybeSingle();
+   if(conversionError||!converted)return json({error:'Richiesta modificata: aggiorna la pagina'},409);
+   booking.status='authorizing';
+   booking.expires_at=new Date(Date.now()+35*60000).toISOString();
+  }
+  if(booking.status!=='authorizing')
+   return json({error:'La richiesta è già stata inoltrata, annullata oppure scaduta'},409);
+  if(!booking.expires_at||Date.parse(booking.expires_at)<Date.now()+31*60000)
+   return json({error:'Il periodo di autorizzazione è scaduto. Scegli nuovamente lo slot.'},409);
+
   if(booking.stripe_checkout_session_id){
    const previous=await stripe.checkout.sessions.retrieve(booking.stripe_checkout_session_id);
    if(previous.status==='open'&&previous.url)return json({url:previous.url});
-   if(previous.payment_status==='paid')return json({error:'Pagamento già completato'},409);
-   if(previous.status!=='expired')return json({error:'Checkout precedente in elaborazione'},409);
+   if(previous.status==='complete')return json({error:'Autorizzazione ricevuta: verifica lo stato della richiesta fra pochi istanti'},409);
+   return json({error:'Checkout scaduto. Annulla la richiesta e scegli nuovamente lo slot.'},409);
   }
   const {data:serviceData}=await admin.from('services').select('name').eq('id',booking.service_id).single();
   const session=await stripe.checkout.sessions.create({
    mode:'payment',payment_method_types:['card'],customer_email:user.email,
-   line_items:[{price_data:{currency:'eur',unit_amount:booking.amount_cents,product_data:{name:`Ale Coach · ${serviceData?.name||'Allenamento'}`}},quantity:1}],
-   metadata:{booking_id:booking.id,client_id:user.id,kind:'booking'},
+   line_items:[{price_data:{currency:'eur',unit_amount:booking.amount_cents,
+    product_data:{name:`Ale Coach · ${serviceData?.name||'Allenamento'}`}},quantity:1}],
+   payment_intent_data:{
+    capture_method:'manual',
+    metadata:{booking_id:booking.id,client_id:user.id,kind:'booking_authorization'}
+   },
+   metadata:{booking_id:booking.id,client_id:user.id,kind:'booking_authorization'},
    client_reference_id:booking.id,
-   success_url:`${appUrl}/?payment=success`,cancel_url:`${appUrl}/?payment=cancelled`,
-   expires_at:Math.floor(Date.now()/1000)+31*60
-  },{idempotencyKey:`ale-booking-${booking.id}-${booking.amount_cents}-${booking.stripe_checkout_session_id||'first'}`});
-  const {error:saveError}=await admin.from('bookings').update({stripe_checkout_session_id:session.id}).eq('id',booking.id).in('status',['awaiting_payment','quoted']);
+   success_url:`${appUrl}/?payment=authorized&booking=${booking.id}`,
+   cancel_url:`${appUrl}/?payment=cancelled&booking=${booking.id}`,
+   expires_at:Math.floor(Date.now()/1000)+30*60
+  },{idempotencyKey:`ale-booking-manual-auth-v2-${booking.id}`});
+  const {data:saved,error:saveError}=await admin.from('bookings')
+   .update({stripe_checkout_session_id:session.id}).eq('id',booking.id).eq('status','authorizing')
+   .is('stripe_checkout_session_id',null).select('id').maybeSingle();
   if(saveError)throw saveError;
+  if(!saved){
+   const {data:current}=await admin.from('bookings').select('stripe_checkout_session_id').eq('id',booking.id).single();
+   if(current?.stripe_checkout_session_id!==session.id)throw new Error('Checkout modificato durante la prenotazione');
+  }
   return json({url:session.url});
  }catch(e){console.error('create-checkout',e);return json({error:'Checkout temporaneamente non disponibile'},500)}
 });
