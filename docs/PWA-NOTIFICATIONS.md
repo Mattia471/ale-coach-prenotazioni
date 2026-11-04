@@ -8,10 +8,12 @@
   ripetizione quando la sottoscrizione di questo dispositivo risulta registrata.
 - iOS: le notifiche Web Push richiedono iOS/iPadOS 16.4+, installazione della
   web app nella schermata Home e un tap dell'utente; il banner spiega il percorso.
-- Input mobile minimo 16px: elimina lo zoom iOS automatico sul focus; viewport
-  bloccato per prevenire pinch/double-tap indesiderati, come richiesto nel QA.
-  **Nota accessibilità:** il blocco dello zoom manuale va riesaminato con il
-  coach e testato con VoiceOver/ingrandimento di sistema prima della release.
+- Input mobile di testo/select/textarea a 16px sui dispositivi touch: riduce
+  lo zoom automatico iOS sul focus. I tocchi sugli elementi interattivi usano
+  `touch-action: manipulation` per evitare doppio-tap indesiderato. Lo zoom
+  manuale rimane disponibile per accessibilità. Quando un campo è attivo,
+  i cambi di stato non forzano lo scroll della pagina. Verificare sul device
+  reale con tastiera, VoiceOver e ingrandimento di sistema.
 - VAPID: chiave pubblica nel progetto Vercel (`VITE_VAPID_PUBLIC_KEY`);
   chiavi private e segreto webhook cifrati in Supabase Vault, mai nel repository.
 - Alla sottoscrizione client, l'endpoint e le chiavi del dispositivo sono

@@ -109,9 +109,13 @@ function App(){
  const [pushBannerDismissed,setPushBannerDismissed]=useState(false);
  const [pushPromptState,setPushPromptState]=useState<'checking'|'available'|'needs-install'|'blocked'|'unsupported'>('checking');
  const [pushBusy,setPushBusy]=useState(false);
+ const [passwordRecovery,setPasswordRecovery]=useState(false);
+ const [newPassword,setNewPassword]=useState('');
+ const [confirmPassword,setConfirmPassword]=useState('');
  const [termsOk,setTermsOk]=useState(false);
  const attrib=useRef(fromUrl());
  const pendingAction=useRef<string|null>(null);
+ const passwordRecoveryPending=useRef(false);
  const isCoach=profile?.role==='coach';
  const myBookings=useMemo(()=>bookings.filter(b=>isCoach||b.client_id===profile?.id).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()),[bookings,isCoach,profile?.id]);
  const myNotices=useMemo(()=>notices.filter(n=>n.recipient_id===profile?.id),[notices,profile?.id]);
@@ -145,15 +149,23 @@ function App(){
   const sync=async(authUser:User|null)=>{
    if(!active)return;
    setUser(authUser);
-   if(!authUser){setProfile(null);setScreen('landing');setBooting(false);return;}
+   if(!authUser){passwordRecoveryPending.current=false;setPasswordRecovery(false);setProfile(null);setScreen('landing');setBooting(false);return;}
    const {data,error}=await api.from('profiles').select('*').eq('id',authUser.id).single();
    if(!active)return;
    if(error){submitMsg('Profilo non disponibile: '+error.message,'error');setBooting(false);return;}
    const p=data as Profile;
-   setProfile(p);setScreen(p.role==='coach'?'coach':'client');setBooting(false);
+   setProfile(p);setScreen(passwordRecoveryPending.current?'auth':p.role==='coach'?'coach':'client');setBooting(false);
   };
   api.auth.getUser().then(({data})=>sync(data.user)).catch(()=>setBooting(false));
-  const {data:{subscription}}=api.auth.onAuthStateChange((_event,session)=>{void sync(session?.user??null)});
+  const {data:{subscription}}=api.auth.onAuthStateChange((event,session)=>{
+   if(event==='PASSWORD_RECOVERY'){
+    passwordRecoveryPending.current=true;
+    setPasswordRecovery(true);
+    setAuthMode('reset');
+    setScreen('auth');
+   }
+   void sync(session?.user??null);
+  });
   return()=>{active=false;subscription.unsubscribe()};
  },[]);
  useEffect(()=>{
@@ -201,7 +213,13 @@ function App(){
   const c=supabase.channel('ale-realtime-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'bookings'},()=>{void refresh()}).on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:`recipient_id=eq.${user.id}`},()=>{void refresh()}).subscribe();
   return()=>{void supabase!.removeChannel(c)};
  },[user,refresh]);
- useEffect(()=>{window.scrollTo({top:0,behavior:'smooth'})},[screen,clientTab,coachTab,step,selectedService]);
+ useEffect(()=>{
+  // Non spostare la viewport durante l'editing: su iPhone la tastiera
+  // virtuale puo' perdere il campo attivo quando si ricalcola la pagina.
+  const focused=document.activeElement;
+  if(focused instanceof HTMLElement&&focused.isConnected&&focused.matches('input,textarea,select'))return;
+  window.scrollTo({top:0,behavior:'auto'});
+ },[screen,clientTab,coachTab,step,selectedService]);
  useEffect(()=>{
   if(!supabase||!selectedService||selectedService.kind==='quote'||!selectedDay)return;
   let active=true;
@@ -243,7 +261,23 @@ function App(){
   const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}});
   if(error)submitMsg(error.message,'error');
  };
- const logout=async()=>{if(supabase)await supabase.auth.signOut();setUser(null);setProfile(null);setSelectedService(null);setScreen('landing');setClientTab('home');setCoachTab('overview')};
+ const logout=async()=>{if(supabase)await supabase.auth.signOut();passwordRecoveryPending.current=false;setPasswordRecovery(false);setUser(null);setProfile(null);setSelectedService(null);setScreen('landing');setClientTab('home');setCoachTab('overview')};
+ const completePasswordRecovery=async(e:React.FormEvent)=>{
+  e.preventDefault();
+  if(!supabase||!user){submitMsg('Link di recupero non valido o scaduto. Richiedine uno nuovo.','error');return}
+  if(newPassword.length<8){submitMsg('La nuova password deve contenere almeno 8 caratteri.','error');return}
+  if(newPassword!==confirmPassword){submitMsg('Le due password non coincidono.','error');return}
+  setBusy(true);
+  try{
+   const {error}=await supabase.auth.updateUser({password:newPassword});
+   if(error)throw error;
+   passwordRecoveryPending.current=false;
+   setPasswordRecovery(false);
+   setNewPassword('');setConfirmPassword('');
+   setScreen(profile?.role==='coach'?'coach':'client');
+   submitMsg('Password aggiornata. Ora puoi utilizzare il tuo account.');
+  }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
+ };
  const authenticate=async(e:React.FormEvent)=>{
   e.preventDefault();if(!supabase){submitMsg('Configura Supabase per attivare la registrazione.','error');return}
   if(authMode==='signup'&&!authForm.name.trim()){submitMsg('Inserisci nome e cognome.','error');return}
@@ -567,22 +601,21 @@ function App(){
  if(!ready||!supabase)return <main className="cloud-unavailable" role="alert"><Logo/><h1>Configurazione cloud non disponibile</h1><p>L'app richiede Supabase Cloud per accedere, prenotare e gestire le lezioni. Nessun dato simulato viene caricato.</p><a href="mailto:info@alecoach.online">Contatta info@alecoach.online</a></main>;
  return <div className={`app-shell ${screen==='coach'?'coach-shell':''}`}>
   {internalQa&&<div className="demo-environment-banner" role="status"><ShieldCheck size={15}/> COLLAUDO CLOUD RISERVATO · Solo account autorizzati. Pagamenti Stripe esclusivamente sandbox; nessun incasso reale. Non inserire dati sanitari o di terze persone.</div>}
-  {(profile||(!booting&&screen==='landing'))&&!pushEnabled&&!pushBannerDismissed&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
+  {profile&&!pushEnabled&&!pushBannerDismissed&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
     <div className="push-permission-banner__body">
      <span className="push-permission-banner__icon"><Bell size={21}/></span>
      <div className="push-permission-banner__copy">
-      <h3>{!profile?'Non perdere gli aggiornamenti di Ale Coach':pushPromptState==='blocked'?'Notifiche disattivate':pushPromptState==='needs-install'?'Ricevi le notifiche su iPhone':pushPromptState==='unsupported'?'Notifiche non supportate':'Non perdere aggiornamenti e prenotazioni'}</h3>
-      <p>{!profile?'Accedi per ricevere sul telefono conferme, variazioni e aggiornamenti delle tue lezioni.':pushPromptState==='blocked'?'Il permesso è bloccato: puoi riattivarlo dalle impostazioni del dispositivo.':pushPromptState==='needs-install'?'Per attivarle, installa Ale Coach dalla schermata Home e riapri l’app.':pushPromptState==='unsupported'?'Utilizza un browser compatibile con le notifiche push.':'Attiva le notifiche per ricevere conferme, variazioni e aggiornamenti sulle tue lezioni.'}</p>
+      <h3>{pushPromptState==='blocked'?'Notifiche disattivate':pushPromptState==='needs-install'?'Ricevi le notifiche su iPhone':pushPromptState==='unsupported'?'Notifiche non supportate':'Non perdere aggiornamenti e prenotazioni'}</h3>
+      <p>{pushPromptState==='blocked'?'Il permesso è bloccato: puoi riattivarlo dalle impostazioni del dispositivo.':pushPromptState==='needs-install'?'Per attivarle, installa Ale Coach dalla schermata Home e riapri l’app.':pushPromptState==='unsupported'?'Utilizza un browser compatibile con le notifiche push.':'Attiva le notifiche per ricevere conferme, variazioni e aggiornamenti sulle tue lezioni.'}</p>
      </div>
     </div>
     <div className="push-permission-banner__actions">
-     <Button variant="primary" disabled={pushBusy||(Boolean(profile)&&pushPromptState==='checking')} onClick={()=>{
-      if(!profile){setScreen('auth');setAuthMode('signin');return;}
+     <Button variant="primary" disabled={pushBusy||pushPromptState==='checking'} onClick={()=>{
       if(pushPromptState==='needs-install')submitMsg('Su iPhone apri Ale Coach in Safari, tocca Condividi → Aggiungi alla schermata Home e avvia l’app dall’icona.','info');
       else if(pushPromptState==='blocked')submitMsg('Apri le impostazioni del dispositivo e consenti le notifiche per Ale Coach, quindi riavvia l’app.','info');
       else if(pushPromptState==='unsupported')submitMsg('Apri Ale Coach con Safari su iOS dalla schermata Home o Chrome su Android.','info');
       else void subscribePush();
-     }}>{!profile?'ACCEDI E ATTIVA':pushBusy?'ATTIVAZIONE...':pushPromptState==='needs-install'?'COME INSTALLARE':pushPromptState==='blocked'?'COME RIATTIVARE':pushPromptState==='unsupported'?'INFORMAZIONI':'ATTIVA NOTIFICHE'}</Button>
+     }}>{pushBusy?'ATTIVAZIONE...':pushPromptState==='needs-install'?'COME INSTALLARE':pushPromptState==='blocked'?'COME RIATTIVARE':pushPromptState==='unsupported'?'INFORMAZIONI':'ATTIVA NOTIFICHE'}</Button>
      <button type="button" className="push-permission-banner__dismiss" aria-label="Chiudi avviso notifiche" onClick={()=>setPushBannerDismissed(true)}><X size={17}/></button>
     </div>
    </section>}
@@ -599,7 +632,7 @@ function App(){
    <section className="legal-strip"><ShieldCheck size={20}/><p>Lezioni riservate agli iscritti Virgin Active. La conferma dell'orario arriva da Ale. Disdetta gratuita fino a 24 ore prima.</p></section>
    {whatsappLink('Ciao Ale, vorrei informazioni sulle lezioni!')&&<a className="whatsapp-cta" href={whatsappLink('Ciao Ale, vorrei informazioni sulle lezioni!')!} target="_blank" rel="noreferrer"><MessageCircle size={17}/> Scrivi ad Ale su WhatsApp</a>}
   </main>}
-  {screen==='auth'&&<main className="client-layout auth-page"><button className="back-link" onClick={()=>setScreen('landing')}><ArrowLeft size={17}/> Torna alla presentazione</button><div className="auth-card"><div className="auth-icon"><LockKeyhole size={26}/></div><div className="signature">il tuo spazio con Ale</div><Title eyebrow="AREA RISERVATA">{authMode==='signup'?'CREA IL TUO ACCOUNT':authMode==='reset'?'RECUPERA LA PASSWORD':'BENTORNATO!'}</Title><p className="auth-lead">{authMode==='signup'?'Prenota, segui le tue lezioni e ricevi conferme in un unico posto.':authMode==='reset'?'Inserisci la tua email per recuperare l’accesso.':'Accedi con la tua email e la tua password.'}</p>
+  {screen==='auth'&&<main className="client-layout auth-page">{passwordRecovery?<div className="auth-card"><div className="auth-icon"><LockKeyhole size={26}/></div><Title eyebrow="SICUREZZA ACCOUNT">IMPOSTA UNA NUOVA PASSWORD</Title><p className="auth-lead">Scegli una password di almeno 8 caratteri e confermala.</p><form className="form-stack" onSubmit={e=>void completePasswordRecovery(e)}><Labeled label="Nuova password" required><input type="password" autoComplete="new-password" required minLength={8} value={newPassword} onChange={e=>setNewPassword(e.target.value)}/></Labeled><Labeled label="Conferma nuova password" required><input type="password" autoComplete="new-password" required minLength={8} value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}/></Labeled><Button type="submit" disabled={busy||!user||newPassword.length<8||newPassword!==confirmPassword}>{busy?'Salvataggio...':'SALVA NUOVA PASSWORD'} <Check size={17}/></Button></form><Button variant="quiet" onClick={()=>void logout()}>Esci</Button></div>:<><button className="back-link" onClick={()=>setScreen('landing')}><ArrowLeft size={17}/> Torna alla presentazione</button><div className="auth-card"><div className="auth-icon"><LockKeyhole size={26}/></div><div className="signature">il tuo spazio con Ale</div><Title eyebrow="AREA RISERVATA">{authMode==='signup'?'CREA IL TUO ACCOUNT':authMode==='reset'?'RECUPERA LA PASSWORD':'BENTORNATO!'}</Title><p className="auth-lead">{authMode==='signup'?'Prenota, segui le tue lezioni e ricevi conferme in un unico posto.':authMode==='reset'?'Inserisci la tua email per recuperare l’accesso.':'Accedi con la tua email e la tua password.'}</p>
     {internalQa&&authMode==='signup'&&<p className="legal-warning">Accesso riservato agli indirizzi email autorizzati al collaudo. Il sito non è ancora aperto ai clienti finali; le informative sono in revisione. Per richiedere l’abilitazione scrivi a info@alecoach.online.</p>}
     <form onSubmit={e=>void authenticate(e)} className="form-stack">{authMode==='signup'&&<><Labeled label="Nome e cognome" required><input required autoComplete="name" value={authForm.name} onChange={e=>setAuthForm(f=>({...f,name:e.target.value}))} placeholder="Mario Rossi"/></Labeled><Labeled label="Telefono"><input type="tel" autoComplete="tel" value={authForm.phone} onChange={e=>setAuthForm(f=>({...f,phone:e.target.value}))} placeholder="+39..."/></Labeled></>}
     <Labeled label="Email" required><input type="email" required autoComplete="email" value={authForm.email} onChange={e=>setAuthForm(f=>({...f,email:e.target.value}))} placeholder="nome@email.it"/></Labeled>{authMode!=='reset'&&<Labeled label="Password" required><input type="password" required minLength={8} autoComplete={authMode==='signup'?'new-password':'current-password'} value={authForm.password} onChange={e=>setAuthForm(f=>({...f,password:e.target.value}))} placeholder="Almeno 8 caratteri"/></Labeled>}
@@ -608,7 +641,7 @@ function App(){
     <Button type="submit" disabled={busy||!onlineReady||(authMode==='signup'&&(!privacyNoticeSeen||blockUnreviewedLegal))}>{busy?'Caricamento...':authMode==='signup'?'REGISTRATI':authMode==='reset'?'INVIA LINK':'ACCEDI'} <ArrowRight size={17}/></Button></form>
     {import.meta.env.VITE_GOOGLE_ENABLED==='true'&&!blockUnreviewedLegal&&<><div className="oauth-separator">oppure</div>{authMode!=='signup'&&<label className="check-row terms"><input type="checkbox" checked={privacyNoticeSeen} onChange={e=>setPrivacyNoticeSeen(e.target.checked)}/><span>Ho preso visione dell'<a href={legalPaths.privacy} target="_blank" rel="noopener noreferrer">informativa privacy</a> prima di continuare con Google.</span></label>}<Button variant="outline" className="google-login" disabled={!privacyNoticeSeen} onClick={()=>void googleLogin()}>CONTINUA CON GOOGLE</Button></>}
     <div className="auth-switch">{authMode==='signin'?<><button onClick={()=>setAuthMode('signup')}>Non hai un account? Registrati</button><button onClick={()=>setAuthMode('reset')}>Password dimenticata?</button></>:<button onClick={()=>setAuthMode('signin')}>Hai già un account? Accedi</button>}</div>
-   </div><p className="security-note"><ShieldCheck size={15}/> Login protetto da Supabase Auth quando configurato</p></main>}
+   </div><p className="security-note"><ShieldCheck size={15}/> Login protetto da Supabase Auth quando configurato</p></>}</main>}
   {screen==='client'&&profile&&<main className="client-layout client-page">
    <div className="app-welcome"><div><div className="signature">il tuo percorso, {profile.full_name.split(' ')[0]}</div><h1>ALLENATI CON <em>ALE.</em></h1></div><div className="profile-bubble">{profile.full_name.charAt(0)||'A'}</div></div>
    {bookingForm?<section className="wizard"><button className="back-link" onClick={()=>{if(step==='review')setStep(selected.kind==='quote'?'details':'when');else if(step==='when'&&selected.kind!=='free')setStep('details');else setSelectedService(null)}}><ArrowLeft size={17}/> Indietro</button>

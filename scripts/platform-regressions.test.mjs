@@ -6,8 +6,9 @@ const read = path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 test('PWA mobile conserva il viewport stabile e i form senza zoom involontario',()=>{
  const html=read('index.html');
  const css=read('src/styles.css');
- assert.match(html,/maximum-scale=1,user-scalable=no,viewport-fit=cover/);
- assert.match(css,/input,textarea,select\{font-size:max\(16px,1em\)\}/);
+ assert.match(html,/name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/);
+ assert.doesNotMatch(html,/user-scalable=no|maximum-scale=1/);
+ assert.match(css,/input:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\),textarea,select\{font-size:16px\}/);
  assert.match(css,/touch-action:manipulation/);
 });
 test('PWA identifica correttamente la web app installabile',()=>{
@@ -66,4 +67,12 @@ test('il cron cancella solo preautorizzazioni scadute, non incassa denaro',()=>{
  assert.match(worker,/idempotencyKey/);
  assert.match(sql,/ale-coach-release-stripe-authorizations/);
  assert.match(sql,/revoke all on function public.get_stripe_housekeeping_token\(\)/i);
+});
+
+test('recupero password Supabase con conferma e senza link diretto allo stato cliente',()=>{
+ const app=read('src/App.tsx');
+ assert.match(app,/event==='PASSWORD_RECOVERY'/);
+ assert.match(app,/auth\.updateUser\(\{password:newPassword\}\)/);
+ assert.match(app,/newPassword!==confirmPassword/);
+ assert.match(app,/passwordRecovery\?<div className="auth-card"/);
 });
