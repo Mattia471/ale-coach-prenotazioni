@@ -94,6 +94,21 @@ Deno.serve(async req=>{
    return new Response('Authorized, coach notified');
   }
 
+  if(event.type==='checkout.session.expired'){
+   const session=event.data.object as Stripe.Checkout.Session;
+   if(session.metadata?.kind!=='booking_authorization'||!session.metadata.booking_id)return new Response('OK');
+   const {data:booking,error}=await admin.from('bookings')
+    .select('id,status,client_id,stripe_checkout_session_id').eq('id',session.metadata.booking_id).maybeSingle();
+   if(error)throw error;
+   if(!booking||booking.stripe_checkout_session_id!==session.id||booking.status!=='authorizing')
+    return new Response('OK');
+   const {error:expireError}=await admin.from('bookings')
+    .update({status:'expired',payment_status:'unpaid'}).eq('id',booking.id)
+    .eq('status','authorizing').eq('stripe_checkout_session_id',session.id);
+   if(expireError)throw expireError;
+   return new Response('Checkout expired');
+  }
+
   if(event.type==='payment_intent.succeeded'){
    const pi=event.data.object as Stripe.PaymentIntent;
    if(pi.metadata?.kind!=='booking_authorization'||!pi.metadata.booking_id)return new Response('OK');
