@@ -3,6 +3,20 @@
 **Ambiente unico:** progetto Ale Coach (`mmtnzjdvvlouiwgrydlf`) e frontend https://ale-coach-prenotazioni.vercel.app.
 Non utilizzare Docker, database locale o seed automatici. Il database è reale: non inserire dati personali di terzi senza autorizzazione, non alterare pagamenti reali per effettuare prove.
 
+## Checkpoint del giorno 1, 4 novembre 2026
+
+- [x] Modifiche SQL privilegio minimo applicate: niente TRUNCATE o modifica diretta degli ordini via browser.
+- [x] Account email del dominio confermato; ruolo coach non assegnato senza verifica.
+- [x] Import Edge Runtime compatibile `npm:@supabase/supabase-js@2`; prima c'era un errore `tslib`.
+- [x] Webhook Stripe senza configurazione restituisce HTTP 503, non errore runtime 500.
+- [x] Google sync senza segreto restituisce HTTP 401.
+- [x] Push webhook senza segreto restituisce HTTP 401.
+- [x] `create-checkout`, `cancel-booking`, `stripe-webhook` richiedono abilitazione esplicita e separano modalità test/live.
+- [ ] Segreti Stripe test configurati nell'account del coach e sottoscrizione webhook firmato, vedi [STRIPE-SETUP.md](STRIPE-SETUP.md).
+- [ ] Verificare un webhook Stripe **firmato**, con evento test e idempotenza.
+- [ ] Preautorizzazione/cattura manuale v2: **non ancora implementata**.
+- [ ] Google Calendar effettivamente collegato e sync recente prima di approvare qualsiasi pagamento.
+
 ## Già verificato
 
 - [x] Progetto Supabase cloud nell'organizzazione Ale Coach, regione `eu-west-1`, attivo.
