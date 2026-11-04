@@ -463,7 +463,7 @@ function App(){
      <label>Sede<select value={newWindow.venue_id} onChange={e=>setNewWindow(v=>({...v,venue_id:e.target.value}))}>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
      <label>Da<input type="time" step={900} value={formatStartMinute(newWindow.start_minute)} onChange={e=>setNewWindow(v=>({...v,start_minute:asMinute(e.target.value)}))}/></label>
      <label>A<input type="time" step={900} value={formatStartMinute(newWindow.end_minute)} onChange={e=>setNewWindow(v=>({...v,end_minute:asMinute(e.target.value)}))}/></label>
-     <label className="check-row tiny"><input type="checkbox" checked={newWindow.is_flexible} onChange={e=>setNewWindow(v=>({...v,is_flexible:e.target.checked})}/>Flessibile</label>
+     <label className="check-row tiny"><input type="checkbox" checked={newWindow.is_flexible} onChange={e=>setNewWindow(v=>({...v,is_flexible:e.target.checked}))}/>Flessibile</label>
      <Button variant="outline" onClick={()=>void createWindow()}>AGGIUNGI FASCIA</Button>
     </div>
     <h3 className="schedule-subtitle">Chiusure da verificare</h3>
