@@ -17,9 +17,9 @@ Applicativo React + TypeScript + Vite dedicato ad Alessandro Cola e alle lezioni
 | Continuity 4 / 8 | Catalogo 150 / 260 € al mese, **non ancora acquistabili** |
 | Supabase Edge Functions | Pubblicate: checkout, annullamento, webhook, notifiche e Google sync |
 | Google Calendar | Funzione pronta, ma **non collegata** all'account del coach; conferme bloccate se sync assente |
-| Stripe | Credenziali e webhook reali **non configurati**; niente incassi live |
-| Email di dominio e Auth | `info@alecoach.online` definita, SMTP personalizzato e redirect Auth da configurare |
-| GDPR | Informative in bozza; registrazioni commerciali bloccate fino ad approvazione |
+| Stripe | Account creato, Edge Functions protette e caricate senza crash; chiavi test, webhook test e nuova preautorizzazione v2 ancora da configurare/collaudare |
+| Email di dominio e Auth | `info@alecoach.online` registrato e confermato; redirect di Auth e SMTP personalizzato da verificare |
+| GDPR | Informative in bozza; registrazioni limitate da allowlist cloud, lancio commerciale ancora bloccato |
 
 **Attenzione:** essere online su un ambiente cloud non significa essere pronti per il pubblico pagante. Non impostare `VITE_LEGAL_APPROVED=true` finché i testi non sono completi e approvati.
 
