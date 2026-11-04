@@ -32,3 +32,27 @@
 .privacy-request{display:block;padding:8px 0;color:#b40024;text-decoration:underline;text-underline-offset:3px;font-size:13px}
 .legal-warning{border-radius:10px;padding:10px 14px;background:#fff4e4;color:#8a5004;font-size:13px;line-height:1.5}
 @media(max-width:600px){.legal-header{padding:16px 20px}.legal-document{margin:30px auto 45px}.legal-document section{padding:21px 0}.legal-document section p{font-size:14px}}
+
+/* Calendario v2: 42 giorni navigabili, slot quindici minuti e 3 preferenze sede. */
+.venue-choice{grid-template-columns:repeat(3,minmax(0,1fr))}
+.day-strip{display:flex;overflow-x:auto;gap:7px;padding:3px 2px 10px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+.day-strip button{flex:0 0 62px;min-height:67px;scroll-snap-align:start}
+.slot-grid{grid-template-columns:repeat(auto-fit,minmax(100px,1fr));max-height:340px;overflow-y:auto;align-content:start}
+.slot-grid button{display:flex;flex-direction:column;align-items:center;gap:5px;line-height:1.15}
+.slot-grid button small{font-size:10px;color:#8a7375;font-weight:500}
+.slot-grid button.chosen small{color:#fff}
+.calendar-sync-note{display:flex;gap:13px;align-items:flex-start;background:#fff4e5;border:1px solid #f0d6a7;border-radius:13px;padding:17px;margin-bottom:20px}
+.calendar-sync-note b{display:block;color:#7f4511;font-size:14px}
+.calendar-sync-note p{font-size:12px;line-height:1.55;margin:5px 0 0;color:#76502c}
+.schedule-subtitle{margin:28px 0 12px;font-size:20px}
+.schedule-window-list{display:flex;flex-direction:column;gap:9px}
+.schedule-window,.schedule-closure{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #eadede;border-radius:12px;padding:12px 14px;background:#fcfafa}
+.schedule-window>div,.schedule-closure>div{min-width:135px;flex:1}
+.schedule-window b,.schedule-closure b{display:block;font-size:13px}
+.schedule-window small,.schedule-closure small{display:block;font-size:11px;color:#877779;margin-top:3px}
+.schedule-window label,.schedule-create label{display:flex;gap:4px;flex-direction:column;font-size:11px;color:#776667}
+.schedule-window .check-row,.schedule-create .check-row,.schedule-closure .check-row{flex-direction:row;align-items:center;margin:0}
+.schedule-window input[type=time],.schedule-create input[type=time],.schedule-create select{padding:9px 7px;border:1px solid #e9dcdc;background:white;border-radius:9px;max-width:150px}
+.schedule-create{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:15px;background:#f8f4f3;border-radius:14px}
+.schedule-closure .button{min-height:36px;font-size:11px}
+@media(max-width:640px){.venue-choice{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.venue-choice button{font-size:10px;flex-direction:column;padding:9px 5px}.schedule-window{align-items:flex-start}.schedule-window>div{flex-basis:100%}.schedule-create>*{flex:1 1 43%}.schedule-create .button{flex:1 1 100%}.slot-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
