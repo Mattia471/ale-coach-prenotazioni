@@ -6,11 +6,16 @@ Deno.serve(async req=>{
  const secret=Deno.env.get('STRIPE_SECRET_KEY');
  const signing=Deno.env.get('STRIPE_WEBHOOK_SECRET');
  const signature=req.headers.get('stripe-signature');
- if(!secret||!signing||!signature)return new Response('Missing configuration',{status:503});
+ const environment=Deno.env.get('STRIPE_ENVIRONMENT')||'test';
+ const testMode=environment==='test'&&!!secret?.startsWith('sk_test_');
+ const liveMode=environment==='live'&&Deno.env.get('STRIPE_LIVE_APPROVED')==='true'&&!!secret?.startsWith('sk_live_');
+ if(Deno.env.get('STRIPE_PAYMENTS_ENABLED')!=='true'||(!testMode&&!liveMode)||!signing||!signature)
+  return new Response('Payment integration not configured',{status:503});
  const stripe=new Stripe(secret);
  let event:Stripe.Event;
  try{event=await stripe.webhooks.constructEventAsync(await req.text(),signature,signing,undefined,Stripe.createSubtleCryptoProvider())}
  catch(e){console.error('Invalid Stripe signature',e);return new Response('Invalid signature',{status:400})}
+ if(event.livemode !== liveMode)return new Response('Stripe environment mismatch',{status:400});
  const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
  try{
   if(event.type==='checkout.session.completed'){
