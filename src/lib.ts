@@ -9,7 +9,7 @@ export const romanDay=(date:Date)=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Eu
 export const romeToday=()=>romanDay(new Date());
 export const nextDates=()=>Array.from({length:42},(_,i)=>{const today=new Date(`${romeToday()}T12:00:00`);today.setDate(today.getDate()+i+1);const s=romanDay(today);const dow=(today.getDay()+6)%7+1;return {date:s,weekday:dow,label:new Date(`${s}T12:00:00`).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})};});
 export const bookingTime=(date:string,hour:number)=>`${date}T${String(hour).padStart(2,'0')}:00:00+01:00`;
-export const stateLabels:Record<Booking['status'],string>={pending:'In attesa',awaiting_payment:'Da pagare',confirmed:'Confermata',quoted:'Preventivo',rejected:'Rifiutata',cancelled:'Disdetta',expired:'Scaduta'};
+export const stateLabels:Record<Booking['status'],string>={authorizing:'Autorizzazione da completare',processing:'Operazione in corso',pending:'In attesa',awaiting_payment:'Da pagare',confirmed:'Confermata',quoted:'Preventivo',rejected:'Rifiutata',cancelled:'Disdetta',expired:'Scaduta'};
 export const sources:Record<string,string>={direct:'Accesso diretto',instagram_bio:'Instagram · link in bio',instagram_dm:'DM Instagram · FORZA',meta_ads:'Pubblicità Meta',club:'QR palestra',friend:'Codice amico'};
 export const whatsappLink=(message:string)=>{const phone=String(import.meta.env.VITE_COACH_WHATSAPP||'').replace(/[^0-9]/g,'');return phone?`https://wa.me/${phone}?text=${encodeURIComponent(message)}`:null};
 
