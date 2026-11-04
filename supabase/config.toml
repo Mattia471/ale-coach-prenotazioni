@@ -36,3 +36,6 @@ verify_jwt = false
 
 [functions.push-notify]
 verify_jwt = false
+
+[functions.google-calendar-sync]
+verify_jwt = false
