@@ -221,7 +221,7 @@ function App(){
    if(!supabase){
     const discount=promoInput.trim().toUpperCase()===promo&&selected.id==='single'?15:0;
     const b:Booking={...demoBooking(),id:crypto.randomUUID(),client_id:'client-preview',service_id:selected.id,venue_id:selected.kind==='quote'?null:selectedVenue,
-      starts_at:selected.kind==='quote'?null:new Date(`${selectedDay}T${formatStartMinute(selectedHour)}:00`).toISOString(),duration_minutes:selected.duration_minutes,
+      starts_at:selected.kind==='quote'?null:new Date(`${selectedDay}T${formatStartMinute(selectedHour!)}:00`).toISOString(),duration_minutes:selected.duration_minutes,
       payment_mode:selected.kind==='free'||selected.kind==='quote'?'none':selectedMode,status:'pending',payment_status:'unpaid',base_amount_cents:selected.price_cents,
       amount_cents:Math.round(selected.price_cents*(100-discount)/100),discount_percent:discount,promo_code:discount?promo:null,details:bookingDetails,
       source:attrib.current.source,referral:attrib.current.referral,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+86400000).toISOString()};
