@@ -11,7 +11,7 @@ type Screen='landing'|'auth'|'client'|'coach';
 type Step='details'|'when'|'review';
 type WindowRow={id:number;weekday:number;venue_id:string;start_minute:number;end_minute:number;is_flexible:boolean;is_active:boolean};
 type ClosureRow={id:number;start_date:string;end_date:string;reason:string;is_active:boolean;review_status:'proposed'|'confirmed'};
-type CourseRow={id:number;title:string;venue_id:string|null;weekday:number|null;on_date:string|null;start_minute:number;end_minute:number;is_active:boolean;needs_review:boolean};
+type CourseRow={id:number;title:string;venue_id:string|null;weekday:number|null;on_date:string|null;start_minute:number;end_minute:number;is_active:boolean;needs_review:boolean;source_ref:string|null};
 const asMinute=(value:string)=>{const [h,m]=value.split(':').map(Number);return h*60+m};
 
 const disciplines=['Forza / Sala pesi','TRX','GRID','Calisthenics','HYROX','Flessibilità','Cross Active'];
@@ -80,6 +80,8 @@ function App(){
  const [closures,setClosures]=useState<ClosureRow[]>([]);
  const [courseBlocks,setCourseBlocks]=useState<CourseRow[]>([]);
  const [newWindow,setNewWindow]=useState({weekday:1,venue_id:'talenti',start_minute:540,end_minute:600,is_flexible:false});
+ const [newBlock,setNewBlock]=useState({on_date:'',title:'',venue_id:'',start_minute:540,end_minute:600});
+ const [newClosure,setNewClosure]=useState({start_date:'',end_date:'',reason:''});
 
  const [packs,setPacks]=useState<Pack[]>([]);
  const [codes,setCodes]=useState<Discount[]>([{code:promo,percent_off:15,active:true,uses:0,first_purchase_only:true,valid_days_from_contact:null}]);
@@ -552,6 +554,64 @@ function App(){
   if(error){submitMsg(error.message,'error');return}
   setAvailabilityWindows(v=>[...v,data as WindowRow].sort((a,b)=>a.weekday-b.weekday||a.start_minute-b.start_minute));
   submitMsg('Finestra aggiunta. Le disponibilità vengono ricalcolate dal server.');
+ };
+
+ const createManualBlock=async()=>{
+  if(!supabase||busy)return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(newBlock.on_date)||!newBlock.title.trim()){
+   submitMsg('Inserisci una data e una descrizione dell’impegno.','error');return;
+  }
+  if(newBlock.start_minute<0||newBlock.end_minute>1440||
+    newBlock.start_minute%15!==0||newBlock.end_minute%15!==0||
+    newBlock.end_minute<=newBlock.start_minute){
+   submitMsg('L’orario deve essere valido, con intervalli di 15 minuti.','error');return;
+  }
+  setBusy(true);
+  try{
+   const {data,error}=await supabase.from('calendar_course_blocks').insert({
+    title:newBlock.title.trim().slice(0,120),venue_id:newBlock.venue_id||null,
+    weekday:null,on_date:newBlock.on_date,valid_from:newBlock.on_date,
+    valid_until:newBlock.on_date,start_minute:newBlock.start_minute,
+    end_minute:newBlock.end_minute,before_minutes:0,after_minutes:0,
+    needs_review:false,is_active:true,source_ref:'manual'
+   }).select('*').single();
+   if(error)throw error;
+   setCourseBlocks(v=>[...v,data as CourseRow].sort((a,b)=>(a.on_date||'').localeCompare(b.on_date||'')));
+   setNewBlock(v=>({...v,title:''}));
+   submitMsg('Impegno salvato. I nuovi slot sovrapposti non saranno prenotabili.');
+  }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
+ };
+ const deleteManualBlock=async(b:CourseRow)=>{
+  if(!supabase||busy||b.source_ref!=='manual')return;
+  setBusy(true);
+  try{
+   const {data,error}=await supabase.from('calendar_course_blocks')
+    .delete().eq('id',b.id).eq('source_ref','manual').select('id');
+   if(error)throw error;
+   if(!data?.length)throw Error('Impegno non eliminato. Ricarica la pagina e riprova.');
+   setCourseBlocks(rows=>rows.filter(x=>x.id!==b.id));
+   submitMsg('Impegno eliminato. Le disponibilità vengono ricalcolate.');
+  }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
+ };
+ const createClosure=async()=>{
+  if(!supabase||busy)return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(newClosure.start_date)||
+     !/^\d{4}-\d{2}-\d{2}$/.test(newClosure.end_date)||
+     newClosure.end_date<newClosure.start_date||!newClosure.reason.trim()){
+   submitMsg('Controlla le date e il motivo della chiusura.','error');return;
+  }
+  setBusy(true);
+  try{
+   const {data,error}=await supabase.from('calendar_closures').insert({
+    start_date:newClosure.start_date,end_date:newClosure.end_date,
+    reason:newClosure.reason.trim().slice(0,120),is_active:true,
+    review_status:'confirmed'
+   }).select('*').single();
+   if(error)throw error;
+   setClosures(rows=>[...rows,data as ClosureRow].sort((a,b)=>a.start_date.localeCompare(b.start_date)));
+   setNewClosure({start_date:'',end_date:'',reason:''});
+   submitMsg('Chiusura salvata: l’app bloccherà i nuovi appuntamenti in queste date.');
+  }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
  const saveCourseBlock=async(row:CourseRow,patch:Partial<CourseRow>)=>{
   if(!supabase)return;
