@@ -133,3 +133,19 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
  .coach-introduction-compact .coach-introduction-portrait{min-height:211px}
  .coach-introduction-compact .coach-introduction-content h2{font-size:27px}
 }
+
+/* QA release: navigazione e notifiche coach, coerenti con la PWA cliente. */
+.coach-header-bell{position:relative}
+.coach-shortcuts{display:flex;flex-wrap:wrap;gap:9px;margin:-3px 0 18px}
+.coach-shortcuts button,.client-detail-button{display:inline-flex;gap:5px;align-items:center;border:1px solid #eadbdb;background:#fff;color:#c9001a;font-weight:800;font-size:12px;border-radius:10px;padding:10px 12px}
+.review-tag{display:inline-block;background:#fff1dc;border:1px solid #f2ca83;color:#854800;border-radius:7px;padding:5px 8px;font-size:10px;font-weight:900;letter-spacing:.25px;margin:5px 0}
+.coach-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.coach-more-grid button{display:flex;align-items:center;gap:12px;padding:17px;border:1px solid #e7dddd;background:#fff;border-radius:13px;font-size:13px;font-weight:800;text-align:left;color:#2d2023}
+.coach-more-grid button span{flex:1}
+.coach-more-grid button>svg:first-child{color:#e1001a}
+.coach-bottom-nav{display:none}
+@media(max-width:719px){
+ .coach-bottom-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding-left:max(4px,env(safe-area-inset-left));padding-right:max(4px,env(safe-area-inset-right))}
+ .coach-bottom-nav button{font-size:10px;min-width:0;padding:8px 0}
+ .coach-layout{padding-bottom:122px}
+}
