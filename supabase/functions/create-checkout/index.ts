@@ -9,7 +9,12 @@ Deno.serve(async req=>{
  if(req.method!=='POST')return json({error:'Metodo non consentito'},405);
  try{
   const secret=Deno.env.get('STRIPE_SECRET_KEY');
-  if(!secret)return json({error:'Pagamenti non ancora attivi. Il coach deve collegare Stripe.'},503);
+  const paymentsEnabled=Deno.env.get('STRIPE_PAYMENTS_ENABLED')==='true';
+  const stripeEnvironment=Deno.env.get('STRIPE_ENVIRONMENT')||'test';
+  const testMode=stripeEnvironment==='test'&&!!secret?.startsWith('sk_test_');
+  const liveMode=stripeEnvironment==='live'&&Deno.env.get('STRIPE_LIVE_APPROVED')==='true'&&!!secret?.startsWith('sk_live_');
+  if(!paymentsEnabled||(!testMode&&!liveMode))
+   return json({error:'Pagamenti non attivi: attesa configurazione Stripe e collaudo.'},503);
   const url=Deno.env.get('SUPABASE_URL')!;
   const anon=Deno.env.get('SUPABASE_ANON_KEY')!;
   const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
