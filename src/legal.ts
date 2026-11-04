@@ -15,7 +15,12 @@ export const legalReady = Boolean(
   legal.reviewed && legal.controllerName && legal.controllerAddress &&
   legal.contactEmail && legal.version
 );
-export const blockUnreviewedLegal = import.meta.env.PROD && !legalReady;
+// Le demo statiche senza Supabase usano ESCLUSIVAMENTE dati sintetici nel browser.
+// Se è configurato un backend reale, il gate legale resta attivo anche su Vercel.
+export const backendConnected = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+);
+export const blockUnreviewedLegal = import.meta.env.PROD && backendConnected && !legalReady;
 export const legalPaths = {
   privacy: '/privacy',
   terms: '/termini',
