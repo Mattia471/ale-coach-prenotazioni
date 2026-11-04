@@ -1,6 +1,6 @@
 # Ale Coach: piano di lancio in 3 giorni (dal dominio acquistato)
 
-**Stato:** piano operativo, non attestazione di sicurezza né autorizzazione ai pagamenti reali.
+**Stato:** piano operativo, non attestazione di sicurezza né autorizzazione ai pagamenti reali. **La specifica v2 del 4 novembre prevale**: vedere [V2-DELTA.md](V2-DELTA.md). La scadenza di tre giorni è un obiettivo, non autorizza il go-live se mancano preautorizzazione Stripe, sync Google e Continuity.
 **OBBLIGATORIO:** consultare [GDPR-COMPLIANCE.md](GDPR-COMPLIANCE.md), finalizzare e far approvare
 le informative, i diritti degli interessati, i contratti con i fornitori e i criteri di conservazione.
 Il comando di pubblicazione non deve consentire build commerciali senza approvazione legale.
@@ -84,7 +84,7 @@ https://www.garanteprivacy.it/Regolamentoue/diritti-degli-interessati
 **NO-GO immediato** se uno di questi casi fallisce:
 - [ ] Una prenotazione concorrente su stesso slot è respinta, anche fra sedi e account diversi.
 - [ ] Clienti non possono leggere/modificare profili, prenotazioni, prezzi, ruoli o crediti di altri.
-- [ ] Coupon ALECOACH10 non è riutilizzabile su più acquisti attivi.
+- [ ] Coupon ALECOACH15 non è riutilizzabile su più acquisti attivi.
 - [ ] Checkout non genera doppio addebito su richieste simultanee, e non incassa su prenotazioni scadute.
 - [ ] Webhook senza firma è respinto; eventi Stripe ripetuti non generano doppi crediti.
 - [ ] Ogni rimborso è riconciliato con Stripe; fallimenti DB producono allerta e non falsi successi.
@@ -105,3 +105,11 @@ https://www.garanteprivacy.it/Regolamentoue/diritti-degli-interessati
 ## Video-guide
 
 Script e storyboard: [VIDEO-GUIDES.md](VIDEO-GUIDES.md). La registrazione dello schermo va fatta **solo quando la UI definitiva è stabile**, con utenze demo e dati inventati, senza clienti reali né chiavi/segreti.
+
+## Requisiti nuovi da completare prima della pubblicazione con clienti paganti
+
+- [ ] **Stripe autorizza alla richiesta, cattura alla conferma**. L'attuale checkout dopo approvazione non soddisfa la specifica del 4 novembre. Completare prima il flusso e testare annullamento delle autorizzazioni.
+- [ ] **Google Calendar collegato realmente** con refresh token del coach, cron, classificazione sede, test degli eventi ricorrenti, storico sincronizzazione e comportamento fail-closed.
+- [ ] **Continuity 4 e 8**: rinnovi mensili, due mesi minimi, accredito crediti solo a incasso verificato, riporto e scadenza. Finché incompleti, restano visibili soltanto come presentazione non acquistabile.
+- [ ] **Spostamenti e annullamenti**: nuova prenotazione confermata prima di liberare la vecchia, rimborsi/crediti e registro operazioni.
+- [ ] Test DB v2 con `pnpm exec supabase migration up --local` + `pnpm run local:integration`. La build Vite da sola non valida la migrazione.
