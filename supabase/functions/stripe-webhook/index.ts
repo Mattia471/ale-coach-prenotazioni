@@ -67,7 +67,11 @@ Deno.serve(async req=>{
      console.error('Checkout non riconciliabile',bookingId,session.id,piId);
      throw new Error('Checkout non riconciliabile; intervento necessario');
    }
-   if(booking.status==='pending'&&booking.payment_status==='authorized'&&booking.stripe_payment_intent_id===pi.id)
+   // Eventi Stripe possono essere ripetuti o arrivare fuori ordine.
+   // Non annullare una carta gia' autorizzata mentre il coach sta decidendo.
+   if(booking.stripe_payment_intent_id===pi.id&&
+      (booking.status==='pending'&&booking.payment_status==='authorized'||
+       booking.status==='processing'||booking.status==='confirmed'))
     return new Response('OK');
    if(booking.status!=='authorizing'||Date.parse(booking.expires_at)<=Date.now()){
     if(pi.status==='requires_capture')
