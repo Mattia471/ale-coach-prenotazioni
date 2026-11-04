@@ -6,7 +6,12 @@ const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
  if(req.method!=='POST')return json({error:'Metodo non consentito'},405);
- const key=Deno.env.get('STRIPE_SECRET_KEY');if(!key)return json({error:'Stripe non configurato'},503);
+ const key=Deno.env.get('STRIPE_SECRET_KEY');
+ const environment=Deno.env.get('STRIPE_ENVIRONMENT')||'test';
+ if(Deno.env.get('STRIPE_PAYMENTS_ENABLED')!=='true'||
+   !(environment==='test'&&key?.startsWith('sk_test_')||
+     environment==='live'&&Deno.env.get('STRIPE_LIVE_APPROVED')==='true'&&key?.startsWith('sk_live_')))
+  return json({error:'Stripe non attivo: verifica configurazione e collaudo.'},503);
  try{
   const auth=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_ANON_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
   const token=req.headers.get('Authorization')?.replace(/^Bearer\s+/i,'')||'';
