@@ -20,8 +20,5 @@ jobs:
       - name: TypeScript and production frontend build
         run: npm run build
       - name: Unit and release-gate tests
-        run: npm run local:check
-      - name: Integration-test script syntax
-        run: node --check scripts/local-integration.mjs
-      # La suite locale con Docker/Supabase e Stripe va eseguita separatamente
-      # prima del go-live: la build CI non ne certifica l'esito.
+        run: npm test
+      # Il backend è sul Supabase Cloud Ale Coach. Non eseguire seed o reset dei dati in CI.
