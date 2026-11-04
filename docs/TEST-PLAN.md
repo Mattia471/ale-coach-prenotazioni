@@ -3,6 +3,16 @@
 **Ambiente unico:** progetto Ale Coach (`mmtnzjdvvlouiwgrydlf`) e frontend https://ale-coach-prenotazioni.vercel.app.
 Non utilizzare Docker, database locale o seed automatici. Il database è reale: non inserire dati personali di terzi senza autorizzazione, non alterare pagamenti reali per effettuare prove.
 
+## Checkpoint Stripe manual capture (4 novembre 2026)
+
+- [x] Richiesta `authorizing` privata prima del checkout, coach vede solo `authorized`.
+- [x] Checkout con `capture_method=manual`, approvazione/rifiuto tramite Edge Function.
+- [x] Webhook Stripe Sandbox ascolta completamento, scadenza, cattura e annullamento.
+- [x] Deploy Vercel sul dominio di collaudo; build TypeScript e test esistenti superati.
+- [ ] **Da testare**: checkout con carta Stripe di prova e webhook firmato `requires_capture`.
+- [ ] **Da testare**: approvazione e incasso con Google Calendar sincronizzato, rifiuto, doppie esecuzioni, scadenza autorizzazione e compensazione.
+- [ ] Blocco GO LIVE: cron automatico per annullare preautorizzazioni scadute e riconciliazione degli errori dopo l'incasso.
+
 ## Checkpoint del giorno 1, 4 novembre 2026
 
 - [x] Modifiche SQL privilegio minimo applicate: niente TRUNCATE o modifica diretta degli ordini via browser.
