@@ -440,12 +440,17 @@ function App(){
   if(supabase)for(const n of unreadList)await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('id',n.id);
  };
  useEffect(()=>{
-  // Mostra il banner gia' al primo avvio dopo login, ma non richiedere
-  // automaticamente permessi: iOS/Chrome lo consentono solo dopo un tap.
+  // Richiedi il permesso solo dopo un gesto esplicito.
+  // Una chiusura volontaria resta valida per 30 giorni su questo dispositivo.
   let active=true;
-  setPushBannerDismissed(false);
   setPushEnabled(false);
-  if(!profile?.id)return;
+  setPushPromptState('checking');
+  if(!profile?.id){setPushBannerDismissed(true);return}
+  try{
+   const dismissedAt=Number(window.localStorage.getItem(`ale-push-prompt-dismissed-v2:${profile.id}`)||0);
+   setPushBannerDismissed(dismissedAt>0&&Date.now()-dismissedAt<30*24*60*60*1000);
+  }catch{setPushBannerDismissed(false)}
+
   const isIos=/iPad|iPhone|iPod/.test(navigator.userAgent)
    ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   const standalone=window.matchMedia('(display-mode: standalone)').matches
@@ -474,6 +479,13 @@ function App(){
   })();
   return()=>{active=false};
  },[profile?.id]);
+ const dismissPushBanner=()=>{
+  setPushBannerDismissed(true);
+  if(!profile?.id)return;
+  try{window.localStorage.setItem(`ale-push-prompt-dismissed-v2:${profile.id}`,String(Date.now()))}catch{
+   // Navigazione privata: il banner resta chiuso per la sessione corrente.
+  }
+ };
  const subscribePush=async()=>{
   if(!supabase||!profile){submitMsg('Accedi al tuo account per attivare le notifiche.','info');return}
   const isIos=/iPad|iPhone|iPod/.test(navigator.userAgent)
@@ -644,23 +656,20 @@ function App(){
  if(!ready||!supabase)return <main className="cloud-unavailable" role="alert"><Logo/><h1>Configurazione cloud non disponibile</h1><p>L'app richiede Supabase Cloud per accedere, prenotare e gestire le lezioni. Nessun dato simulato viene caricato.</p><a href="mailto:info@alecoach.online">Contatta info@alecoach.online</a></main>;
  return <div className={`app-shell ${screen==='coach'?'coach-shell':''}`}>
   {internalQa&&<div className="demo-environment-banner" role="status"><ShieldCheck size={15}/> COLLAUDO CLOUD RISERVATO · Solo account autorizzati. Pagamenti Stripe esclusivamente sandbox; nessun incasso reale. Non inserire dati sanitari o di terze persone.</div>}
-  {!pushEnabled&&!pushBannerDismissed&&(profile||screen==='landing')&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
+  {Boolean(profile)&&!pushEnabled&&!pushBannerDismissed&&['available','needs-install'].includes(pushPromptState)&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
     <div className="push-permission-banner__body">
      <span className="push-permission-banner__icon"><Bell size={21}/></span>
      <div className="push-permission-banner__copy">
-      <h3>{!profile?'Ricevi gli aggiornamenti di Ale Coach':pushPromptState==='blocked'?'Notifiche disattivate':pushPromptState==='needs-install'?'Ricevi le notifiche su iPhone':pushPromptState==='unsupported'?'Notifiche non supportate':'Non perdere aggiornamenti e prenotazioni'}</h3>
-      <p>{!profile?'Accedi per attivare le notifiche sul telefono e ricevere conferme e aggiornamenti sulle lezioni.':pushPromptState==='blocked'?'Il permesso è bloccato: puoi riattivarlo dalle impostazioni del dispositivo.':pushPromptState==='needs-install'?'Per attivarle, installa Ale Coach dalla schermata Home e riapri l’app.':pushPromptState==='unsupported'?'Utilizza un browser compatibile con le notifiche push.':'Attiva le notifiche per ricevere conferme, variazioni e aggiornamenti sulle tue lezioni.'}</p>
+      <h3>{pushPromptState==='needs-install'?'Notifiche su iPhone':'Attiva le notifiche'}</h3>
+      <p>{pushPromptState==='needs-install'?'Aggiungi Ale Coach alla schermata Home per riceverle.':'Ricevi conferme e aggiornamenti sulle lezioni.'}</p>
      </div>
     </div>
     <div className="push-permission-banner__actions">
-     <Button variant="primary" disabled={pushBusy||Boolean(profile&&pushPromptState==='checking')} onClick={()=>{
-      if(!profile){setScreen('auth');setAuthMode('signin');return;}
+     <Button variant="primary" disabled={pushBusy} onClick={()=>{
       if(pushPromptState==='needs-install')submitMsg('Su iPhone apri Ale Coach in Safari, tocca Condividi → Aggiungi alla schermata Home e avvia l’app dall’icona.','info');
-      else if(pushPromptState==='blocked')submitMsg('Apri le impostazioni del dispositivo e consenti le notifiche per Ale Coach, quindi riavvia l’app.','info');
-      else if(pushPromptState==='unsupported')submitMsg('Apri Ale Coach con Safari su iOS dalla schermata Home o Chrome su Android.','info');
       else void subscribePush();
-     }}>{pushBusy?'ATTIVAZIONE...':!profile?'ACCEDI E ATTIVA':pushPromptState==='needs-install'?'COME INSTALLARE':pushPromptState==='blocked'?'COME RIATTIVARE':pushPromptState==='unsupported'?'INFORMAZIONI':'ATTIVA NOTIFICHE'}</Button>
-     <button type="button" className="push-permission-banner__dismiss" aria-label="Chiudi avviso notifiche" onClick={()=>setPushBannerDismissed(true)}><X size={17}/></button>
+     }}>{pushBusy?'ATTIVAZIONE...':pushPromptState==='needs-install'?'COME FARE':'ATTIVA'}</Button>
+     <button type="button" className="push-permission-banner__dismiss" aria-label="Chiudi avviso notifiche" onClick={dismissPushBanner}><X size={17}/></button>
     </div>
    </section>}
   <header className="site-header"><div className="header-inner"><button aria-label="Vai alla home" className="logo-button" onClick={()=>{setSelectedService(null);setScreen(profile?(isCoach?'coach':'client'):'landing')}}><Logo small/></button>
