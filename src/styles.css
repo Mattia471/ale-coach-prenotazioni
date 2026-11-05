@@ -210,3 +210,6 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
 .global-offline-banner span:not(.global-offline-banner__dot){font-size:11px;line-height:1.35;color:#f0d8b6}
 .global-offline-banner button{flex:none;border:1px solid #ffad5b;color:#fff;background:transparent;padding:9px 10px;border-radius:10px;font-weight:800;font-size:12px}
 @media(max-width:719px){.global-offline-banner{bottom:calc(86px + env(safe-area-inset-bottom,0px));}}
+
+.notice-open-booking{display:inline-flex;align-items:center;gap:7px;margin:12px 8px 0 0;padding:9px 12px;border:1px solid currentColor;border-radius:9px;background:transparent;color:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.booking-focused{outline:3px solid #f4a2aa;outline-offset:3px;scroll-margin-top:100px}
