@@ -90,6 +90,7 @@ function App(){
  const [clients,setClients]=useState<Profile[]>([]);
  const [notices,setNotices]=useState<Notice[]>([]);
  const [isOffline,setIsOffline]=useState(typeof navigator!=='undefined'?!navigator.onLine:false);
+ const [connectionError,setConnectionError]=useState(false);
  const [noticesSyncing,setNoticesSyncing]=useState(false);
  const [wallets,setWallets]=useState<CreditWallet[]>([]);
  const [selectedService,setSelectedService]=useState<Service|null>(null);
@@ -135,7 +136,7 @@ function App(){
     supabase.from('notifications').select('*').order('created_at',{ascending:false}).limit(100),
     supabase.from('wallet_credits').select('*').limit(100),
   ]);
-  if(b.error)submitMsg(b.error.message,'error');else setBookings((b.data||[]) as Booking[]);
+  if(b.error){if(navigator.onLine&&/fetch|network|connection/i.test(b.error.message))setConnectionError(true);else submitMsg(b.error.message,'error')}else{setConnectionError(false);setBookings((b.data||[]) as Booking[])}
   if(!n.error)setNotices((n.data||[]) as Notice[]);
   if(!w.error)setWallets((w.data||[]) as CreditWallet[]);
   if(profile?.role==='coach'){
@@ -455,12 +456,15 @@ function App(){
  useEffect(()=>{
   const onOffline=()=>setIsOffline(true);
   const onOnline=()=>{setIsOffline(false);void refresh()};
+  const onFocus=()=>{if(navigator.onLine){setIsOffline(false);void refresh()}else setIsOffline(true)};
   window.addEventListener('offline',onOffline);
   window.addEventListener('online',onOnline);
-  return()=>{window.removeEventListener('offline',onOffline);window.removeEventListener('online',onOnline)};
+  window.addEventListener('focus',onFocus);
+  return()=>{window.removeEventListener('offline',onOffline);window.removeEventListener('online',onOnline);window.removeEventListener('focus',onFocus)};
  },[refresh]);
+ const connectionUnavailable=isOffline||connectionError;
  const noticeControls=<div className="notice-controls">
-  {isOffline&&<div className="notice-offline" role="status">Sei offline. Puoi leggere le notifiche già caricate; gli aggiornamenti riprenderanno quando torni online.</div>}
+  {connectionUnavailable&&<div className="notice-offline" role="status">Sei offline. Puoi leggere le notifiche già caricate; gli aggiornamenti riprenderanno quando torni online.</div>}
   <div className="notice-actions"><Button variant="outline" disabled={isOffline||noticesSyncing||unread===0} onClick={()=>void markNotices()}><Check size={15}/> Segna tutte come lette {unread>0?`(${unread})`:''}</Button></div>
  </div>;
  const noticeList=myNotices.length===0?<Empty title="Nessuna notifica" desc={isOffline?'Non è possibile verificare nuovi aggiornamenti finché sei offline.':'Gli aggiornamenti compariranno qui.'}/>:myNotices.map(n=><article className={`notice-card ${n.read_at?'':'unread'}`} key={n.id}><div><b>{n.title}</b><small>{new Date(n.created_at).toLocaleString('it-IT')}</small></div><p>{n.body}</p>{!n.read_at&&<button type="button" className="notice-mark-read" disabled={isOffline||noticesSyncing} onClick={()=>void markNotices([n.id])}><Check size={15}/> Segna come letta</button>}</article>);
@@ -680,6 +684,7 @@ function App(){
  const shareUrl=typeof window==='undefined'?'':`${window.location.origin}/?source=club&code=${promo}`;
  if(!ready||!supabase)return <main className="cloud-unavailable" role="alert"><Logo/><h1>Configurazione cloud non disponibile</h1><p>L'app richiede Supabase Cloud per accedere, prenotare e gestire le lezioni. Nessun dato simulato viene caricato.</p><a href="mailto:info@alecoach.online">Contatta info@alecoach.online</a></main>;
  return <div className={`app-shell ${screen==='coach'?'coach-shell':''}`}>
+  {connectionUnavailable&&<div className="global-offline-banner" role="alert"><span className="global-offline-banner__dot"/><div><strong>Connessione assente</strong><span>Le modifiche non sono disponibili. Controlla Internet e riprova.</span></div><button type="button" onClick={()=>{if(navigator.onLine){setIsOffline(false);void refresh()}}}>Riprova</button></div>}
   {internalQa&&<div className="demo-environment-banner" role="status"><ShieldCheck size={15}/> COLLAUDO CLOUD RISERVATO · Solo account autorizzati. Pagamenti Stripe esclusivamente sandbox; nessun incasso reale. Non inserire dati sanitari o di terze persone.</div>}
   {Boolean(profile)&&!pushEnabled&&!pushBannerDismissed&&['available','needs-install'].includes(pushPromptState)&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
     <div className="push-permission-banner__body">
