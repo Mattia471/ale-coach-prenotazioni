@@ -171,3 +171,25 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
 .coach-client-detail .agenda-card .state{margin-left:auto}
 .client-row .client-detail-button{flex-shrink:0;font-size:10px;padding:9px}
 @media(max-width:480px){.client-row{flex-wrap:wrap}.client-row .client-row-info{flex-basis:calc(100% - 110px)}.client-row .client-detail-button{margin-left:52px}.coach-client-detail .profile-card{padding:16px}}
+
+/* Coach mobile: bottom navigation opens an accessible sections sheet. */
+.coach-sheet-layer{display:none}
+@media(max-width:719px){
+ .coach-nav-wrap{display:none}
+ .coach-sheet-layer{display:block;position:fixed;inset:0;z-index:60}
+ .coach-sheet-backdrop{position:absolute;inset:0;width:100%;border:0;background:rgba(25,15,18,.55)}
+ .coach-sheet{position:absolute;bottom:0;left:0;right:0;max-height:min(82dvh,680px);overflow-y:auto;background:#fff;border-radius:24px 24px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -12px 48px #160d1338;animation:coach-sheet-enter .22s ease-out}
+ .coach-sheet-handle{width:42px;height:5px;background:#e4dadd;border-radius:10px;margin:0 auto 17px}
+ .coach-sheet-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}
+ .coach-sheet-header small{color:#e1001a;font-size:10px;font-weight:900;letter-spacing:1.2px}
+ .coach-sheet-header h2{margin:4px 0 0;font-size:25px;font-weight:900;color:#251a1b}
+ .coach-sheet-close{border:0;background:#f6f0f1;border-radius:12px;min-width:42px;height:42px;display:grid;place-items:center;color:#382a2d}
+ .coach-sheet-links{display:grid;gap:8px}
+ .coach-sheet-links button{display:flex;align-items:center;gap:14px;min-height:57px;width:100%;border:1px solid #ede4e5;border-radius:14px;background:#fff;color:#302327;text-align:left;padding:12px 14px;font-size:14px;font-weight:800}
+ .coach-sheet-links button.active{background:#fff0f2;border-color:#f4b5be;color:#bd0018}
+ .coach-sheet-links button svg:first-child{color:#e1001a}
+ .coach-sheet-links button span{flex:1}
+ .coach-sheet-links button svg:last-child{color:#9c8b90}
+ @keyframes coach-sheet-enter{from{transform:translateY(25px);opacity:.6}to{transform:translateY(0);opacity:1}}
+}
+@media(prefers-reduced-motion:reduce){.coach-sheet{animation:none}}
