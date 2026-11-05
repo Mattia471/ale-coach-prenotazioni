@@ -28,18 +28,18 @@ function Labeled({label,children,required=false}:{label:string;children:ReactNod
 function Empty({title,desc}:{title:string;desc:string}){return <div className="empty-state"><CalendarDays size={31}/><h3>{title}</h3><p>{desc}</p></div>}
 function NextLessonCard({booking,service,venue,onOpen}:{booking:Booking;service?:Service;venue?:Venue;onOpen:()=>void}){
  const [now,setNow]=useState(()=>Date.now());
- useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),60000);return()=>window.clearInterval(timer)},[]);
+ useEffect(()=>{const tick=()=>setNow(Date.now());const timer=window.setInterval(tick,1000);return()=>window.clearInterval(timer)},[]);
  const start=new Date(booking.starts_at!).getTime();
- const minutes=Math.max(0,Math.ceil((start-now)/60000));
- const days=Math.floor(minutes/1440);const hours=Math.floor((minutes%1440)/60);const mins=minutes%60;
+ const remaining=Math.max(0,Math.floor((start-now)/1000));
+ const days=Math.floor(remaining/86400);const hours=Math.floor((remaining%86400)/3600);const minutes=Math.floor((remaining%3600)/60);const seconds=remaining%60;
  const date=new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/Rome'}).format(start);
  const time=new Intl.DateTimeFormat('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'}).format(start);
- const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(now)===new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(start);
- const countdown=minutes===0?'È il momento della tua lezione':minutes<60?`Tra ${minutes} min`:minutes<1440?`Tra ${hours} h e ${mins} min`:days===1?`Tra 1 giorno e ${hours} h`:`Tra ${days} giorni`;
- return <section className={`next-lesson ${minutes<=1440?'next-lesson-soon':''}`} aria-label="La tua prossima lezione">
-  <div className="next-lesson-top"><span><CalendarCheck size={17}/> IL TUO PROSSIMO APPUNTAMENTO</span><Status status={booking.status}/></div>
-  <div className="next-lesson-body"><div><p className="next-lesson-intro">{today?'Ci vediamo oggi!':minutes<=4320?'Ci siamo quasi!':'Il tuo allenamento è in programma.'}</p><h2>{service?.name||'La tua lezione'}</h2><div className="next-lesson-info"><span><CalendarDays size={17}/>{date}</span><span><Clock3 size={17}/>{time}</span>{venue&&<span><MapPin size={17}/>{venue.name}</span>}</div></div><div className="next-lesson-timer" aria-label={countdown}><small>MANCANO</small><strong>{countdown}</strong></div></div>
-  <div className="next-lesson-footer"><p><ShieldCheck size={17}/> Prenotazione confermata. Trovi tutti i dettagli qui, quando vuoi.</p><button type="button" onClick={onOpen}>Vedi prenotazione <ArrowRight size={17}/></button></div>
+ const unit=(value:number,label:string)=><div className="lesson-count-unit"><strong>{String(value).padStart(2,'0')}</strong><span>{label}</span></div>;
+ return <section className="lesson-countdown" aria-label="Countdown alla prossima lezione">
+  <div className="lesson-count-heading"><span className="lesson-count-kicker">/// PROSSIMA LEZIONE</span><span className="lesson-count-confirmed"><CheckCircle2 size={14}/> Confermata</span></div>
+  {remaining>0?<div className="lesson-count-numbers" role="timer" aria-label={`Mancano ${days} giorni, ${hours} ore, ${minutes} minuti e ${seconds} secondi`}>{days>0&&unit(days,'GIORNI')}{unit(hours,'ORE')}{unit(minutes,'MIN')}{unit(seconds,'SEC')}</div>:<div className="lesson-count-now">È il momento di allenarti!</div>}
+  <div className="lesson-count-details"><strong>{service?.name||'La tua lezione'}</strong><span><CalendarDays size={15}/>{date} · {time}</span>{venue&&<span><MapPin size={15}/>{venue.name}</span>}</div>
+  <button type="button" className="lesson-count-link" onClick={onOpen}>Dettagli prenotazione <ArrowRight size={16}/></button>
  </section>
 }
 
