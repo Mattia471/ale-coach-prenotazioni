@@ -193,3 +193,11 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
  @keyframes coach-sheet-enter{from{transform:translateY(25px);opacity:.6}to{transform:translateY(0);opacity:1}}
 }
 @media(prefers-reduced-motion:reduce){.coach-sheet{animation:none}}
+
+/* Explicit notification controls and offline feedback, shared by coach and client. */
+.notice-controls{margin:12px 0 16px}
+.notice-offline{border:1px solid #e8c885;background:#fff7e7;color:#694d17;padding:12px 14px;border-radius:12px;font-size:12px;font-weight:700;line-height:1.5;margin-bottom:12px}
+.notice-actions{display:flex;flex-wrap:wrap;gap:9px}
+.notice-actions button{min-height:42px}
+.notice-mark-read{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:9px 12px;border-radius:9px;border:1px solid #f1b7be;background:#fff1f3;color:#ba0018;font-size:12px;font-weight:800;cursor:pointer}
+.notice-mark-read:disabled,.notice-actions button:disabled{opacity:.5;cursor:not-allowed}
