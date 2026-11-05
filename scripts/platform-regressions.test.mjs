@@ -19,10 +19,16 @@ test('PWA identifica correttamente la web app installabile',()=>{
  assert(manifest.icons.some(x=>x.sizes==='192x192'));
  assert(manifest.icons.some(x=>x.sizes==='512x512'));
 });
-test('prompt notifiche disponibile all’avvio, anche prima dell’accesso',()=>{
+test('banner notifiche flottante sopra la navigazione, senza spostare la dashboard',()=>{
  const app=read('src/App.tsx');
- assert.match(app,/ACCEDI E ATTIVA/);
- assert.match(app,/ATTIVA NOTIFICHE/);
+ const css=read('src/styles.css');
+ assert.match(app,/Boolean\(profile\)&&!pushEnabled&&!pushBannerDismissed/);
+ assert.match(app,/ale-push-prompt-dismissed-v2/);
+ assert.match(app,/dismissPushBanner/);
+ assert.match(app,/30\*24\*60\*60\*1000/);
+ assert.match(css,/\.push-permission-banner\{\s*position:fixed/);
+ assert.match(css,/bottom:calc\(90px \+ env\(safe-area-inset-bottom\)\)/);
+ assert.match(css,/\.coach-shell \.push-permission-banner/);
  assert.match(app,/Notification\.requestPermission\(\)/);
  assert.match(app,/getSubscription\(\)/);
  assert.match(app,/push_subscriptions/);
