@@ -719,7 +719,7 @@ function App(){
  if(!ready||!supabase)return <main className="cloud-unavailable" role="alert"><Logo/><h1>Configurazione cloud non disponibile</h1><p>L'app richiede Supabase Cloud per accedere, prenotare e gestire le lezioni. Nessun dato simulato viene caricato.</p><a href="mailto:info@alecoach.online">Contatta info@alecoach.online</a></main>;
  return <div className={`app-shell ${screen==='coach'?'coach-shell':''}`}>
   {connectionUnavailable&&<div className="global-offline-banner" role="alert"><span className="global-offline-banner__dot"/><div><strong>Connessione assente</strong><span>Le modifiche non sono disponibili. Controlla Internet e riprova.</span></div><button type="button" onClick={()=>{if(navigator.onLine){setIsOffline(false);void refresh()}}}>Riprova</button></div>}
-  {internalQa&&<div className="demo-environment-banner" role="status"><ShieldCheck size={15}/> COLLAUDO CLOUD RISERVATO · Solo account autorizzati. Pagamenti Stripe esclusivamente sandbox; nessun incasso reale. Non inserire dati sanitari o di terze persone.</div>}
+  
   {Boolean(profile)&&!pushEnabled&&!pushBannerDismissed&&['available','needs-install'].includes(pushPromptState)&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
     <div className="push-permission-banner__body">
      <span className="push-permission-banner__icon"><Bell size={21}/></span>
