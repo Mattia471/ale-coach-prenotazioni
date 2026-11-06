@@ -89,6 +89,24 @@ function App(){
  const [agendaShowAll,setAgendaShowAll]=useState(false);
  const [coachTab,setCoachTab]=useState<CoachTab>('overview');
  const [managementOpen,setManagementOpen]=useState(false);
+ useEffect(()=>{
+  if(!managementOpen)return;
+  const scrollY=window.scrollY;
+  const previous={position:document.body.style.position,top:document.body.style.top,left:document.body.style.left,right:document.body.style.right,width:document.body.style.width};
+  document.body.style.position='fixed';
+  document.body.style.top=`-${scrollY}px`;
+  document.body.style.left='0';
+  document.body.style.right='0';
+  document.body.style.width='100%';
+  return()=>{
+   document.body.style.position=previous.position;
+   document.body.style.top=previous.top;
+   document.body.style.left=previous.left;
+   document.body.style.right=previous.right;
+   document.body.style.width=previous.width;
+   window.scrollTo(0,scrollY);
+  };
+ },[managementOpen]);
   const [selectedClientId,setSelectedClientId]=useState<string|null>(null);
  const [user,setUser]=useState<User|null>(null);
  const [profile,setProfile]=useState<Profile|null>(null);
