@@ -268,3 +268,18 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
 
 .mf-sheet-overlay{overscroll-behavior:contain;touch-action:none}
 .mf-management-sheet{overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+
+/* Mobile touch-target accessibility pass: preserve layout while increasing hit areas. */
+@media (pointer:coarse) and (max-width:900px){
+ .mf-root button:not(.mf-day):not(.mf-mobile-nav button),
+ .mf-root a.mf-action,
+ .mf-root .mf-outline-button,
+ .mf-root .back-link{min-height:44px}
+ .mf-root .mf-mobile-nav button{min-height:48px;touch-action:manipulation}
+ .mf-root .mf-calendar-controls button,.mf-root .mf-today-button{min-width:44px;min-height:44px;touch-action:manipulation}
+ .mf-root .mf-day{min-height:60px;touch-action:manipulation}
+ .mf-root .mf-sheet-heading>button{min-width:44px;min-height:44px}
+ .mf-root .mf-sheet-grid button{min-height:92px;touch-action:manipulation}
+ .mf-root button,.mf-root a{ -webkit-tap-highlight-color:transparent }
+}
+@media(max-width:380px){.mf-sheet-grid{gap:8px}.mf-sheet-grid button{padding:12px}}
