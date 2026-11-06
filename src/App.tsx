@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { ArrowLeft, ArrowRight, Bell, CalendarCheck, CalendarDays, Clock3, Check, CheckCircle2, ChevronRight, CircleHelp, House, LayoutGrid, Plus, SlidersHorizontal, CreditCard, Dumbbell, ExternalLink, Gift, Instagram, LockKeyhole, LogOut, MapPin, MessageCircle, QrCode, Settings2, ShieldCheck, Sparkles, Tag, TicketPercent, UserRound, Users, Wallet, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bell, CalendarCheck, CalendarDays, Check, CheckCircle2, ChevronRight, CircleHelp, House, LayoutGrid, Plus, SlidersHorizontal, CreditCard, Dumbbell, ExternalLink, Gift, Instagram, LockKeyhole, LogOut, MapPin, MessageCircle, QrCode, Settings2, ShieldCheck, Sparkles, Tag, TicketPercent, UserRound, Users, Wallet, X, Zap } from 'lucide-react';
 import type { Booking, ClientTab, CoachTab, Discount, Notice, Pack, PaymentMode, Profile, Service, Venue, Wallet as CreditWallet } from './types';
 import { currency, dateLabel, nextDates, ready, sources, stateLabels, supabase, timeLabel, whatsappLink, formatStartMinute } from './lib';
 import { blockUnreviewedLegal, internalQa, legal, legalPaths } from './legal';
