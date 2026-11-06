@@ -38,3 +38,44 @@
 @media(max-width:1100px){.mf-main{padding:0 30px 115px}.mf-workspace{grid-template-columns:215px minmax(0,1fr)}.mf-sidebar{padding-left:12px;padding-right:12px}}
 @media(max-width:760px){.mf-topbar{height:60px}.mf-topbar-inner{padding:0 18px}.mf-brand{font-size:22px}.mf-brand>em{display:none}.mf-demo-label{font-size:9px}.mf-real-link{display:none}.mf-workspace{display:block;min-height:calc(100vh - 60px)}.mf-sidebar{display:none}.mf-main{padding:0 18px 135px}.mf-toolbar{height:58px}.mf-crumb{font-size:9px}.mf-toolbar-right>span{display:none}.mf-view-key{max-width:560px}.mf-heading{margin:32px 0 24px;align-items:flex-start}.mf-heading h1{font-size:36px}.mf-heading p{font-size:13px}.mf-heading-cta{display:none}.mf-next{padding:23px 21px}.mf-next-body{margin-top:24px}.mf-next-time{font-size:46px}.mf-next-side{min-width:90px}.mf-next-number{font-size:40px}.mf-next-side>span{font-size:10px}.mf-stat-grid{gap:9px}.mf-stat{padding:16px 12px;min-height:123px}.mf-stat>span{font-size:10px}.mf-stat>strong{font-size:30px;margin:9px 0}.mf-stat-name{font-size:22px!important}.mf-stat>small{font-size:9px}.mf-panel{padding:22px 19px;border-radius:15px}.mf-mobile-nav{height:71px;background:#fff;box-shadow:0 -4px 30px #2420210b;border-top:1px solid #eae5e5;position:fixed;bottom:0;left:0;right:0;z-index:35;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom)}.mf-mobile-nav button{border:0;background:transparent;color:#948b8e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;font-weight:750}.mf-mobile-nav button.active{color:var(--mf-red)}.mf-role-switch{bottom:calc(82px + env(safe-area-inset-bottom));right:12px;border-radius:12px;padding:5px}.mf-role-switch>span{display:none}.mf-role-switch button{font-size:11px;padding:8px 11px}.mf-footer{display:none}.mf-service{padding:17px 15px;gap:13px}.mf-service-icon{width:45px;height:45px}.mf-service-copy strong{font-size:15px}.mf-service-index{gap:5px}.mf-calendar{padding:20px 12px}.mf-calendar-heading{padding:0 6px}.mf-calendar-heading h3{font-size:20px}.mf-week-grid{gap:3px}.mf-day{padding:12px 0}.mf-day>span{font-size:10px}.mf-day strong{font-size:20px}.mf-calendar-foot{padding:0 4px}.mf-calendar-foot span:last-child{display:none}.mf-session{gap:9px;flex-wrap:wrap}.mf-session-time{min-width:48px}.mf-session-content{min-width:45%}.mf-status{font-size:9px}.mf-row-actions{margin-left:auto}.mf-profile-panel .mf-profile-hero{margin-bottom:20px}.mf-detail-grid{gap:19px}}
 @media(max-width:380px){.mf-top-right .mf-demo-label{font-size:0}.mf-demo-label i{width:8px;height:8px}.mf-next-side{min-width:75px}.mf-next-number{font-size:33px}.mf-stat>small{font-size:8px}.mf-panel-title h2{font-size:20px}.mf-calendar-controls .mf-today-button{padding:0 7px}}
+
+/* Coach identity and familiar typography from the original ALE COACH brand. */
+.mf-heading h1 em{font-family:"Barlow Condensed",Impact,sans-serif;font-weight:900;font-style:italic;font-size:1.19em;letter-spacing:-.015em;line-height:.86;color:var(--mf-red);vertical-align:-.025em}
+.mf-trainer-photo{width:160px;height:185px;flex-shrink:0;overflow:hidden;border-radius:15px;background:linear-gradient(135deg,#e7dcda,#ccbec1);display:grid;place-items:center}
+.mf-trainer-photo img{width:100%;height:100%;object-fit:cover;object-position:center 21%;display:block}
+.mf-trainer-photo>span{font-family:"Barlow Condensed",Impact,sans-serif;font-size:55px;font-weight:900;font-style:italic;color:#6b565c}
+.mf-trainer-photo.is-compact{width:44px;height:44px;border-radius:12px}
+.mf-trainer-photo.is-compact>span{font-size:21px}
+.mf-coach-stat .mf-trainer-statline{display:flex;align-items:center;gap:10px;margin:11px 0 10px}
+.mf-coach-stat .mf-trainer-statline .mf-stat-name{margin:0;font-size:30px!important}
+.mf-coach-spotlight{display:flex;align-items:center;gap:27px;padding:19px;margin-top:18px}
+.mf-coach-spotlight-content{flex:1;min-width:0;padding:7px 4px}
+.mf-coach-spotlight-content h2{font-size:clamp(27px,3vw,35px);margin:10px 0 9px;letter-spacing:-.04em}
+.mf-coach-spotlight-content h2 em{font-family:"Barlow Condensed",Impact,sans-serif;color:var(--mf-red);font-size:1.25em;line-height:.8;font-style:italic;font-weight:900;vertical-align:-.02em}
+.mf-coach-spotlight-content p{color:#80767a;font-size:13px;line-height:1.65;margin:0;max-width:510px}
+.mf-coach-signature{display:block;color:#bd1836;font-family:"Caveat",cursive;font-size:24px;font-weight:700;line-height:1.1;margin:8px 0 18px}
+.mf-coach-profile-strip{display:flex;align-items:center;gap:15px;padding:18px 21px}
+.mf-coach-profile-strip>div:nth-child(2){flex:1;min-width:0}
+.mf-coach-profile-strip h2{margin:5px 0 3px;font-size:20px}
+.mf-coach-profile-strip p{margin:0;color:#81797e;font-size:11px}
+.mf-coach-profile-strip>a{width:36px;height:36px;border:1px solid var(--mf-border);border-radius:10px;display:grid;place-items:center;color:var(--mf-red)}
+@media(max-width:760px){
+ .mf-heading h1 em{font-size:1.16em}
+ .mf-coach-stat .mf-trainer-statline{gap:6px;margin:8px 0}
+ .mf-coach-stat .mf-trainer-photo.is-compact{width:34px;height:34px;border-radius:9px}
+ .mf-coach-stat .mf-trainer-statline .mf-stat-name{font-size:23px!important}
+ .mf-coach-spotlight{gap:17px;padding:15px;align-items:stretch}
+ .mf-coach-spotlight>.mf-trainer-photo{width:112px;height:auto;min-height:174px;border-radius:12px}
+ .mf-coach-spotlight-content{padding:2px 0}
+ .mf-coach-spotlight-content h2{font-size:25px;margin:7px 0}
+ .mf-coach-spotlight-content p{font-size:11px;line-height:1.55}
+ .mf-coach-signature{font-size:21px;margin:7px 0 13px}
+ .mf-coach-spotlight .mf-text-link{font-size:11px}
+}
+@media(max-width:380px){
+ .mf-coach-spotlight{gap:12px;padding:12px}
+ .mf-coach-spotlight>.mf-trainer-photo{width:99px;min-height:164px}
+ .mf-coach-spotlight-content h2{font-size:22px}
+ .mf-coach-stat .mf-trainer-photo.is-compact{width:30px;height:30px}
+ .mf-coach-stat .mf-trainer-statline .mf-stat-name{font-size:20px!important}
+}
