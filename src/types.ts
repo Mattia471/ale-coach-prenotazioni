@@ -11,4 +11,4 @@ export interface Notice{id:string;recipient_id:string;title:string;body:string;k
 export interface Wallet{id:string;client_id:string;package_id:string;remaining:number;expires_at:string}
 export interface Discount {code:string;percent_off:number;active:boolean;first_purchase_only:boolean;valid_days_from_contact:number|null;uses:number}
 export type CoachTab='overview'|'requests'|'agenda'|'clients'|'hours'|'services'|'marketing'|'messages'|'history'|'more';
-export type ClientTab='home'|'bookings'|'messages'|'profile';
+export type ClientTab='home'|'book'|'bookings'|'messages'|'profile';
