@@ -156,3 +156,27 @@ test('Minimal Focus: il calendario legge prenotazioni reali senza introdurre dat
  assert.match(css,/\.mf-root\.mf-live/);
  assert.doesNotMatch(app,/Luca Bianchi|Giulia Rossi|Marco Verdi/);
 });
+
+
+test('Agenda coach: calendario standalone senza la card esterna annidata',()=>{
+ const app=read('src/App.tsx');
+ const css=read('src/styles.css');
+ assert.match(app,/\{coachTab==='agenda'&&<section className="mf-live-coach-agenda">/);
+ assert.match(app,/<div className="coach-content mf-agenda-list">/);
+ assert.doesNotMatch(app,/\{coachTab==='agenda'&&<section className="coach-content mf-live-coach-agenda">/);
+ assert.match(css,/\.mf-live \.mf-live-coach-agenda \.mf-agenda-list\{margin-top:0\}/);
+});
+
+test('Messaggi transitori: info, errori e conferme si chiudono dopo 3 secondi',()=>{
+ const app=read('src/App.tsx');
+ assert.match(app,/window\.setTimeout\(\(\)=>setMessage\(null\),3000\)/);
+ assert.match(app,/window\.clearTimeout\(timeout\)/);
+ assert.match(app,/setMessage\(\{text,mode\}\)/);
+});
+
+test('Switch mobile: proporzioni originali e area touch espansa',()=>{
+ const css=read('src/styles.css');
+ assert.match(css,/button:not\(\.mf-day\):not\(\.switch\)/);
+ assert.match(css,/\.mf-root button\.switch\{position:relative;width:46px;min-width:46px;height:27px;min-height:27px/);
+ assert.match(css,/\.mf-root button\.switch::after/);
+});
