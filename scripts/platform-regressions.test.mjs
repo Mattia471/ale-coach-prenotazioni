@@ -110,8 +110,8 @@ test('QA coach: notifiche accessibili da desktop e mobile, senza aprire Stripe',
  const types=read('src/types.ts');
  const css=read('src/styles.css');
  assert.match(types,/CoachTab=.*'messages'.*'history'.*'more'/);
- assert.match(app,/aria-label="Notifiche coach"/);
- assert.match(app,/className="bottom-nav coach-bottom-nav"/);
+ assert.match(app,/aria-label="Apri notifiche"/);
+ assert.match(app,/className="mf-mobile-nav" aria-label="Navigazione coach"/);
  assert.match(app,/NOTIFICHE COACH/);
  assert.match(app,/void markNotices\(\)/);
  assert.match(css,/@media\(max-width:719px\)/);
@@ -130,6 +130,27 @@ test('QA coach: cronologia clienti e palinsesto visibili, sandbox distinta',()=>
  assert.match(app,/Storico lezioni/);
  assert.match(app,/agenda-extra/);
  assert.match(app,/DA VERIFICARE · SLOT BLOCCATI/);
- assert.match(app,/INCASSI DI PROVA · SANDBOX/);
+ assert.match(app,/internalQa/);
+ assert.doesNotMatch(app,/Luca Bianchi|Giulia Rossi|Marco Verdi/);
  assert.match(app,/PROSSIME LEZIONI/);
+});
+
+
+test('Minimal Focus: il calendario legge prenotazioni reali senza introdurre dati simulati',()=>{
+ const app=read('src/App.tsx');
+ const calendar=read('src/FocusWeekCalendar.tsx');
+ const entry=read('src/main.tsx');
+ const css=read('src/minimal-focus-live.css');
+ assert.match(app,/FocusWeekCalendar bookings=\{myBookings\}/);
+ assert.match(app,/FocusWeekCalendar bookings=\{bookings\.filter/);
+ assert.match(app,/clientTab==='book'/);
+ assert.match(app,/coachTab==='requests'/);
+ assert.match(app,/supabase\.rpc\('create_booking_v2'/);
+ assert.match(app,/void buyPackage\(p\)/);
+ assert.match(app,/void coachAction\(b,'approve'\)/);
+ assert.match(app,/CoachIntroduction compact/);
+ assert.match(calendar,/timeZone:'Europe\/Rome'/);
+ assert.match(entry,/import '\.\/minimal-focus-live\.css'/);
+ assert.match(css,/\.mf-root\.mf-live/);
+ assert.doesNotMatch(app,/Luca Bianchi|Giulia Rossi|Marco Verdi/);
 });
