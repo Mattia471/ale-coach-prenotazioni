@@ -271,7 +271,7 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
 
 /* Mobile touch-target accessibility pass: preserve layout while increasing hit areas. */
 @media (pointer:coarse) and (max-width:900px){
- .mf-root button:not(.mf-day):not(.mf-mobile-nav button),
+ .mf-root button:not(.mf-day):not(.switch):not(.mf-mobile-nav button),
  .mf-root a.mf-action,
  .mf-root .mf-outline-button,
  .mf-root .back-link{min-height:44px}
@@ -283,3 +283,14 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
  .mf-root button,.mf-root a{ -webkit-tap-highlight-color:transparent }
 }
 @media(max-width:380px){.mf-sheet-grid{gap:8px}.mf-sheet-grid button{padding:12px}}
+
+/* Minimal Focus agenda: give the week calendar the full available content width. */
+.mf-live .mf-live-coach-agenda .mf-live-calendar{margin-bottom:16px}
+.mf-live .mf-live-coach-agenda .mf-agenda-list{margin-top:0}
+
+/* Restore classic compact switches while keeping a generous mobile tap area. */
+@media (pointer:coarse) and (max-width:900px){
+ .mf-root button.switch{position:relative;width:46px;min-width:46px;height:27px;min-height:27px;padding:3px;overflow:visible;touch-action:manipulation}
+ .mf-root button.switch::after{content:'';position:absolute;inset:-9px -3px;border-radius:18px}
+ .mf-root button.switch:focus-visible{outline:2px solid #e1001a;outline-offset:6px}
+}
