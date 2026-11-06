@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { ArrowLeft, ArrowRight, Bell, CalendarCheck, CalendarDays, Clock3, Check, CheckCircle2, ChevronRight, CircleHelp, CreditCard, Dumbbell, ExternalLink, Gift, Instagram, LockKeyhole, LogOut, MapPin, Menu, MessageCircle, QrCode, Settings2, ShieldCheck, Sparkles, Tag, TicketPercent, UserRound, Users, Wallet, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bell, CalendarCheck, CalendarDays, Clock3, Check, CheckCircle2, ChevronRight, CircleHelp, House, LayoutGrid, Plus, SlidersHorizontal, CreditCard, Dumbbell, ExternalLink, Gift, Instagram, LockKeyhole, LogOut, MapPin, MessageCircle, QrCode, Settings2, ShieldCheck, Sparkles, Tag, TicketPercent, UserRound, Users, Wallet, X, Zap } from 'lucide-react';
 import type { Booking, ClientTab, CoachTab, Discount, Notice, Pack, PaymentMode, Profile, Service, Venue, Wallet as CreditWallet } from './types';
 import { currency, dateLabel, nextDates, ready, sources, stateLabels, supabase, timeLabel, whatsappLink, formatStartMinute } from './lib';
 import { blockUnreviewedLegal, internalQa, legal, legalPaths } from './legal';
 import { serviceRules, packageRules } from './v2Catalog';
+import { FocusWeekCalendar, romeDateKey } from './FocusWeekCalendar';
 
 type Screen='landing'|'auth'|'client'|'coach';
 type Step='details'|'when'|'review';
@@ -83,6 +84,9 @@ function CoachIntroduction({compact=false}:{compact?:boolean}){
 function App(){
  const [screen,setScreen]=useState<Screen>('landing');
  const [clientTab,setClientTab]=useState<ClientTab>('home');
+ const [focusDate,setFocusDate]=useState(()=>romeDateKey(new Date()));
+ const [focusWeekOffset,setFocusWeekOffset]=useState(0);
+ const [agendaShowAll,setAgendaShowAll]=useState(false);
  const [coachTab,setCoachTab]=useState<CoachTab>('overview');
   const [selectedClientId,setSelectedClientId]=useState<string|null>(null);
  const [user,setUser]=useState<User|null>(null);
@@ -125,7 +129,6 @@ function App(){
  const [holdUntil,setHoldUntil]=useState<string|null>(null);
  const [quoteValues,setQuoteValues]=useState<Record<string,string>>({});
  const [qr,setQr]=useState('');
- const [allowMenu,setAllowMenu]=useState(false);
  const [pushEnabled,setPushEnabled]=useState(false);
  const [pushBannerDismissed,setPushBannerDismissed]=useState(false);
  const [pushPromptState,setPushPromptState]=useState<'checking'|'available'|'needs-install'|'blocked'|'unsupported'>('checking');
@@ -714,10 +717,12 @@ function App(){
  const futureBookings=bookings.filter(b=>b.status==='confirmed'&&b.starts_at&&new Date(b.starts_at)>new Date()).sort((a,b)=>new Date(a.starts_at!).getTime()-new Date(b.starts_at!).getTime());
  const totalPaid=bookings.filter(b=>b.payment_status==='paid'&&b.payment_mode==='online').reduce((n,b)=>n+b.amount_cents,0);
  const inPersonTotal=bookings.filter(b=>b.payment_status==='due_in_person').reduce((n,b)=>n+b.amount_cents,0);
- const coachNav:{id:CoachTab;label:string}[]=[{id:'overview',label:'Dashboard'},{id:'requests',label:'Richieste'},{id:'agenda',label:'Agenda'},{id:'history',label:'Storico'},{id:'clients',label:'Clienti'},{id:'hours',label:'Orari'},{id:'services',label:'Listino'},{id:'marketing',label:'Marketing'},{id:'messages',label:'Notifiche'}];
+ const coachNav:{id:CoachTab;label:string}[]=[{id:'overview',label:'Riepilogo'},{id:'agenda',label:'Agenda'},{id:'clients',label:'Clienti'},{id:'more',label:'Gestione'}];
+ const managementTabs:{id:CoachTab;label:string}[]=[{id:'requests',label:'Richieste'},{id:'hours',label:'Orari'},{id:'services',label:'Servizi'},{id:'history',label:'Storico'},{id:'marketing',label:'Marketing'},{id:'messages',label:'Notifiche'}];
+ const inManage=!['overview','agenda','clients'].includes(coachTab);
  const shareUrl=typeof window==='undefined'?'':`${window.location.origin}/?source=club&code=${promo}`;
  if(!ready||!supabase)return <main className="cloud-unavailable" role="alert"><Logo/><h1>Configurazione cloud non disponibile</h1><p>L'app richiede Supabase Cloud per accedere, prenotare e gestire le lezioni. Nessun dato simulato viene caricato.</p><a href="mailto:info@alecoach.online">Contatta info@alecoach.online</a></main>;
- return <div className={`app-shell ${screen==='coach'?'coach-shell':''}`}>
+ return <div className={`app-shell ${screen==='coach'?'coach-shell':''} ${screen==='client'||screen==='coach'?'mf-root mf-live':''}`}>
   {connectionUnavailable&&<div className="global-offline-banner" role="alert"><span className="global-offline-banner__dot"/><div><strong>Connessione assente</strong><span>Le modifiche non sono disponibili. Controlla Internet e riprova.</span></div><button type="button" onClick={()=>{if(navigator.onLine){setIsOffline(false);void refresh()}}}>Riprova</button></div>}
   
   {Boolean(profile)&&!pushEnabled&&!pushBannerDismissed&&['available','needs-install'].includes(pushPromptState)&&<section className="push-permission-banner" aria-label="Attivazione notifiche">
@@ -737,7 +742,7 @@ function App(){
     </div>
    </section>}
   <header className="site-header"><div className="header-inner"><button aria-label="Vai alla home" className="logo-button" onClick={()=>{setSelectedService(null);setScreen(profile?(isCoach?'coach':'client'):'landing')}}><Logo small/></button>
-   <div className="header-actions">{profile?<><span className="greeting">{isCoach?'Ciao Ale':`Ciao, ${profile.full_name.split(' ')[0]||'atleta'}`}</span>{isCoach&&<button className="icon-button coach-header-bell" aria-label="Notifiche coach" onClick={()=>{setCoachTab('messages')}}><span className="badge-icon"><Bell size={19}/>{unread>0&&<i>{unread}</i>}</span></button>}<button className="icon-button" aria-label="Esci dall'account" onClick={()=>void logout()}><LogOut size={18}/></button></>:<Button variant="outline" onClick={()=>{setScreen('auth');setAuthMode('signin')}}>Accedi <ArrowRight size={15}/></Button>}</div></div></header>
+   <div className="header-actions">{profile?<><span className="greeting">{isCoach?'Ciao Ale':`Ciao, ${profile.full_name.split(' ')[0]||'atleta'}`}</span>{<button className="icon-button coach-header-bell" aria-label="Apri notifiche" onClick={()=>{if(isCoach)setCoachTab('messages');else setClientTab('messages')}}><span className="badge-icon"><Bell size={19}/>{unread>0&&<i>{unread}</i>}</span></button>}<button className="icon-button" aria-label="Esci dall'account" onClick={()=>void logout()}><LogOut size={18}/></button></>:<Button variant="outline" onClick={()=>{setScreen('auth');setAuthMode('signin')}}>Accedi <ArrowRight size={15}/></Button>}</div></div></header>
   {message&&<div className={`flash flash-${message.mode}`} role="status">{alertTitle(message.mode)}<span>{message.text}</span><button aria-label="Chiudi avviso" onClick={()=>setMessage(null)}><X size={16}/></button></div>}
   {booting?<div className="loading"><div className="spinner"/>Caricamento in corso...</div>:<>
   {screen==='landing'&&<main className="client-layout landing-page">
