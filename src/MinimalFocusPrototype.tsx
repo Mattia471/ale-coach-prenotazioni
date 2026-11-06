@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, ArrowUpRight, Bell, CalendarCheck2, CalendarDays,
   Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, CreditCard,
-  Dumbbell, Gift, House, LayoutGrid, MapPin, Plus, Settings2, ShieldCheck,
+  Dumbbell, House, LayoutGrid, MapPin, Plus, Settings2, ShieldCheck,
   SlidersHorizontal, Sparkles, UserRound, Users, X
 } from 'lucide-react';
 import './minimal-focus.css';
@@ -29,7 +29,6 @@ const addDays = (date: Date, amount: number) => { const d = new Date(date); d.se
 const dateKey = (d: Date) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 const mondayOf = (d: Date) => addDays(d, -((d.getDay() + 6) % 7));
 const dayLabel = (d: Date) => new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }).format(d);
-const shortMonth = (d: Date) => new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(d);
 const shortWeekday = (d: Date) => new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(d).replace('.', '');
 const dayEquals = (a: Date, b: Date) => dateKey(a) === dateKey(b);
 const prettyDate = (date: string) => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' }).format(new Date(date + 'T12:00:00'));
