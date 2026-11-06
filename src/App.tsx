@@ -764,8 +764,19 @@ function App(){
     {import.meta.env.VITE_GOOGLE_ENABLED==='true'&&!blockUnreviewedLegal&&<><div className="oauth-separator">oppure</div>{authMode!=='signup'&&<label className="check-row terms"><input type="checkbox" checked={privacyNoticeSeen} onChange={e=>setPrivacyNoticeSeen(e.target.checked)}/><span>Ho preso visione dell'<a href={legalPaths.privacy} target="_blank" rel="noopener noreferrer">informativa privacy</a> prima di continuare con Google.</span></label>}<Button variant="outline" className="google-login" disabled={!privacyNoticeSeen} onClick={()=>void googleLogin()}>CONTINUA CON GOOGLE</Button></>}
     <div className="auth-switch">{authMode==='signin'?<><button onClick={()=>setAuthMode('signup')}>Non hai un account? Registrati</button><button onClick={()=>setAuthMode('reset')}>Password dimenticata?</button></>:<button onClick={()=>setAuthMode('signin')}>Hai già un account? Accedi</button>}</div>
    </div><p className="security-note"><ShieldCheck size={15}/> Login protetto da Supabase Auth quando configurato</p></>}</main>}
-  {screen==='client'&&profile&&<main className="client-layout client-page">
-   <div className="app-welcome"><div><div className="signature">il tuo percorso, {profile.full_name.split(' ')[0]}</div><h1>ALLENATI CON <em>ALE.</em></h1></div><div className="profile-bubble">{profile.full_name.charAt(0)||'A'}</div></div>
+  {screen==='client'&&profile&&<div className="mf-workspace">
+    <aside className="mf-sidebar" aria-label="Navigazione atleta">
+     <div className="mf-sidebar-brand"><div className="mf-sidebar-logo">{profile.full_name.charAt(0)||'A'}</div><div><strong>{profile.full_name}</strong><span>Area atleta</span></div></div>
+     <span className="mf-sidebar-caption">IL TUO SPAZIO</span>
+     <nav className="mf-desktop-nav">{([{id:'home',label:'Oggi',icon:House},{id:'book',label:'Prenota',icon:Plus},{id:'bookings',label:'Lezioni',icon:CalendarDays},{id:'profile',label:'Profilo',icon:UserRound}] as const).map(item=>{const Icon=item.icon;return <button key={item.id} type="button" className={clientTab===item.id?'active':''} aria-current={clientTab===item.id?'page':undefined} onClick={()=>{setClientTab(item.id);setSelectedService(null)}}><Icon size={20}/><span>{item.label}</span></button>})}</nav>
+     <div className="mf-sidebar-bottom"><Sparkles size={18}/><p>Un percorso su misura, un allenamento alla volta.</p></div>
+    </aside>
+    <main className="client-layout client-page mf-main">
+     <div className="mf-live-header"><div className="mf-overline">AREA ATLETA · {profile.full_name.split(' ')[0].toUpperCase()}</div>
+      <div className="mf-heading"><div>{selectedService?<h1>La tua <em>prenotazione.</em></h1>:clientTab==='home'?<h1>Il tuo <em>oggi.</em></h1>:clientTab==='book'?<h1>Prenota una <em>lezione.</em></h1>:clientTab==='bookings'?<h1>Le tue <em>lezioni.</em></h1>:clientTab==='messages'?<h1>Le tue <em>notifiche.</em></h1>:<h1>Il tuo <em>profilo.</em></h1>}<p>{selectedService?'Scegli la data e conferma i dettagli.':clientTab==='home'?'Un passo alla volta, verso il tuo obiettivo.':clientTab==='book'?'Scegli come e quando allenarti.':clientTab==='bookings'?'Tutti i tuoi appuntamenti, a colpo d’occhio.':clientTab==='messages'?'Resta aggiornato sui tuoi allenamenti.':'Il tuo percorso, le tue preferenze.'}</p></div>
+       {clientTab==='home'&&!selectedService&&<button type="button" className="mf-action mf-heading-cta" onClick={()=>setClientTab('book')}>Prenota una lezione <ArrowRight size={17}/></button>}
+      </div>
+     </div>
    {bookingForm?<section className="wizard"><button className="back-link" onClick={()=>{if(step==='review')setStep(selected.kind==='quote'?'details':'when');else if(step==='when'&&selected.kind!=='free')setStep('details');else setSelectedService(null)}}><ArrowLeft size={17}/> Indietro</button>
     <div className="wizard-top"><div className="eyebrow"><span>///</span> NUOVA PRENOTAZIONE</div><h2>{selected.name}</h2><p>{selected.description}</p></div><div className="progress"><span className="filled"/><span className={step!=='details'?'filled':''}/><span className={step==='review'?'filled':''}/></div>
     {step==='details'&&<div className="wizard-panel"><Title eyebrow="01 · DETTAGLI">DIMMI DI PIÙ</Title>
@@ -797,8 +808,13 @@ function App(){
      {legal.contactEmail&&<a className="privacy-request" href={`mailto:${legal.contactEmail}?subject=Richiesta%20accesso%20o%20cancellazione%20dati%20Ale%20Coach`}>Chiedi accesso, rettifica o cancellazione dei tuoi dati</a>}
      <Button variant="quiet" onClick={()=>void logout()}><LogOut size={17}/> Esci</Button></div></section>}
    </>}
-   {!selectedService&&<nav className="bottom-nav" aria-label="Navigazione cliente"><button className={clientTab==='home'?'active':''} onClick={()=>setClientTab('home')}><Dumbbell size={21}/>Prenota</button><button className={clientTab==='bookings'?'active':''} onClick={()=>setClientTab('bookings')}><CalendarDays size={21}/>Le mie lezioni</button><button className={clientTab==='messages'?'active':''} onClick={()=>{setClientTab('messages')}}><span className="badge-icon"><Bell size={21}/>{unread>0&&<i>{unread}</i>}</span>Notifiche</button><button className={clientTab==='profile'?'active':''} onClick={()=>setClientTab('profile')}><UserRound size={21}/>Profilo</button></nav>}
-  </main>}
+   {!selectedService&&<nav className="mf-mobile-nav" aria-label="Navigazione atleta">
+      <button className={clientTab==='home'?'active':''} onClick={()=>setClientTab('home')}><House size={21}/>Oggi</button>
+      <button className={clientTab==='book'?'active':''} onClick={()=>setClientTab('book')}><Plus size={21}/>Prenota</button>
+      <button className={clientTab==='bookings'?'active':''} onClick={()=>setClientTab('bookings')}><CalendarDays size={21}/>Lezioni</button>
+      <button className={clientTab==='profile'?'active':''} onClick={()=>setClientTab('profile')}><UserRound size={21}/>Profilo</button>
+     </nav>}
+  </main></div>}
   {screen==='coach'&&profile&&<main className="coach-layout">
    <div className="coach-hero"><div><div className="signature">Ciao Ale!</div><h1>IL TUO <em>CONTROLLO.</em></h1><p>Gestisci richieste, agenda e clienti. Tutto in un posto.</p></div><div className="coach-mark"><Dumbbell size={31}/></div></div>
    <div className="coach-stats"><div className="stat-card"><small>DA CONFERMARE</small><strong>{pendingBookings.length}</strong><span>Richieste ricevute</span></div><div className="stat-card"><small>PROSSIME LEZIONI</small><strong>{futureBookings.length}</strong><span>Confermate</span></div><div className="stat-card"><small>{internalQa?'INCASSI DI PROVA · SANDBOX':'INCASSATI ONLINE*'}</small><strong>{currency(totalPaid)}</strong><span>In presenza: {currency(inPersonTotal)}{internalQa?' · Solo test':''}</span></div></div>
