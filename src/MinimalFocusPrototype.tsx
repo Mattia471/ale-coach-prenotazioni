@@ -85,6 +85,19 @@ function SessionList({ items, role, onChange }: { items: Session[]; role: Role; 
 }
 function InitialAvatar({ initials }: { initials: string }) { return <div className="mf-avatar">{initials}</div>; }
 
+// Same trainer portrait used by the existing ALE COACH site.
+// Keep an initials fallback for browsers that cannot load the remote image.
+// Publication rights for this Virgin Active-hosted portrait must be verified before release.
+const trainerPhotoUrl = 'https://www.virginactive.it/images/default-source/trainers/3efbdbad-e9b7-4fc7-987b-c243786b410d_web-jpg.jpg?sfvrsn=8e7cbf83_2';
+const trainerProfileUrl = 'https://www.virginactive.it/people/alessandro--cola-a-cola';
+function TrainerPortrait({ compact = false }: { compact?: boolean }) {
+  const [hasError, setHasError] = useState(false);
+  return <div className={compact ? 'mf-trainer-photo is-compact' : 'mf-trainer-photo'}>
+    {hasError ? <span role="img" aria-label="Alessandro Cola">AC</span> :
+      <img src={trainerPhotoUrl} alt="Alessandro Cola, il tuo personal trainer" loading={compact ? 'eager' : 'lazy'} decoding="async" onError={() => setHasError(true)}/>}
+  </div>;
+}
+
 export default function MinimalFocusPrototype() {
   const [today] = useState(() => { const d = new Date(); d.setHours(12,0,0,0); return d; });
   const [role, setRole] = useState<Role>('client');
@@ -111,6 +124,9 @@ export default function MinimalFocusPrototype() {
   const heading = isCoach
     ? { overview: ['Il tuo riepilogo', 'Tutto quello che conta, senza rumore.'], agenda: ['La tua agenda', 'Lezioni e impegni in un unico calendario.'], clients: ['I tuoi clienti', 'Persone, non semplici prenotazioni.'], manage: ['Gestione', 'Gli strumenti operativi quando ti servono.'] }[coachSection]
     : { today: ['Il tuo oggi', 'Un passo alla volta, verso il tuo obiettivo.'], book: ['Prenota una lezione', 'Scegli come e quando allenarti.'], lessons: ['Le tue lezioni', 'Tutti i tuoi appuntamenti, a colpo d’occhio.'], profile: ['Il tuo profilo', 'Il tuo percorso, le tue preferenze.'] }[clientSection];
+  const italicHeading = (isCoach && (coachSection === 'overview' || coachSection === 'agenda')) ||
+    (!isCoach && (clientSection === 'today' || clientSection === 'book'));
+  const titleSplit = heading[0].lastIndexOf(' ');
   const changeRole = (next: Role) => { setRole(next); setSelectedDate(today); setWeekOffset(0); setFeedback(''); };
   const changeDay = (date: Date) => setSelectedDate(date);
   const changeStatus = (id: number, status: Status) => { setSessions(rows => rows.map(s => s.id === id ? { ...s, status } : s)); setFeedback(status === 'confirmed' ? 'Richiesta approvata nella demo.' : 'Richiesta rifiutata nella demo.'); };
@@ -146,13 +162,22 @@ export default function MinimalFocusPrototype() {
       <main className="mf-main">
         <div className="mf-toolbar"><div className="mf-crumb">ALE COACH <span>/</span> {isCoach ? 'COACH' : 'ATLETA'} <span>/</span> {active.toUpperCase()}</div><div className="mf-toolbar-right"><span>{dayLabel(today)}</span><button type="button" aria-label="Notifiche demo" onClick={() => { if(isCoach) { setCoachSection('manage'); setManagementTab('notices'); } else { setClientSection('profile'); } }}><Bell size={18}/></button><InitialAvatar initials={isCoach ? 'AC' : 'LB'}/></div></div>
         <div className="mf-view-key" key={role + active}>
-          <div className="mf-heading"><div><div className="mf-overline">{isCoach ? 'AREA COACH' : 'AREA ATLETA'} <span>·</span> {isCoach ? 'ALE' : 'LUCA'}</div><h1>{heading[0]}</h1><p>{heading[1]}</p></div>{!isCoach && clientSection === 'today' && <button className="mf-action mf-heading-cta" type="button" onClick={() => setClientSection('book')}>Prenota una lezione <ArrowRight size={17}/></button>}{isCoach && coachSection === 'overview' && <button type="button" className="mf-action mf-heading-cta" onClick={() => setCoachSection('agenda')}>Apri agenda <ArrowRight size={17}/></button>}</div>
+          <div className="mf-heading"><div><div className="mf-overline">{isCoach ? 'AREA COACH' : 'AREA ATLETA'} <span>·</span> {isCoach ? 'ALE' : 'LUCA'}</div><h1>{italicHeading && titleSplit > 0 ? <>{heading[0].slice(0, titleSplit)} <em>{heading[0].slice(titleSplit + 1)}</em></> : heading[0]}</h1><p>{heading[1]}</p></div>{!isCoach && clientSection === 'today' && <button className="mf-action mf-heading-cta" type="button" onClick={() => setClientSection('book')}>Prenota una lezione <ArrowRight size={17}/></button>}{isCoach && coachSection === 'overview' && <button type="button" className="mf-action mf-heading-cta" onClick={() => setCoachSection('agenda')}>Apri agenda <ArrowRight size={17}/></button>}</div>
           {feedback && <div className="mf-feedback" role="status"><CheckCircle2 size={18}/>{feedback}<button aria-label="Chiudi messaggio" type="button" onClick={() => setFeedback('')}><X size={16}/></button></div>}
 
           {!isCoach && clientSection === 'today' && <>
             <section className="mf-next"><div className="mf-next-top"><span><i/> IL PROSSIMO APPUNTAMENTO</span><span>IL TUO PERCORSO</span></div>{nextLesson ? <div className="mf-next-body"><div><div className="mf-next-day">{prettyDate(nextLesson.date)}</div><div className="mf-next-time">{nextLesson.time}</div><strong>{nextLesson.title}</strong><p><MapPin size={15}/>{nextLesson.venue}</p></div><div className="mf-next-side"><div className="mf-next-number">{Math.max(0,Math.round((new Date(nextLesson.date + 'T12:00:00').getTime() - today.getTime())/86400000))}<span> GIORNI</span></div><span>al prossimo allenamento</span><button type="button" onClick={() => {setClientSection('lessons');setSelectedDate(new Date(nextLesson.date + 'T12:00:00'));setWeekOffset(Math.round((mondayOf(new Date(nextLesson.date + 'T12:00:00')).getTime() - mondayOf(today).getTime()) / 604800000));}}>Dettagli <ArrowRight size={15}/></button></div></div> : <div className="mf-next-empty">Il tuo prossimo allenamento ti aspetta. <button type="button" onClick={() => setClientSection('book')}>Prenota ora</button></div>}</section>
-            <div className="mf-stat-grid"><button type="button" className="mf-stat" onClick={() => setClientSection('lessons')}><span>Lezioni in programma</span><strong>{sessions.filter(s => s.client === 'Luca Bianchi' && s.status === 'confirmed' && s.date >= dateKey(today)).length}</strong><small>Vedi il calendario <ArrowUpRight size={14}/></small></button><div className="mf-stat"><span>Crediti disponibili</span><strong>04</strong><small>Il tuo pacchetto attivo</small></div><div className="mf-stat"><span>Il tuo coach</span><strong className="mf-stat-name">Ale</strong><small>Alessandro Cola</small></div></div>
-            <section className="mf-panel mf-today-panel"><div className="mf-panel-title"><div><span className="mf-overline">PER TE</span><h2>Continua così.</h2></div><Dumbbell size={25}/></div><p>La costanza costruisce risultati. Ritrova tutte le tue lezioni nel calendario e prenota il prossimo passo quando vuoi.</p><button type="button" className="mf-text-link" onClick={() => setClientSection('lessons')}>Le mie lezioni <ArrowRight size={16}/></button></section>
+            <div className="mf-stat-grid"><button type="button" className="mf-stat" onClick={() => setClientSection('lessons')}><span>Lezioni in programma</span><strong>{sessions.filter(s => s.client === 'Luca Bianchi' && s.status === 'confirmed' && s.date >= dateKey(today)).length}</strong><small>Vedi il calendario <ArrowUpRight size={14}/></small></button><div className="mf-stat"><span>Crediti disponibili</span><strong>04</strong><small>Il tuo pacchetto attivo</small></div><div className="mf-stat mf-coach-stat"><span>Il tuo coach</span><div className="mf-trainer-statline"><TrainerPortrait compact/><strong className="mf-stat-name">Ale</strong></div><small>Alessandro Cola</small></div></div>
+            <section className="mf-panel mf-coach-spotlight" aria-label="Conosci il tuo coach Alessandro Cola">
+              <TrainerPortrait/>
+              <div className="mf-coach-spotlight-content">
+                <span className="mf-overline">IL TUO PERSONAL TRAINER</span>
+                <h2>Conosci <em>Ale.</em></h2>
+                <p>Alessandro Cola ti accompagna con allenamenti su misura, dalla forza alla preparazione atletica.</p>
+                <span className="mf-coach-signature">il tuo percorso, insieme</span>
+                <a className="mf-text-link" href={trainerProfileUrl} target="_blank" rel="noopener noreferrer">Scopri il tuo coach <ArrowUpRight size={16}/></a>
+              </div>
+            </section>
           </>}
 
           {!isCoach && clientSection === 'book' && <>{!chosenService ? <>
@@ -172,6 +197,7 @@ export default function MinimalFocusPrototype() {
 
           {!isCoach && clientSection === 'profile' && <>
             <section className="mf-panel mf-profile-panel"><div className="mf-profile-hero"><InitialAvatar initials="LB"/><div><h2>Luca Bianchi</h2><p>Atleta · Account dimostrativo</p></div></div><div className="mf-detail-grid"><div><span>Email</span><strong>luca.demo@example.com</strong></div><div><span>Club di riferimento</span><strong>Virgin Active Talenti</strong></div><div><span>Pacchetto</span><strong>4 lezioni disponibili</strong></div><div><span>Coach</span><strong>Alessandro Cola</strong></div></div></section>
+            <section className="mf-panel mf-coach-profile-strip"><TrainerPortrait compact/><div><span className="mf-overline">IL TUO COACH</span><h2>Alessandro Cola</h2><p>Personal training e preparazione atletica</p></div><a href={trainerProfileUrl} target="_blank" rel="noopener noreferrer" aria-label="Profilo professionale di Alessandro Cola"><ArrowUpRight size={20}/></a></section>
             <section className="mf-panel mf-settings-list"><h2>Il tuo spazio</h2><div><CreditCard size={19}/> Pacchetti e crediti <span>4 disponibili</span></div><div><Bell size={19}/> Notifiche <span>Attive (demo)</span></div><div><ShieldCheck size={19}/> Privacy e sicurezza <span>Anteprima</span></div></section>
           </>}
 
