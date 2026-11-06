@@ -111,7 +111,7 @@ test('QA coach: notifiche accessibili da desktop e mobile, senza aprire Stripe',
  const css=read('src/styles.css');
  assert.match(types,/CoachTab=.*'messages'.*'history'.*'more'/);
  assert.match(app,/aria-label="Apri notifiche"/);
- assert.match(app,/className="mf-mobile-nav" aria-label="Navigazione coach"/);
+ assert.match(app,/className=\{`mf-mobile-nav \$\{managementOpen\?/);\n assert.match(app,/aria-label="Navigazione coach"/);\n assert.match(app,/aria-label="Chiudi Gestione"/);
  assert.match(app,/NOTIFICHE COACH/);
  assert.match(app,/void markNotices\(\)/);
  assert.match(css,/@media\(max-width:719px\)/);
