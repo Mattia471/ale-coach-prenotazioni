@@ -88,6 +88,25 @@ function App(){
  const [focusWeekOffset,setFocusWeekOffset]=useState(0);
  const [agendaShowAll,setAgendaShowAll]=useState(false);
  const [coachTab,setCoachTab]=useState<CoachTab>('overview');
+ const [managementOpen,setManagementOpen]=useState(false);
+ useEffect(()=>{
+  if(!managementOpen)return;
+  const scrollY=window.scrollY;
+  const previous={position:document.body.style.position,top:document.body.style.top,left:document.body.style.left,right:document.body.style.right,width:document.body.style.width};
+  document.body.style.position='fixed';
+  document.body.style.top=`-${scrollY}px`;
+  document.body.style.left='0';
+  document.body.style.right='0';
+  document.body.style.width='100%';
+  return()=>{
+   document.body.style.position=previous.position;
+   document.body.style.top=previous.top;
+   document.body.style.left=previous.left;
+   document.body.style.right=previous.right;
+   document.body.style.width=previous.width;
+   window.scrollTo(0,scrollY);
+  };
+ },[managementOpen]);
   const [selectedClientId,setSelectedClientId]=useState<string|null>(null);
  const [user,setUser]=useState<User|null>(null);
  const [profile,setProfile]=useState<Profile|null>(null);
@@ -835,7 +854,7 @@ function App(){
     <aside className="mf-sidebar" aria-label="Navigazione coach">
      <div className="mf-sidebar-brand"><div className="mf-sidebar-logo">AC</div><div><strong>Ale Coach</strong><span>Area coach</span></div></div>
      <span className="mf-sidebar-caption">IL TUO SPAZIO</span>
-     <nav className="mf-desktop-nav">{coachNav.map(x=><button key={x.id} type="button" className={(x.id==='more'?inManage:coachTab===x.id)?'active':''} aria-current={(x.id==='more'?inManage:coachTab===x.id)?'page':undefined} onClick={()=>setCoachTab(x.id)}>{x.id==='overview'?<LayoutGrid size={20}/>:x.id==='agenda'?<CalendarDays size={20}/>:x.id==='clients'?<Users size={20}/>:<SlidersHorizontal size={20}/>}<span>{x.label}</span>{x.id==='more'&&pendingBookings.length>0&&<i>{pendingBookings.length}</i>}</button>)}</nav>
+     <nav className="mf-desktop-nav">{coachNav.map(x=><button key={x.id} type="button" className={(x.id==='more'?inManage:coachTab===x.id)?'active':''} aria-current={(x.id==='more'?inManage:coachTab===x.id)?'page':undefined} onClick={()=>x.id==='more'?setManagementOpen(true):(setManagementOpen(false),setCoachTab(x.id))}>{x.id==='overview'?<LayoutGrid size={20}/>:x.id==='agenda'?<CalendarDays size={20}/>:x.id==='clients'?<Users size={20}/>:<SlidersHorizontal size={20}/>}<span>{x.label}</span>{x.id==='more'&&pendingBookings.length>0&&<i>{pendingBookings.length}</i>}</button>)}</nav>
      <div className="mf-sidebar-bottom"><Sparkles size={18}/><p>Meno schermate affollate. Più attenzione per i clienti.</p></div>
     </aside>
     <main className="coach-layout mf-main">
@@ -850,7 +869,7 @@ function App(){
        <button type="button" className="mf-stat mf-stat-accent" onClick={()=>setCoachTab('requests')}><span>Richieste in attesa</span><strong>{pendingBookings.length}</strong><small>Da gestire <ArrowRight size={14}/></small></button>
        <button type="button" className="mf-stat" onClick={()=>setCoachTab('clients')}><span>Clienti registrati</span><strong>{clients.length}</strong><small>Visualizza clienti <ArrowRight size={14}/></small></button>
      </div>}
-     {inManage&&<nav className="mf-pills mf-live-management-nav" aria-label="Sezioni di gestione">{managementTabs.map(x=><button type="button" key={x.id} className={coachTab===x.id?'active':''} onClick={()=>setCoachTab(x.id)}>{x.label}{x.id==='requests'&&pendingBookings.length>0&&<b>{pendingBookings.length}</b>}{x.id==='messages'&&unread>0&&<b>{unread}</b>}</button>)}</nav>}
+     {inManage&&<button type="button" className="mf-outline-button mf-management-back" onClick={()=>setManagementOpen(true)}><SlidersHorizontal size={17}/> Apri menu Gestione</button>}
     {coachTab==='overview'&&<div className="coach-content"><Title eyebrow="PANORAMICA" sub="Le cose più importanti, subito.">PROSSIME LEZIONI</Title>{futureBookings.slice(0,4).length===0?<Empty title="Nessuna lezione in programma" desc="Le lezioni approvate compariranno qui."/>:futureBookings.slice(0,4).map(b=><div className="compact-booking" key={b.id}><span className="time-pill">{b.starts_at?timeLabel(b.starts_at):'--:--'}</span><div><b>{services.find(x=>x.id===b.service_id)?.name}</b><small>{b.starts_at?dateLabel(b.starts_at):''} · {clients.find(c=>c.id===b.client_id)?.full_name||'Cliente'} · {venues.find(v=>v.id===b.venue_id)?.name}</small></div><Status status={b.status}/></div>)}<div className="coach-quick"><Button onClick={()=>setCoachTab('requests')}>GESTISCI RICHIESTE <ArrowRight size={17}/></Button><Button variant="outline" onClick={()=>setCoachTab('marketing')}>LINK & QR <QrCode size={17}/></Button></div><p className="footnote">*Importi registrati nelle prenotazioni. Non sostituiscono la contabilità o la rendicontazione Stripe.</p></div>}
    {coachTab==='requests'&&<section className="coach-content"><Title eyebrow="APPROVAZIONI" sub="Ogni richiesta resta in attesa per 24 ore.">RICHIESTE DA CONFERMARE</Title><div className="coach-shortcuts"><button onClick={()=>setCoachTab('agenda')}>Vedi confermate</button><button onClick={()=>setCoachTab('history')}>Apri storico</button></div>{pendingBookings.length===0?<Empty title="Tutto in ordine" desc="Non ci sono richieste da gestire."/>:pendingBookings.map(b=>{const c=clients.find(x=>x.id===b.client_id);const s=services.find(x=>x.id===b.service_id);return <article key={b.id} className="request-card"><div className="booking-head"><div><div className="eyebrow">/// NUOVA RICHIESTA</div><h3>{s?.name||b.service_id}</h3></div><Status status={b.status}/></div><div className="request-client"><div className="mini-avatar">{c?.full_name.charAt(0)||'C'}</div><div><b>{c?.full_name||'Cliente'}</b><small>{c?.email||'Cliente autenticato'}</small></div></div><div className="request-facts"><div><span>DATA</span><b>{b.starts_at?dateLabel(b.starts_at):'Da concordare'}</b></div><div><span>ORA</span><b>{b.starts_at?timeLabel(b.starts_at):'--'}</b></div><div><span>SEDE</span><b>{venues.find(v=>v.id===b.venue_id)?.name||'Da concordare'}</b></div><div><span>PREZZO</span><b>{currency(b.amount_cents)}</b></div></div>{Object.keys(b.details||{}).filter(k=>k!=='document_path').length>0&&<div className="details-preview">{Object.entries(b.details).filter(([k])=>k!=='document_path').map(([k,v])=><div key={k}><small>{k.replaceAll('_',' ')}</small><span>{v}</span></div>)}</div>}{b.details?.document_path&&<button className="text-link" onClick={async()=>{if(!supabase)return;const {data,error}=await supabase.storage.from('client-documents').createSignedUrl(b.details.document_path,120);if(error)submitMsg(error.message,'error');else if(data?.signedUrl)window.open(data.signedUrl,'_blank','noopener,noreferrer')}}>Apri scheda allegata <ExternalLink size={14}/></button>}
      <div className="request-footer"><div className="request-source"><Tag size={14}/>{sources[b.source]||b.source}{b.promo_code&&` · ${b.promo_code}`}</div>{s?.kind==='quote'?<><div className="field"><span>Il tuo preventivo (€)</span><input type="number" min="1" step="0.01" value={quoteValues[b.id]||''} onChange={e=>setQuoteValues(v=>({...v,[b.id]:e.target.value}))} placeholder="Es. 65.00"/></div><Button disabled={busy} onClick={()=>void coachAction(b,'quote')}>INVIA PREVENTIVO <ArrowRight size={15}/></Button></>:<><div className="payment-setting"><span>Pagamento:</span><select value={b.payment_mode} disabled={busy||b.payment_mode==='online'||b.status==='processing'||!['online','in_person'].includes(b.payment_mode)} onChange={e=>void setPaymentMode(b,e.target.value as 'online'|'in_person')}><option value="online">Anticipato online</option>{c?.allow_in_person&&<option value="in_person">Di persona</option>}{b.payment_mode==='none'&&<option value="none">Gratuito</option>}{b.payment_mode==='credit'&&<option value="credit">Credito</option>}</select></div><div className="actions"><Button variant="outline" disabled={busy||(b.status==='processing'&&b.stripe_decision!=='reject')} onClick={()=>void coachAction(b,'reject')}>RIFIUTA <X size={15}/></Button><Button disabled={busy||(b.status==='processing'&&b.stripe_decision!=='approve')} onClick={()=>void coachAction(b,'approve')}>{b.payment_mode==='online'?'APPROVA E INCASSA':'APPROVA'} <Check size={16}/></Button></div></>}</div></article>})}</section>}
@@ -934,12 +953,19 @@ function App(){
     {coachTab==='messages'&&<section className="coach-content"><Title eyebrow="AGGIORNAMENTI" sub="Richieste, cancellazioni e novità sulle lezioni.">NOTIFICHE COACH</Title><div className="row-end"><Button variant="outline" onClick={()=>void subscribePush()}><Bell size={15}/>{pushEnabled?'Push abilitate':'Attiva notifiche push'}</Button></div>{noticeControls}{noticeList}</section>}
      {coachTab==='history'&&<section className="coach-content"><Title eyebrow="ARCHIVIO" sub="Lezioni confermate, annullate, rifiutate o scadute.">STORICO PRENOTAZIONI</Title>{bookings.length===0?<Empty title="Nessuna prenotazione" desc="Lo storico comparirà qui."/>:bookings.map(b=><article key={b.id} id={`booking-${b.id}`} className={`agenda-card ${focusedBookingId===b.id?'booking-focused':''}`}><div className="agenda-detail"><b>{services.find(s=>s.id===b.service_id)?.name||b.service_id}</b><span>{clients.find(c=>c.id===b.client_id)?.full_name||'Cliente'} · {b.starts_at?dateLabel(b.starts_at):'Da concordare'} · {b.starts_at?timeLabel(b.starts_at):''}</span><span>{currency(b.amount_cents)} · {b.payment_mode==='online'?'Online':b.payment_mode==='in_person'?'In presenza':b.payment_mode==='credit'?'Credito':'Gratis'}</span></div><Status status={b.status}/></article>)}</section>}
     {coachTab==='more'&&<section className="coach-content"><Title eyebrow="GESTIONE" sub="Accedi a tutte le funzioni del pannello.">ALTRE SEZIONI</Title><div className="coach-more-grid">{([{id:'clients',label:'Clienti',icon:Users},{id:'hours',label:'Orari e blocchi',icon:CalendarDays},{id:'services',label:'Listino',icon:Tag},{id:'marketing',label:'Marketing',icon:QrCode},{id:'history',label:'Storico prenotazioni',icon:CalendarCheck}] as const).map(x=>{const Icon=x.icon;return <button key={x.id} onClick={()=>setCoachTab(x.id)}><Icon size={21}/><span>{x.label}</span><ChevronRight size={16}/></button>})}</div></section>}
-    <nav className="mf-mobile-nav" aria-label="Navigazione coach">
-      <button className={coachTab==='overview'?'active':''} onClick={()=>setCoachTab('overview')}><LayoutGrid size={21}/>Riepilogo</button>
-      <button className={coachTab==='agenda'?'active':''} onClick={()=>setCoachTab('agenda')}><CalendarDays size={21}/>Agenda</button>
-      <button className={coachTab==='clients'?'active':''} onClick={()=>setCoachTab('clients')}><Users size={21}/>Clienti</button>
-      <button className={inManage?'active':''} onClick={()=>setCoachTab('more')}><SlidersHorizontal size={21}/>Gestione</button>
+    <nav className={`mf-mobile-nav ${managementOpen?'mf-nav-sheet-open':''}`} aria-label="Navigazione coach">
+      <button className={coachTab==='overview'?'active':''} onClick={()=>{setManagementOpen(false);setCoachTab('overview')}}><LayoutGrid size={21}/>Riepilogo</button>
+      <button className={coachTab==='agenda'?'active':''} onClick={()=>{setManagementOpen(false);setCoachTab('agenda')}}><CalendarDays size={21}/>Agenda</button>
+      <button className={coachTab==='clients'?'active':''} onClick={()=>{setManagementOpen(false);setCoachTab('clients')}}><Users size={21}/>Clienti</button>
+      <button className={managementOpen||inManage?'active':''} onClick={()=>setManagementOpen(v=>!v)} aria-haspopup="dialog" aria-expanded={managementOpen}><SlidersHorizontal size={21}/>Gestione</button>
      </nav>
+     {managementOpen&&<div className="mf-sheet-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setManagementOpen(false)}}>
+       <section className="mf-management-sheet" role="dialog" aria-modal="true" aria-labelledby="mf-management-title" onKeyDown={e=>{if(e.key==='Escape')setManagementOpen(false)}}>
+        <div className="mf-sheet-handle" aria-hidden="true"/>
+        <div className="mf-sheet-heading"><div><span className="mf-overline">AREA COACH</span><h2 id="mf-management-title">Gestione</h2><p>Strumenti e impostazioni del tuo spazio.</p></div><button type="button" aria-label="Chiudi Gestione" onClick={()=>setManagementOpen(false)}>✕</button></div>
+        <div className="mf-sheet-grid">{[{id:'overview' as CoachTab,label:'Riepilogo',Icon:LayoutGrid},...managementTabs.map(x=>({...x,Icon:x.id==='requests'?CalendarCheck:x.id==='hours'?CalendarDays:x.id==='services'?Dumbbell:x.id==='history'?CalendarDays:x.id==='marketing'?Sparkles:Bell}))].map(({id,label,Icon})=><button type="button" key={id} className={coachTab===id?'is-current':''} onClick={()=>{setCoachTab(id);setManagementOpen(false)}}><Icon size={22}/><span>{label}</span>{id==='requests'&&pendingBookings.length>0&&<b>{pendingBookings.length}</b>}{id==='messages'&&unread>0&&<b>{unread}</b>}</button>)}</div>
+       </section>
+      </div>}
      <div className="coach-footer-note"><Settings2 size={15}/> Pannello riservato al coach. Autorizzazioni verificate dal database in modalità reale.</div>
   </main></div>}
   </>}
