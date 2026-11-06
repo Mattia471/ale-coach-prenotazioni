@@ -494,7 +494,7 @@ function App(){
   if(!booking){submitMsg('La prenotazione non è disponibile nell’elenco. Aggiorna i dati e riprova.','info');void refresh();return}
   if(!isCoach&&booking.client_id!==profile?.id){submitMsg('Non puoi aprire questa prenotazione.','error');return}
   setFocusedBookingId(booking.id);
-  if(isCoach){setCoachTab('history');setAllowMenu(false)}else{setClientTab('bookings');setSelectedService(null)}
+  if(isCoach){setCoachTab('history')}else{setClientTab('bookings');setSelectedService(null)}
  };
  useEffect(()=>{
   if(!focusedBookingId)return;
