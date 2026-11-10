@@ -52,6 +52,7 @@ La build `pages:build` si chiude con errore se `PAGES_RELEASE_MODE=live` ma manc
 - [ ] Anteprima Pages con `PAGES_RELEASE_MODE=prelaunch` buildata; route dirette `/privacy`, `/termini`, `/cookie` e asset PWA verificati.
 - [ ] Security headers, `noindex` e risposte a HTTP/HTTPS verificati.
 - [ ] Dopo deploy/allowlist Edge Functions: login, logout, reset password, creazione prenotazioni, coach approva/rifiuta e pagamento Stripe Sandbox da origine Pages.
+- [ ] Distribuire e verificare anche `stripe-webhook` aggiornato: evento firmato `checkout.session.expired` dei pacchetti passa solo `pending` → `expired`, senza toccare ordini `paid` o wallet. Riconciliare separatamente gli ordini vecchi confermati scaduti su Stripe; non applicare correzioni indiscriminate ai pagamenti.
 - [ ] Redirect di Auth verificati su Pages e dominio personalizzato.
 - [ ] Controllo di concorrenza ultimo credito e ultimo slot in ambiente isolato.
 - [ ] Migrazione/disdette/rimborsi solo dopo approvazione della policy e verifica Sandbox.
