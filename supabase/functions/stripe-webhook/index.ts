@@ -13,7 +13,7 @@ Deno.serve(async req=>{
  const liveMode=environment==='live'&&Deno.env.get('STRIPE_LIVE_APPROVED')==='true'&&!!secret?.startsWith('sk_live_');
  if(Deno.env.get('STRIPE_PAYMENTS_ENABLED')!=='true'||(!testMode&&!liveMode)||!signing||!signature)
   return new Response('Payment integration not configured',{status:503});
- const stripe=new Stripe(secret);
+ const stripe=new Stripe(secret!);
  let event:Stripe.Event;
  try{
   event=await stripe.webhooks.constructEventAsync(await req.text(),signature,signing,undefined,Stripe.createSubtleCryptoProvider());
