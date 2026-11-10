@@ -8,7 +8,8 @@
     "test": "node --test scripts/release-check.test.mjs scripts/platform-regressions.test.mjs",
     "release:check": "node scripts/release-check.mjs",
     "release:build": "npm run release:check && npm run build",
-    "cloud:check": "node scripts/cloud-check.mjs"
+    "cloud:check": "node scripts/cloud-check.mjs",
+    "pages:build": "npm run build && node scripts/cloudflare-pages-postbuild.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.76.0",
