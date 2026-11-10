@@ -40,7 +40,7 @@ test('Public live mode fails closed without legal approval or with QA mode',()=>
 });
 test('Approved launch clears global noindex but keeps Pages previews noindex',()=>{
  const headers=buildCloudflareHeaders(src,ready,legal);
- assert.doesNotMatch(headers,/\/\*\n  X-Robots-Tag: noindex/);
+ assert.doesNotMatch(headers,/^\/\*\n  X-Robots-Tag: noindex/m);
  assert.match(headers,/https:\/\/:project\.pages\.dev\/\*/);
  assert.match(headers,/https:\/\/:version\.:project\.pages\.dev\/\*/);
  assert.match(headers,/X-Frame-Options: DENY/);
