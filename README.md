@@ -4,6 +4,14 @@ Applicativo React + TypeScript + Vite dedicato ad Alessandro Cola e alle lezioni
 
 **Ambiente unico attivo:** Supabase Cloud di Ale Coach + Vercel dello sviluppatore. Nessun Docker, seed locale, login fittizio o prenotazione simulata. Il futuro dominio commerciale è **alecoach.online** e l'indirizzo di riferimento è **info@alecoach.online**.
 
+## Release V1: perimetro congelato
+
+**La V1 include solo le funzioni di prenotazione, agenda interna, servizi, gestione cliente/coach, notifiche e pagamenti/pacchetti già concordati.** L'**agenda interna è inclusa**, mentre **Hevy, Google Calendar, sincronizzazioni esterne, schede di allenamento integrate e rinnovi automatici Continuity sono esclusi**.
+
+Qualsiasi richiesta futura per queste integrazioni o per nuove funzionalità è una **change request da preventivare e approvare separatamente, a pagamento**. Nessuna è prerequisito al rilascio V1. L'uso commerciale con pagamenti resta subordinato a sicurezza, Stripe Sandbox e documenti legali approvati.
+
+Per il perimetro completo, vedere [Scope della V1 e gestione degli extra](docs/RELEASE-V1-SCOPE.md).
+
 ## Stato del progetto
 
 | Parte | Stato |
@@ -16,7 +24,7 @@ Applicativo React + TypeScript + Vite dedicato ad Alessandro Cola e alle lezioni
 | Flex 5 / Flex 10 | 250 € / 450 €; pagamento Stripe da collaudare |
 | Continuity 4 / 8 | Catalogo 150 / 260 € al mese, **non ancora acquistabili** |
 | Supabase Edge Functions | Checkout, decisioni, webhook Stripe e notifiche push; integrazione Google disattivata |
-| Google Calendar | **Non incluso nella release base.** Possibile estensione a pagamento, solo su richiesta del coach |
+| Hevy e Google Calendar | **Non inclusi nella V1.** Integrazioni future solo con preventivo aggiuntivo approvato. Il calendario interno resta incluso. |
 | Stripe | Sandbox del coach collegata, webhook 4 eventi e preautorizzazione/cattura manuale implementate; collaudo end-to-end e abilitazione test ancora necessari |
 | Email di dominio e Auth | `info@alecoach.online` registrato e confermato; redirect di Auth e SMTP personalizzato da verificare |
 | GDPR | Informative in bozza; registrazioni limitate da allowlist cloud, lancio commerciale ancora bloccato |
@@ -76,6 +84,7 @@ npm test
 
 ## Documentazione
 
+- **[Perimetro V1, esclusioni e richieste extra a pagamento](docs/RELEASE-V1-SCOPE.md)**
 - [Specifiche v2, differenze e attività ancora aperte](docs/V2-DELTA.md)
 - [Piano di rilascio e condizioni GO/NO-GO](docs/LAUNCH-3-DAYS.md)
 - [Checklist GDPR e privacy](docs/GDPR-COMPLIANCE.md)

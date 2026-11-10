@@ -2,6 +2,14 @@
 
 **Stato al 4 novembre 2026:** il backend è sul Supabase Free dell'account Ale Coach e il frontend è online sul Vercel personale dello sviluppatore. **Non esistono più database o seed locali.** Il rilascio commerciale sul dominio **alecoach.online** resta subordinato al completamento dei controlli sicurezza, GDPR e pagamenti.
 
+## Decisione di prodotto · 10 novembre 2026
+
+**Scope V1 congelato:** il calendario e le prenotazioni **interne** sono inclusi. **Hevy, Google Calendar e integrazioni/automazioni ulteriori non sono incluse, non bloccano il GO e non vanno sviluppate gratuitamente**. Le eventuali richieste del cliente devono passare da preventivo aggiuntivo scritto, approvazione e fase di sviluppo separata.
+
+Per evitare di ritardare il primo rilascio, ci concentriamo esclusivamente sui gate P0 della V1 (collaudo booking/crediti/Stripe Sandbox, sicurezza, SMTP, privacy/Termini approvati, backup/ripristino, verifica deploy). Nessuna modifica grafica o nuova integrazione non necessaria per il GO.
+
+Fonte di riferimento: [Perimetro V1](RELEASE-V1-SCOPE.md).
+
 ## Piano operativo in tre giorni, con criteri GO/NO-GO
 
 | Fase | Attività essenziali | Stato al 4 novembre 2026 |
@@ -47,7 +55,7 @@ Per la configurazione Stripe senza condividere credenziali:
 | Edge Functions | Checkout, cancel, webhook, push | Distribuite e attive per QA. Il codice Google Sync rimane disabilitato e fuori ambito base |
 | Email dominio | `info@alecoach.online` | Casella creata dal cliente, SMTP Supabase da collegare |
 | Stripe | Account creato dal coach | Edge Functions protette e runtime corretto; segreti test e webhook firmato da configurare |
-| Google Calendar | Extra futuro su richiesta | **Escluso dalla release e dal preventivo base** |
+| Hevy e Google Calendar | Extra futuro su richiesta | **Esclusi dalla release e dal preventivo base; sviluppo a pagamento** |
 | Sito definitivo | Cloudflare Pages e `alecoach.online` | Da configurare dopo i gate |
 
 ## Configurazione account coach e login
@@ -79,7 +87,7 @@ Per la configurazione Stripe senza condividere credenziali:
 1. Tutti i gate P0 di calendario, sicurezza, email e pagamenti superati.
 2. Informative approvate, configurazione fiscale e contrattuale verificata con il coach.
 3. Cloudflare Pages con repository GitHub, Vite, build `npm run release:build` e `dist`; DNS e HTTPS.
-4. Aggiornare Supabase Auth Site URL e Redirect URLs, callback Google se attivato, success URL Stripe e indirizzi nelle email.
+4. Aggiornare Supabase Auth Site URL e Redirect URLs, success URL Stripe e indirizzi nelle email. Nessuna configurazione OAuth Google nella V1.
 5. Validare il nuovo sito mobile, controllare che nessuna chiave privata sia distribuita nel frontend, effettuare una transazione controllata concordata, monitorare webhook e backup.
 6. Solo allora rimuovere la protezione anti-indicizzazione e aprire ai clienti finali.
 
