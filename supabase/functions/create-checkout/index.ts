@@ -1,11 +1,14 @@
+import { corsForRequest, isDisallowedBrowserOrigin, checkoutReturnOrigin } from '../_shared/trusted-origins.ts';
 import Stripe from 'npm:stripe@22.0.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const appUrl=Deno.env.get('PUBLIC_APP_URL')||'';
-const cors={ 'Access-Control-Allow-Origin': appUrl||'null', 'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods':'POST, OPTIONS' };
-const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json'}});
 Deno.serve(async req=>{
- if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
+ const cors=corsForRequest(req);
+ const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json'}});
+ const appUrl=checkoutReturnOrigin(req)||'';
+
+ if(req.method==='OPTIONS')return new Response('ok',{status:isDisallowedBrowserOrigin(req)?403:200,headers:cors});
+ if(isDisallowedBrowserOrigin(req))return json({error:'Origine non autorizzata'},403);
  if(req.method!=='POST')return json({error:'Metodo non consentito'},405);
  try{
   const secret=Deno.env.get('STRIPE_SECRET_KEY');
