@@ -31,7 +31,7 @@ Usare la pagina **Settings → Environment variables** del progetto Cloudflare P
 | `VITE_GOOGLE_ENABLED` | `false` | `false` |
 | `VITE_CANCELLATION_POLICY_V2_ENABLED` | `false` | `false` finché non superati i test rimborsi PR #26 |
 
-La build `pages:build` si chiude con errore se `PAGES_RELEASE_MODE=live` ma manca l'approvazione legale, esistono segnaposto legali, il dominio è diverso da `alecoach.online`, resta attiva la modalità QA o si abilita Google. In modalità `prelaunch`, **tutti** gli host rimangono `noindex`. Con il GO, il build post-process rimuove `noindex` **solo** dal dominio pubblico e lo mantiene sugli indirizzi tecnici `*.pages.dev`.
+La build `pages:build` si chiude con errore se `PAGES_RELEASE_MODE=live` ma manca l'approvazione legale, esistono segnaposto legali, il dominio è diverso da `alecoach.online`, resta attiva la modalità QA o si abilita Google o la policy sperimentale di disdette/rimborsi V2. In modalità `prelaunch`, **tutti** gli host rimangono `noindex`. Con il GO, il build post-process rimuove `noindex` **solo** dal dominio pubblico e lo mantiene sugli indirizzi tecnici `*.pages.dev`.
 
 **Non** configurare in Pages `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `VAPID_PRIVATE_KEY`, chiavi di Vault o altri segreti server. Rimangono nell'account Supabase/Stripe del cliente.
 
