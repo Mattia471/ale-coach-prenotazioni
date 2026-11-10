@@ -180,3 +180,14 @@ test('Switch mobile: proporzioni originali e area touch espansa',()=>{
  assert.match(css,/\.mf-root button\.switch\{position:relative;width:46px;min-width:46px;height:27px;min-height:27px/);
  assert.match(css,/\.mf-root button\.switch::after/);
 });
+
+
+test('Notifiche: apertura prenotazione marca letta senza bypass RLS',()=>{
+ const app=read('src/App.tsx');
+ assert.match(app,/const openNoticeBooking=\(n:Notice\)=>\{/);
+ assert.match(app,/if\(!isCoach&&booking\.client_id!==profile\?\.id\)/);
+ assert.match(app,/if\(!n\.read_at\)void markNotices\(\[n\.id\]\)/);
+ assert.match(app,/onClick=\{\(\)=>openNoticeBooking\(n\)\}/);
+ assert.match(app,/setFocusedBookingId\(booking\.id\)/);
+ assert.match(app,/\.eq\('recipient_id',profile\.id\)/);
+});
