@@ -13,9 +13,10 @@ alter table public.bookings add constraint bookings_payment_status_check
   'due_in_person','refunded','refund_pending','refund_failed'));
 
 
--- The client may claim a single refund. Every retry receives the *same* amount.
+-- Only the trusted Edge Function may claim a refund. Clients cannot freeze its amount ahead of time.
+-- Every retry receives the *same* amount.
 -- Row locking and the stored claim prevent a midnight/24-hour threshold race.
-create or replace function public.claim_paid_booking_refund(p_booking_id uuid)
+create or replace function public.claim_paid_booking_refund(p_booking_id uuid, p_client_id uuid)
 returns integer
 language plpgsql security definer
 set search_path = ''
@@ -24,9 +25,9 @@ declare
  b public.bookings%rowtype;
  v_refund integer;
 begin
- if auth.uid() is null then raise exception 'Sessione non valida'; end if;
+ if p_client_id is null then raise exception 'Identità mancante'; end if;
  select * into b from public.bookings where id=p_booking_id for update;
- if not found or b.client_id is distinct from auth.uid() then
+ if not found or b.client_id is distinct from p_client_id then
   raise exception 'Operazione non autorizzata';
  end if;
  if b.payment_mode <> 'online' or b.status <> 'confirmed' or
@@ -88,8 +89,8 @@ begin
 end;
 $function$;
 
-revoke all on function public.claim_paid_booking_refund(uuid) from public,anon;
-grant execute on function public.claim_paid_booking_refund(uuid) to authenticated,service_role;
+revoke all on function public.claim_paid_booking_refund(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.claim_paid_booking_refund(uuid,uuid) to service_role;
 revoke all on function public.complete_paid_booking_refund(uuid,text,integer,text) from public,anon,authenticated;
 grant execute on function public.complete_paid_booking_refund(uuid,text,integer,text) to service_role;
 
