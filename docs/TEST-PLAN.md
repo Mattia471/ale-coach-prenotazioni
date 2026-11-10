@@ -125,3 +125,19 @@ Risultati osservati alla data indicata, non certificazione di idoneità al lanci
 Issue #8: navigazione notifica-prenotazione già presente; in branch di revisione viene aggiunto il passaggio automatico a letta, subordinato a CI e verifica su dispositivo.
 
 Regola GO/NO-GO: non attivare incassi live né accesso commerciale prima di completare test e approvazioni.
+
+
+## Checkpoint Stripe Sandbox del 10 novembre 2026 (verifica in sola lettura)
+
+Questo checkpoint documenta la riconciliazione di eventi **già avvenuti**, non l'esecuzione di nuovi pagamenti né il completamento del collaudo E2E.
+
+- [x] Account collegato: Alessandro Cola **sandbox/test**, nessuna verifica su denaro reale.
+- [x] Stripe: 1 endpoint webhook attivo verso Supabase; eventi previsti `checkout.session.completed`, `checkout.session.expired`, `payment_intent.succeeded`, `payment_intent.canceled`.
+- [x] Eventi Stripe osservati (ultimi 30 giorni): 33; filtro sugli eventi con consegne non riuscite o ancora pendenti: 0.
+- [x] Quattro PaymentIntent di test con cattura manuale associati a quattro booking nel DB: approvato/pagato, rifiutato/non pagato, annullato/non pagato, scaduto/non pagato.
+- [x] Flex 5: un checkout di 250,00 € pagato corrisponde a **un** portafoglio crediti con 4 crediti residui su 5 e scadenza a circa 3 mesi.
+- [x] Ordini Flex `expired` e `pending` non hanno generato wallet.
+- [x] Individuato un checkout Flex scaduto e non pagato su Stripe ma rimasto `pending` nel DB: la funzione webhook precedente ignorava `checkout.session.expired` con `kind='package'`. Correzione versionata nella PR #31, integrata in main, ma non ancora deployata sul progetto Edge live.
+- [x] Hardening di `cancel_unpaid_booking` per identità nulla versionato nella PR #30, integrato in main, ma migrazione non ancora applicata al database live.
+
+**Ancora P0 aperti:** deploy controllato e QA del nuovo webhook Sandbox, riconciliazione sicura dell'ordine pregresso `pending` solo dopo verifica della sessione Stripe, verifica retry/idempotenza e due clienti simultanei, esecuzione e controllo della migrazione sicurezza su ambiente isolato, Auth/SMTP, GDPR e backup restore. Nessuna attivazione di incassi live o Cloudflare live prima del GO.
