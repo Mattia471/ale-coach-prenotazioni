@@ -96,11 +96,11 @@ Deno.serve(async req=>{
      reason:'requested_by_customer',metadata:{booking_id:b.id,policy:'cancel-v2'}
     },{idempotencyKey:`ale-cancel-v2-${b.id}`});
    }
-   if(refund.status==='failed'||refund.status==='canceled')
+   if(refund.status!=='succeeded'&&refund.status!=='pending')
     return json({error:'Rimborso Stripe da verificare: contatta il coach'},409);
    // Persist the exact Stripe refund id and amount; only the service role can finalise.
    const {error:completeError}=await admin.rpc('complete_paid_booking_refund',{
-    p_booking_id:b.id,p_refund_id:refund.id,p_refund_amount_cents:refundCents
+    p_booking_id:b.id,p_refund_id:refund.id,p_refund_amount_cents:refundCents,p_refund_status:refund.status
    });
    if(completeError)throw completeError;
    return json({ok:true,refundAmountCents:refundCents,refundStatus:refund.status,
