@@ -206,3 +206,20 @@ test('RPC cancellazione non pagata rifiuta identità assente senza alterare poli
  assert.match(sql,/public\.notifications\(/);
  assert.match(sql,/v_b\.payment_mode='online' then raise exception/);
 });
+
+
+test('Stripe Sandbox: scadenza checkout pacchetto non lascia ordini pending e non tocca quelli paid',()=>{
+ const webhook=read('supabase/functions/stripe-webhook/index.ts');
+ const start=webhook.indexOf("if(event.type==='checkout.session.expired')");
+ const end=webhook.indexOf("if(event.type==='payment_intent.succeeded')",start);
+ assert(start>=0&&end>start);
+ const expiryBranch=webhook.slice(start,end);
+ assert.match(expiryBranch,/session\.metadata\?\.kind==='package'/);
+ assert.match(expiryBranch,/session\.metadata\.order_id/);
+ assert.match(expiryBranch,/admin\.from\('package_checkout_orders'\)/);
+ assert.match(expiryBranch,/\.update\(\{status:'expired'\}\)/);
+ assert.match(expiryBranch,/\.eq\('stripe_session_id',session\.id\)/);
+ assert.match(expiryBranch,/\.eq\('status','pending'\)/);
+ assert.doesNotMatch(expiryBranch,/wallet_credits|remaining=remaining|refunds\.create/);
+ assert.match(expiryBranch,/session\.metadata\?\.kind!=='booking_authorization'/);
+});
