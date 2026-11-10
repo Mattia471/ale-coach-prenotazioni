@@ -25,5 +25,5 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check Stripe Edge Functions (no deployment)
-        run: deno check supabase/functions/cancel-booking/index.ts supabase/functions/stripe-webhook/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/cancel-booking/index.ts supabase/functions/stripe-webhook/index.ts
       # Il backend è sul Supabase Cloud Ale Coach. Non eseguire seed o reset dei dati in CI.
