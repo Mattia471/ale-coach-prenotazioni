@@ -96,6 +96,17 @@ Deno.serve(async req=>{
 
   if(event.type==='checkout.session.expired'){
    const session=event.data.object as Stripe.Checkout.Session;
+   if(session.metadata?.kind==='package'){
+    const orderId=session.metadata.order_id;
+    if(!orderId)return new Response('OK');
+    // Signed Stripe expiry can only transition a matching pending order.
+    // Replays never undo a paid order or grant/consume wallet credits.
+    const {error:expirePackageError}=await admin.from('package_checkout_orders')
+     .update({status:'expired'}).eq('id',orderId)
+     .eq('stripe_session_id',session.id).eq('status','pending');
+    if(expirePackageError)throw expirePackageError;
+    return new Response('Package checkout expired');
+   }
    if(session.metadata?.kind!=='booking_authorization'||!session.metadata.booking_id)return new Response('OK');
    const {data:booking,error}=await admin.from('bookings')
     .select('id,status,client_id,stripe_checkout_session_id').eq('id',session.metadata.booking_id).maybeSingle();
