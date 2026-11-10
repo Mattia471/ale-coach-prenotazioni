@@ -24,6 +24,7 @@ export function buildCloudflareHeaders(source,env={},legalText='') {
  }
  if(env.VITE_PRELAUNCH_QA==='true')errors.push('Disattiva la modalità QA prima del lancio.');
  if(env.VITE_GOOGLE_ENABLED==='true')errors.push('Google è fuori dal perimetro V1.');
+ if(env.VITE_CANCELLATION_POLICY_V2_ENABLED==='true')errors.push('Disdette e rimborsi V2 non autorizzati per la release V1.');
  if(errors.length)throw new Error('NO-GO Cloudflare Pages: '+errors.join(' | '));
  // No blanket noindex on the approved commercial domain.
  // The separate *.pages.dev rules remain, for preview and technical URLs.
