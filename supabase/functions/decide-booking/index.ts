@@ -50,7 +50,7 @@ Deno.serve(async req=>{
    .eq('id',bookingId).single();
   if(bookingError||!booking||booking.status!=='processing'||booking.stripe_decision!==action||
      !booking.stripe_payment_intent_id)return json({error:'Autorizzazione non riconciliabile'},409);
-  const stripe=new Stripe(key);
+  const stripe=new Stripe(key!);
   const intent=await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
   if(intent.metadata.kind!=='booking_authorization'||intent.metadata.booking_id!==booking.id||
      intent.amount!==booking.amount_cents||intent.currency!=='eur')
