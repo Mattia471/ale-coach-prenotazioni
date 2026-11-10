@@ -28,6 +28,6 @@ jobs:
           deno-version: v2.x
       - name: Check Supabase Edge Functions and trusted-origin tests (no deployment)
         run: |
-          deno check --node-modules-dir=auto supabase/functions/create-checkout/index.ts supabase/functions/cancel-booking/index.ts supabase/functions/decide-booking/index.ts
+          deno check --node-modules-dir=auto supabase/functions/create-checkout/index.ts supabase/functions/cancel-booking/index.ts supabase/functions/decide-booking/index.ts supabase/functions/stripe-webhook/index.ts
           deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts
       # Il backend è sul Supabase Cloud Ale Coach. Non eseguire seed o reset dei dati in CI.
