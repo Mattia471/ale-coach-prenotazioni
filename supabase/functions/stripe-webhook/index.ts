@@ -13,7 +13,7 @@ Deno.serve(async req=>{
  const liveMode=environment==='live'&&Deno.env.get('STRIPE_LIVE_APPROVED')==='true'&&!!secret?.startsWith('sk_live_');
  if(Deno.env.get('STRIPE_PAYMENTS_ENABLED')!=='true'||(!testMode&&!liveMode)||!signing||!signature)
   return new Response('Payment integration not configured',{status:503});
- const stripe=new Stripe(secret);
+ const stripe=new Stripe(secret!);
  let event:Stripe.Event;
  try{
   event=await stripe.webhooks.constructEventAsync(await req.text(),signature,signing,undefined,Stripe.createSubtleCryptoProvider());
@@ -23,6 +23,26 @@ Deno.serve(async req=>{
   auth:{persistSession:false,autoRefreshToken:false}
  });
  try{
+  if(Deno.env.get('CANCELLATION_POLICY_V2_ENABLED')==='true' &&
+     ['refund.created','refund.updated','refund.failed'].includes(event.type)){
+   const refund=event.data.object as Stripe.Refund;
+   if(refund.metadata?.policy!=='cancel-v2'||!refund.metadata?.booking_id)return new Response('OK');
+   const bookingId=refund.metadata.booking_id;
+   const {data:booking,error}=await admin.from('bookings')
+    .select('id,status,stripe_refund_id,cancellation_refund_cents')
+    .eq('id',bookingId).maybeSingle();
+   if(error)throw error;
+   // Refund event can arrive before the initiating edge function finalises the booking.
+   // Returning 500 asks Stripe to retry once that transaction has been reconciled.
+   if(!booking||booking.status!=='cancelled'||
+      booking.stripe_refund_id!==refund.id||booking.cancellation_refund_cents!==refund.amount)
+    throw new Error('Rimborso in attesa della riconciliazione iniziale');
+   const {error:reconcileError}=await admin.rpc('reconcile_paid_booking_refund',{
+    p_booking_id:bookingId,p_refund_id:refund.id,p_refund_status:refund.status
+   });
+   if(reconcileError)throw reconcileError;
+   return new Response('Refund reconciled');
+  }
   if(event.type==='checkout.session.completed'){
    const session=event.data.object as Stripe.Checkout.Session;
    if(session.metadata?.kind==='package'){
