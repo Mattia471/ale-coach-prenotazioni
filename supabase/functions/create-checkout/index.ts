@@ -1,11 +1,14 @@
+import { corsForRequest, isDisallowedBrowserOrigin, checkoutReturnOrigin } from '../_shared/trusted-origins.ts';
 import Stripe from 'npm:stripe@22.0.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const appUrl=Deno.env.get('PUBLIC_APP_URL')||'';
-const cors={ 'Access-Control-Allow-Origin': appUrl||'null', 'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods':'POST, OPTIONS' };
-const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json'}});
 Deno.serve(async req=>{
- if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
+ const cors=corsForRequest(req);
+ const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json'}});
+ const appUrl=checkoutReturnOrigin(req)||'';
+
+ if(req.method==='OPTIONS')return new Response('ok',{status:isDisallowedBrowserOrigin(req)?403:200,headers:cors});
+ if(isDisallowedBrowserOrigin(req))return json({error:'Origine non autorizzata'},403);
  if(req.method!=='POST')return json({error:'Metodo non consentito'},405);
  try{
   const secret=Deno.env.get('STRIPE_SECRET_KEY');
@@ -23,9 +26,10 @@ Deno.serve(async req=>{
   const auth=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data:{user},error:authError}=await auth.auth.getUser(token);
   if(authError||!user)return json({error:'Sessione non valida'},401);
+  const verifiedUser=user;
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
   const body=await req.json();
-  const stripe=new Stripe(secret);
+  const stripe=new Stripe(secret!);
   if(body.packageId){
    const packageId=String(body.packageId);
    if(!appUrl.startsWith('https://'))return json({error:'URL app non configurato'},503);
@@ -47,10 +51,10 @@ Deno.serve(async req=>{
   async function createPackageSession(order:{id:string;package_id:string;amount_cents:number;expires_at:string;client_id:string}) {
    const {data:pack}=await admin.from('packages').select('name').eq('id',order.package_id).single();
    const session=await stripe.checkout.sessions.create({
-    mode:'payment',payment_method_types:['card'],customer_email:user.email,
+    mode:'payment',payment_method_types:['card'],customer_email:verifiedUser.email,
     line_items:[{price_data:{currency:'eur',unit_amount:order.amount_cents,product_data:{name:`Ale Coach · ${pack?.name||'Pacchetto lezioni'}`}},quantity:1}],
     client_reference_id:order.id,
-    metadata:{kind:'package',order_id:order.id,client_id:user.id,package_id:order.package_id},
+    metadata:{kind:'package',order_id:order.id,client_id:verifiedUser.id,package_id:order.package_id},
     success_url:`${appUrl}/?payment=success`,cancel_url:`${appUrl}/?payment=cancelled`,
     expires_at:Math.floor(Date.now()/1000)+31*60
    },{idempotencyKey:`ale-package-order-${order.id}`});

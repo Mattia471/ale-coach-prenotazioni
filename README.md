@@ -85,6 +85,7 @@ npm test
 ## Documentazione
 
 - **[Perimetro V1, esclusioni e richieste extra a pagamento](docs/RELEASE-V1-SCOPE.md)**
+- **[Consegna su Cloudflare Pages e procedura di cutover](docs/CLOUDFLARE-PAGES-HANDOFF.md)****
 - [Specifiche v2, differenze e attività ancora aperte](docs/V2-DELTA.md)
 - [Piano di rilascio e condizioni GO/NO-GO](docs/LAUNCH-3-DAYS.md)
 - [Checklist GDPR e privacy](docs/GDPR-COMPLIANCE.md)

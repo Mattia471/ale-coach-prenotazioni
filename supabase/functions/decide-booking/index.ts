@@ -1,18 +1,13 @@
+import { corsForRequest, isDisallowedBrowserOrigin } from '../_shared/trusted-origins.ts';
 import Stripe from 'npm:stripe@22.0.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const appUrl=Deno.env.get('PUBLIC_APP_URL')||'';
-const cors={'Access-Control-Allow-Origin':appUrl||'null',
- 'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type',
- 'Access-Control-Allow-Methods':'POST, OPTIONS'};
-const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{
- status,headers:{...cors,'Content-Type':'application/json'}
-});
-
-// Approva: ricontrolla slot, corsi, trasferimenti e chiusure nell'agenda interna -> cattura Stripe -> conferma nel DB.
-// Rifiuta: annulla autorizzazione su Stripe -> rifiuta in DB.
 Deno.serve(async req=>{
- if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
+ const cors=corsForRequest(req);
+ const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json'}});
+
+ if(req.method==='OPTIONS')return new Response('ok',{status:isDisallowedBrowserOrigin(req)?403:200,headers:cors});
+ if(isDisallowedBrowserOrigin(req))return json({error:'Origine non autorizzata'},403);
  if(req.method!=='POST')return json({error:'Metodo non consentito'},405);
  const key=Deno.env.get('STRIPE_SECRET_KEY');
  const environment=Deno.env.get('STRIPE_ENVIRONMENT')||'test';
@@ -55,7 +50,7 @@ Deno.serve(async req=>{
    .eq('id',bookingId).single();
   if(bookingError||!booking||booking.status!=='processing'||booking.stripe_decision!==action||
      !booking.stripe_payment_intent_id)return json({error:'Autorizzazione non riconciliabile'},409);
-  const stripe=new Stripe(key);
+  const stripe=new Stripe(key!);
   const intent=await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
   if(intent.metadata.kind!=='booking_authorization'||intent.metadata.booking_id!==booking.id||
      intent.amount!==booking.amount_cents||intent.currency!=='eur')
