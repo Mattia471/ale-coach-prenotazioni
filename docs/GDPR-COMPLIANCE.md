@@ -77,9 +77,11 @@ Configurazione:
 - `VITE_LEGAL_APPROVED=true` **solo dopo l'approvazione**
 - `VITE_SUPABASE_URL` HTTPS cloud e `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-**Comando di build per Cloudflare Pages:** `npm run release:build`.
-Esegue `release:check` che **fallisce** se mancano configurazioni o esistono
-placeholder legali, e solo dopo `npm run build`.
+**Comando di build per Cloudflare Pages:** `npm run pages:build`.
+In modalita `PAGES_RELEASE_MODE=prelaunch` mantiene `X-Robots-Tag: noindex` su tutti gli host.
+In modalita `PAGES_RELEASE_MODE=live` applica i controlli `release:check` su ambiente e testi legali,
+verifica il dominio `alecoach.online`, il QA disattivato e le funzioni extra V1 disabilitate.
+In entrambi i casi costruisce gli asset e verifica SPA/PWA e gli header Cloudflare.
 Durante lo sviluppo usare `npm run build` normalmente.
 
 L'enforcement nel browser è difesa aggiuntiva e non una garanzia legale: prima di attivare

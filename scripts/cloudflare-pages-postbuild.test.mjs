@@ -35,6 +35,7 @@ test('Public live mode fails closed without legal approval or with QA mode',()=>
  assert.throws(()=>buildCloudflareHeaders(src,{PAGES_RELEASE_MODE:'live'},legal),/NO-GO/);
  assert.throws(()=>buildCloudflareHeaders(src,{...ready,VITE_PRELAUNCH_QA:'true'},legal),/QA/);
  assert.throws(()=>buildCloudflareHeaders(src,{...ready,VITE_GOOGLE_ENABLED:'true'},legal),/Google/);
+ assert.throws(()=>buildCloudflareHeaders(src,{...ready,VITE_CANCELLATION_POLICY_V2_ENABLED:'true'},legal),/Disdette e rimborsi V2/);
  assert.throws(()=>buildCloudflareHeaders(src,{...ready,VITE_PUBLIC_SITE_URL:'https://unknown.test'},legal),/NO-GO/);
  assert.throws(()=>buildCloudflareHeaders(src,{...ready},'[DA COMPILARE: privacy]'),/placeholder/);
 });

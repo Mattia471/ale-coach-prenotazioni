@@ -88,7 +88,7 @@ Per il go-live usare **Cloudflare Pages sul conto del cliente** (non Vercel), co
 
 1. Tutti i gate P0 di calendario, sicurezza, email e pagamenti superati.
 2. Informative approvate, configurazione fiscale e contrattuale verificata con il coach.
-3. Cloudflare Pages con repository GitHub, Vite, build `npm run release:build` e `dist`; DNS e HTTPS.
+3. Cloudflare Pages con repository GitHub, Vite, build `npm run pages:build` e output `dist` (`PAGES_RELEASE_MODE=prelaunch` fino al GO); DNS e HTTPS.
 4. Aggiornare Supabase Auth Site URL e Redirect URLs, success URL Stripe e indirizzi nelle email. Nessuna configurazione OAuth Google nella V1.
 5. Validare il nuovo sito mobile, controllare che nessuna chiave privata sia distribuita nel frontend, effettuare una transazione controllata concordata, monitorare webhook e backup.
 6. Solo allora rimuovere la protezione anti-indicizzazione e aprire ai clienti finali.
