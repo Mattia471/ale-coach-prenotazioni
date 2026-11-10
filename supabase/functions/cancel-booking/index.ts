@@ -68,12 +68,11 @@ Deno.serve(async req=>{
     b.status==='confirmed'&&b.payment_status==='paid'&&b.payment_mode==='online'){
    if(!b.starts_at||new Date(b.starts_at).getTime()<=Date.now())
     return json({error:'La lezione è già iniziata: contatta il coach'},409);
-   const userDb=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_ANON_KEY')!,{
-    global:{headers:{Authorization:`Bearer ${token}`}},
-    auth:{persistSession:false,autoRefreshToken:false}
+   // Only this trusted server may freeze a refund amount after validating the caller.
+   // Browser clients have no EXECUTE grant on this RPC.
+   const {data:claimed,error:claimError}=await admin.rpc('claim_paid_booking_refund',{
+    p_booking_id:b.id,p_client_id:user.id
    });
-   // Lock and freeze the amount on DB once, so retries cannot change the 24h band.
-   const {data:claimed,error:claimError}=await userDb.rpc('claim_paid_booking_refund',{p_booking_id:b.id});
    if(claimError)return json({error:claimError.message},409);
    const refundCents=Number(claimed);
    if(!Number.isSafeInteger(refundCents)||refundCents<=0||refundCents>b.amount_cents)
