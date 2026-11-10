@@ -11,7 +11,7 @@ Deno.serve(async req=>{
  const environment=Deno.env.get('STRIPE_ENVIRONMENT')||'test';
  const testMode=environment==='test'&&!!secret?.startsWith('sk_test_');
  const liveMode=environment==='live'&&Deno.env.get('STRIPE_LIVE_APPROVED')==='true'&&!!secret?.startsWith('sk_live_');
- if(Deno.env.get('STRIPE_PAYMENTS_ENABLED')!=='true'||(!testMode&&!liveMode)||!signing||!signature)
+ if(Deno.env.get('STRIPE_PAYMENTS_ENABLED')!=='true'||(!testMode&&!liveMode)||!secret||!signing||!signature)
   return new Response('Payment integration not configured',{status:503});
  const stripe=new Stripe(secret);
  let event:Stripe.Event;
