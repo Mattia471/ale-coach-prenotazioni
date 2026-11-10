@@ -82,6 +82,8 @@ Per la configurazione Stripe senza condividere credenziali:
 - Durante la preparazione Vercel restituisce `X-Robots-Tag: noindex`; il sito non viene presentato come servizio pubblicamente disponibile.
 - GDPR: [GDPR-COMPLIANCE.md](GDPR-COMPLIANCE.md), checklist completa: [TEST-PLAN.md](TEST-PLAN.md), differenze v2: [V2-DELTA.md](V2-DELTA.md).
 
+Per il go-live usare **Cloudflare Pages sul conto del cliente** (non Vercel), con procedura e gate in [CLOUDFLARE-PAGES-HANDOFF.md](CLOUDFLARE-PAGES-HANDOFF.md). Il backend rimane Supabase.
+
 ## Go-live su alecoach.online
 
 1. Tutti i gate P0 di calendario, sicurezza, email e pagamenti superati.
