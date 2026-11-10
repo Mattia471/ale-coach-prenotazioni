@@ -29,7 +29,11 @@ test('Refund release is off by default until reviewed and configured',()=>{
 test('A claim locks booking and freezes the refund amount; only server finalises',()=>{
  assert.match(sql,/where id=p_booking_id for update/);
  assert.match(sql,/if b\.cancellation_refund_cents is not null then/);
- assert.match(sql,/b\.client_id is distinct from auth\.uid\(\)/);
+ assert.match(sql,/b\.client_id is distinct from p_client_id/);
+ assert.match(sql,/revoke all on function public\.claim_paid_booking_refund\(uuid,uuid\) from public,anon,authenticated/);
+ assert.match(sql,/grant execute on function public\.claim_paid_booking_refund\(uuid,uuid\) to service_role/);
+ assert.match(fn,/await admin\.rpc\('claim_paid_booking_refund'/);
+ assert.doesNotMatch(fn,/await userDb\.rpc\('claim_paid_booking_refund'/);
  assert.match(sql,/revoke all on function public\.complete_paid_booking_refund\(uuid,text,integer,text\) from public,anon,authenticated/);
  assert.match(sql,/grant execute on function public\.complete_paid_booking_refund\(uuid,text,integer,text\) to service_role/);
  assert.match(fn,/claim_paid_booking_refund/);
