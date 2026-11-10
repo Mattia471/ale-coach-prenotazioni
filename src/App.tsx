@@ -517,6 +517,8 @@ function App(){
   const booking=bookings.find(b=>b.id===n.booking_id);
   if(!booking){submitMsg('La prenotazione non è disponibile nell’elenco. Aggiorna i dati e riprova.','info');void refresh();return}
   if(!isCoach&&booking.client_id!==profile?.id){submitMsg('Non puoi aprire questa prenotazione.','error');return}
+  // L'apertura riuscita considera la notifica letta. Il server controlla recipient_id.
+  if(!n.read_at)void markNotices([n.id]);
   setFocusedBookingId(booking.id);
   if(isCoach){setCoachTab('history')}else{setClientTab('bookings');setSelectedService(null)}
  };

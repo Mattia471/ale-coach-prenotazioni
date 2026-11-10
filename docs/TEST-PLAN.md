@@ -101,3 +101,27 @@ Non è un prerequisito per pubblicare l'app base. Non attivare OAuth, token o cr
 - [ ] Client: tentativi di INSERT/UPDATE/DELETE su calendar_course_blocks e calendar_closures devono essere rifiutati dalle RLS.
 - [ ] Blocchi inseriti dopo una prenotazione confermata non annullano automaticamente la lezione: controllare gli impegni già registrati.
 - [ ] Conferma Stripe Sandbox: usa la sola agenda interna, senza credenziali o chiamate a Google.
+
+
+## Checkpoint QA cloud del 10 novembre 2026 (sola lettura)
+
+Risultati osservati alla data indicata, non certificazione di idoneità al lancio.
+
+- [x] Vercel: versione di produzione approvata del 6 novembre, deployment READY.
+- [x] Supabase ACTIVE_HEALTHY; RLS abilitata su tutte le 17 tabelle applicative pubbliche.
+- [x] Transazioni READ ONLY: senza identità o con ruolo anon nessun profilo, prenotazione, notifica o credito visibile; con identità cliente visibili solo record propri; con ruolo coach visibili i record consentiti.
+- [x] Un cliente non può eseguire coach_set_in_person né coach_decide_booking: entrambe le RPC rifiutano con messaggio di autorizzazione. Nessun dato alterato.
+- [x] Gli utenti autenticati non possono aggiornare profiles.role, profiles.allow_in_person né notifications.title: privilegi di colonna verificati.
+- [x] Nessuna sovrapposizione tra le due prenotazioni confermate; nessuna hold attiva o scaduta al momento del controllo.
+- [x] available_slots_v2 invocata in sola lettura come cliente su sette date future: restituisce disponibilità nei giorni di attività, nessuna negli altri giorni del campione. Non sostituisce una prova anti-overbooking con due utenti.
+- [x] Cron scadenze e riconciliazione Stripe attivi, 288 esecuzioni ciascuno nelle 24h precedenti, zero esiti non riusciti.
+- [x] package_checkout_orders senza policy RLS e senza privilegi diretti anon/authenticated: tabella server-only, avviso informativo non equivale a esposizione.
+- [ ] Security Advisor: 12 RPC SECURITY DEFINER eseguibili da utenti autenticati; i corpi contengono controlli di identità o ruolo, ma serve test negativo completo sulle singole funzioni.
+- [ ] Auth: protezione da password compromesse disabilitata; abilitare e verificare se disponibile.
+- [ ] E2E di creazione, approvazione/rifiuto, conflitti e cancellazione con due account autorizzati: non eseguito per evitare modifiche reali al cloud.
+- [ ] Stripe Sandbox: preautorizzazione, cattura, annullamento, webhook, scadenze e rimborsi ancora da validare.
+- [ ] Disdette e rimborsi parziali (issue #5), crediti Flex (issue #15), approvazioni GDPR/Termini, SMTP e backup/restore ancora da completare.
+
+Issue #8: navigazione notifica-prenotazione già presente; in branch di revisione viene aggiunto il passaggio automatico a letta, subordinato a CI e verifica su dispositivo.
+
+Regola GO/NO-GO: non attivare incassi live né accesso commerciale prima di completare test e approvazioni.
