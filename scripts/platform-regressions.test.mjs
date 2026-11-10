@@ -191,3 +191,18 @@ test('Notifiche: apertura prenotazione marca letta senza bypass RLS',()=>{
  assert.match(app,/setFocusedBookingId\(booking\.id\)/);
  assert.match(app,/\.eq\('recipient_id',profile\.id\)/);
 });
+
+
+test('RPC cancellazione non pagata rifiuta identità assente senza alterare policy 24h o crediti',()=>{
+ const sql=read('supabase/migrations/20261110144000_cancel_unpaid_booking_null_identity.sql');
+ assert.match(sql,/CREATE OR REPLACE FUNCTION public\.cancel_unpaid_booking/i);
+ assert.match(sql,/SECURITY DEFINER/);
+ assert.match(sql,/SET search_path TO ''/);
+ assert.match(sql,/v_b\.client_id IS DISTINCT FROM auth\.uid\(\)/);
+ assert.match(sql,/not coalesce\(private\.is_coach\(\),false\)/);
+ assert.doesNotMatch(sql,/v_b\.client_id\s*<>\s*auth\.uid\(\)/);
+ assert.match(sql,/interval '24 hours'/);
+ assert.match(sql,/public\.wallet_credits set remaining=remaining\+1/);
+ assert.match(sql,/public\.notifications\(/);
+ assert.match(sql,/v_b\.payment_mode='online' then raise exception/);
+});
