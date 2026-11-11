@@ -219,12 +219,14 @@ In totale: **10 controlli negativi RPC superati** nei blocchi database di questo
 
 La CI avvia **il vero handler Deno** `supabase/functions/stripe-webhook/index.ts` in un processo locale isolato con chiavi Stripe finte e Supabase REST simulato su `127.0.0.1`. Non interagisce con Stripe Sandbox reale o con il database del cliente. Script: `scripts/qa-stripe-webhook-isolated.mjs`.
 
-- [ ] Evento `checkout.session.expired` con firma Stripe HMAC valida fa passare l'ordine Flex di prova da pending a expired.
-- [ ] Replay del medesimo evento: la transizione resta idempotente.
-- [ ] Evento scaduto riferito a ordine pagato: lo stato `paid` resta invariato.
-- [ ] Associazione sessione/ordine differente: nessuna alterazione.
-- [ ] Firma non valida o contenuto manipolato: `400` prima di ogni chiamata al DB.
-- [ ] Evento livemode=true in ambiente test: `400`; firma assente: `503`.
-- [ ] Test isolato completamente verde nella GitHub CI.
+- [x] Evento `checkout.session.expired` con firma Stripe HMAC valida fa passare l'ordine Flex di prova da pending a expired.
+- [x] Replay del medesimo evento: la transizione resta idempotente.
+- [x] Evento scaduto riferito a ordine pagato: lo stato `paid` resta invariato.
+- [x] Associazione sessione/ordine differente: nessuna alterazione.
+- [x] Firma non valida o contenuto manipolato: `400` prima di ogni chiamata al DB.
+- [x] Evento livemode=true in ambiente test: `400`; firma assente: `503`.
+- [x] Test isolato completamente verde nella GitHub CI.
 
 **Non sostituisce** un webhook realmente consegnato da Stripe Sandbox né il test end-to-end di checkout e pagamento, che restano bloccanti per GO commerciale.
+
+**CI verificata:** run GitHub Actions [43048715876](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43048715876): handler Deno avviato con backend fittizio, 8 scenari superati e job PostgreSQL parallelo verde. Nessuna scrittura su Supabase cloud né addebito Stripe.
