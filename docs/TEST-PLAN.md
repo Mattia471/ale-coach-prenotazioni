@@ -173,10 +173,10 @@ Questo checkpoint documenta la riconciliazione di eventi **già avvenuti**, non 
 
 Lo script scripts/qa-concurrency.mjs è predisposto per una **istanza PostgreSQL 17 temporanea nel runner GitHub Actions**, con connessione obbligatoria a localhost/alecoach_ci (non accetta database esterni). I test sono concorrenti e usano due vere connessioni PostgreSQL, non chiamate sequenziali né dati simulati in UI.
 
-Casi coperti, subordinati a CI verde:
-- [ ] Due clienti tentano contemporaneamente di inserire lo stesso intervallo in sedi differenti: un solo booking resta attivo grazie al vincolo di esclusione GiST.
-- [ ] Due clienti tentano di prelevare l'ultimo credito con FOR UPDATE SKIP LOCKED: un solo addebito riesce e il saldo non diventa negativo.
-- [ ] Se un booking va in conflitto dopo il consumo del credito nella stessa transazione, il rollback ripristina il credito.
-- [ ] Una prenotazione rifiutata libera lo slot per una nuova prenotazione confermata.
+Casi coperti, superati in CI sul database PostgreSQL temporaneo:
+- [x] Due clienti tentano contemporaneamente di inserire lo stesso intervallo in sedi differenti: un solo booking resta attivo grazie al vincolo di esclusione GiST.
+- [x] Due clienti tentano di prelevare l'ultimo credito con FOR UPDATE SKIP LOCKED: un solo addebito riesce e il saldo non diventa negativo.
+- [x] Se un booking va in conflitto dopo il consumo del credito nella stessa transazione, il rollback ripristina il credito.
+- [x] Una prenotazione rifiutata libera lo slot per una nuova prenotazione confermata.
 
 **Limite:** lo schema minimo del test riproduce i vincoli e gli statement PostgreSQL essenziali delle migrazioni verificate nel repository, ma non invoca la RPC reale di Supabase con utenti e Stripe. Il collaudo completo end-to-end in un ambiente isolato resta obbligatorio prima dell'apertura commerciale. Nessun dato, segreto o chiave del cliente è accessibile al runner.
