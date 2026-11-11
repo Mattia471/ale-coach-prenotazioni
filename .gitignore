@@ -14,3 +14,9 @@ supabase/.profiles/
 supabase/.env
 supabase/.env.*
 !supabase/.env.example
+
+# Sensitive local backup output (never commit ciphertext or plaintext)
+*.dump
+*.dump.age
+*.dump.age.partial
+*.backup

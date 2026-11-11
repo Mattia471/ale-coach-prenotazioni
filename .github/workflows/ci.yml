@@ -21,6 +21,10 @@ jobs:
         run: npm run build
       - name: Unit and release-gate tests
         run: npm test
+      - name: Validate encrypted backup scripts without DB access
+        run: |
+          bash -n scripts/backup-cloud-encrypted.sh
+          bash -n scripts/verify-encrypted-backup.sh
       - name: Cloudflare Pages prelaunch build and static asset checks
         run: npm run pages:build
       - uses: denoland/setup-deno@v2
