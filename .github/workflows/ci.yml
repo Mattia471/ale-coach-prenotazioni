@@ -26,11 +26,6 @@ jobs:
           bash -n scripts/backup-cloud-encrypted.sh
           bash -n scripts/verify-encrypted-backup.sh
           bash -n scripts/qa-backup-crypto-smoke.sh
-      - name: Exercise encrypted backup cryptography with disposable fixture only
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y age
-          bash scripts/qa-backup-crypto-smoke.sh
       - name: Cloudflare Pages prelaunch build and static asset checks
         run: npm run pages:build
       - uses: denoland/setup-deno@v2

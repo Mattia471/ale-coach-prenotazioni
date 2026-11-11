@@ -1,0 +1,25 @@
+name: QA | Encrypted backup cryptography (manual)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backup-smoke:
+    name: Fake-data age encryption smoke (no customer DB)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate shell scripts
+        run: |
+          bash -n scripts/backup-cloud-encrypted.sh
+          bash -n scripts/verify-encrypted-backup.sh
+          bash -n scripts/qa-backup-crypto-smoke.sh
+      - name: Install age (requires Ubuntu package mirror connectivity)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age
+      - name: Verify encryption, decryption and error cleanup on fake PGDMP
+        run: bash scripts/qa-backup-crypto-smoke.sh
