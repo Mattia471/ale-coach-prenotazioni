@@ -37,6 +37,11 @@ jobs:
           deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts
       - name: P0 Stripe signed-webhook retries, tampering and paid-order guard (fake local backend)
         run: node scripts/qa-stripe-webhook-isolated.mjs
+      - name: TEMP Verify new Cloudflare allowed origins via OPTIONS (no credentials)
+        run: |
+          QA_ALLOWED_ORIGIN=https://ale-coach-prenotazioni.vercel.app node scripts/qa-cors-preflight.mjs
+          QA_ALLOWED_ORIGIN=https://alecoach.online node scripts/qa-cors-preflight.mjs
+          QA_ALLOWED_ORIGIN=https://www.alecoach.online node scripts/qa-cors-preflight.mjs
       # Il backend è sul Supabase Cloud Ale Coach. Non eseguire seed o reset dei dati in CI.
 
   isolated-postgres-concurrency:
