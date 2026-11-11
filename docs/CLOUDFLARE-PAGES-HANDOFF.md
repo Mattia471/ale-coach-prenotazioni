@@ -95,3 +95,13 @@ Riferimenti: [Cloudflare Pages React](https://developers.cloudflare.com/pages/fr
 6. Dopo GO commerciale, collegare `alecoach.online` al Pages del cliente, commutare la Site URL e (se richiesto dal checkout server-to-server) il default `PUBLIC_APP_URL`, conservando Vercel in `ADDITIONAL_APP_ORIGINS` per QA. Ripetere smoke test e verifica dei redirect.
 
 **Regola di stop:** il codice Edge è installato ma la preflight Cloudflare fallisce realmente. Fino a un test verde, il dominio non è utilizzabile per i flussi protetti di booking e checkout. Nessun downgrade a CORS `*` e nessuna disabilitazione dell'autenticazione.
+
+## Aggiornamento 11/11/2026 ore 17:15 circa | Allowlist Supabase verificata
+
+Il cliente ha aggiunto `ADDITIONAL_APP_ORIGINS` sul progetto Supabase e abbiamo effettuato un **nuovo test HTTP reale** dal runner GitHub. L'esecuzione [43056433094](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43056433094) è **SUCCESS**: `create-checkout`, `cancel-booking` e `decide-booking` hanno tutte superato i preflight per **Vercel QA**, `https://alecoach.online` e `https://www.alecoach.online`, rifiutando un dominio non autorizzato.
+
+Il precedente HTTP 403 documentato sopra rappresenta **lo stato storico prima** della configurazione. **Il blocco CORS è ora chiuso.** La PR diagnostica temporanea #45 è stata chiusa **senza merge**: la CI ordinaria resta indipendente dal backend live.
+
+**Nuovo passo corrente:** creare nell'account Cloudflare del cliente un progetto Pages con GitHub `Mattia471/ale-coach-prenotazioni`, branch `main`, comando `npm run pages:build`, output `dist`, Node 22 e `PAGES_RELEASE_MODE=prelaunch`. Configurare gli env pubblici Supabase. Fare primo deploy su `*.pages.dev` e verificarne asset, header e SPA. **Non associare subito il dominio commerciale** e non abilitare pagamenti Live o iscrizioni pubbliche prima del GO. Il semplice `noindex` **non è un controllo di accesso**: se la preview deve restare riservata, configurare Cloudflare Access o altra vera protezione, senza cambiare JWT/RLS.
+
+L'URL di preview `*.pages.dev` e i redirect Supabase Auth vanno testati prima del collegamento del dominio. Per il dominio apex `alecoach.online`, Cloudflare Pages richiede che la zona DNS e i nameserver siano gestiti da Cloudflare. Non creare un progetto Workers per errore: selezionare esplicitamente **Pages → Import an existing Git repository**.
