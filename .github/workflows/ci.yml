@@ -35,6 +35,8 @@ jobs:
         run: |
           deno check --node-modules-dir=auto supabase/functions/create-checkout/index.ts supabase/functions/cancel-booking/index.ts supabase/functions/decide-booking/index.ts supabase/functions/stripe-webhook/index.ts
           deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts
+      - name: P0 Stripe signed-webhook retries, tampering and paid-order guard (fake local backend)
+        run: node scripts/qa-stripe-webhook-isolated.mjs
       # Il backend è sul Supabase Cloud Ale Coach. Non eseguire seed o reset dei dati in CI.
 
   isolated-postgres-concurrency:
