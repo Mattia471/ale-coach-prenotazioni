@@ -56,7 +56,9 @@ QA_ALLOWED_ORIGIN=https://ale-coach-prenotazioni.vercel.app node scripts/qa-cors
 QA_ALLOWED_ORIGIN=https://alecoach.online node scripts/qa-cors-preflight.mjs
 ```
 
-Lo script verifica le risposte `OPTIONS` delle tre funzioni: **200** e `Access-Control-Allow-Origin` esatto per l'origine autorizzata; **403** e nessun header di autorizzazione CORS per `https://evil.example`. Un esito 401 o 503 indica che il preflight è bloccato a monte e richiede correzione, non va aggirato. La CI testa la logica dello script con un server simulato, ma il test remoto reale resta P0.
+Lo script verifica le risposte `OPTIONS` delle tre funzioni: **200** e `Access-Control-Allow-Origin` esatto per l'origine autorizzata; **403** e nessun header di autorizzazione CORS per `https://evil.example`. Un esito 401 o 503 indica che il preflight è bloccato a monte e richiede correzione, non va aggirato. La CI testa la logica dello script con risposte simulate.
+
+**Verifica esterna Vercel conclusa l'11/11/2026:** il run GitHub Actions [43045747412](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43045747412) ha confermato il comportamento atteso da Vercel e il rifiuto di `evil.example` sulle tre funzioni. Il test temporaneo è stato eseguito senza credenziali e rimosso dalla CI permanente; **l'origin Cloudflare rimane da configurare e testare realmente prima del GO**.
 
 ## Checklist della consegna, senza nuovi moduli
 
