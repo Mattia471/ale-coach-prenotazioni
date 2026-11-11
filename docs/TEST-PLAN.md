@@ -202,3 +202,5 @@ Nessun dump, secret o password è stato esportato né inserito nel repository.
 - [ ] Restano da verificare con sessioni reali il comportamento delle RPC read-only di disponibilità e il rilascio slot, oltre ai casi E2E con due clienti autenticati.
 
 In totale: **10 controlli negativi RPC superati** nei blocchi database di questo checkpoint, senza modifiche persistenti.
+
+- [x] CI release indipendente da download age: bash syntax + controlli Node restano obbligatori. Prova di cifratura age con dati sintetici disponibile nel workflow manuale `.github/workflows/backup-crypto-smoke.yml`, già superata nel run della PR #37. Un successivo run può dipendere dalla disponibilità del mirror Ubuntu.
