@@ -262,3 +262,19 @@ Indirizzo tecnico creato dal cliente: **https://ale-coach-prenotazioni.pages.dev
 **Per evitare il problema in futuro:** `scripts/cloudflare-pages-postbuild.mjs` verifica nelle build reali Pages (`CF_PAGES=1`) che le due variabili pubbliche Supabase siano presenti e che l'URL sia quello del progetto autorizzato, anche in `prelaunch`. La CI su GitHub conserva build e test senza credenziali; i test di rete sono disponibili solo nel workflow manuale **QA | Cloudflare Pages smoke (manual)**, che controlla separatamente la parte statica e il preflight Pages → Supabase.
 
 **GO resta bloccato** finché entrambi i test manuali non tornano verdi, più Auth/SMTP, Stripe Sandbox E2E, backup/restore e approvazione legale. `noindex` **non protegge l'accesso** alla preview; per tenerla privata serve Cloudflare Access. Non associare ancora il dominio commerciale né attivare Stripe Live.
+
+
+## Cloudflare Pages | Verifica Auth pubblica e RLS anonimo (11/11/2026)
+
+Test HTTP **effettivo**, dalla preview `https://ale-coach-prenotazioni.pages.dev/` al progetto Supabase del cliente. Run GitHub [43062615798](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43062615798), esito `SUCCESS`. Script `scripts/qa-pages-auth-public.mjs` e workflow on-demand `.github/workflows/pages-auth-public-smoke.yml`; la CI di rilascio include solo `node --check`, non dipende dal cloud esterno.
+
+- [x] Chiave `sb_publishable_` rilevata **solo in memoria**, una sola chiave nel bundle Pages; il test non la mostra nei log.
+- [x] Supabase `/auth/v1/health` e `/auth/v1/settings` rispondono 200 con la chiave pubblica del frontend.
+- [x] Accesso pubblico di sola lettura a `services`, `venues`, `packages` riuscito. Nessuna riga o dato personale stampato nei log.
+- [x] Lettura anonima di `profiles`, `bookings`, `wallet_credits`, `notifications`, `slot_holds`: **nessuna riga esposta**.
+- [x] Chiamata `GET /auth/v1/user` con JWT sintetico invalido respinta.
+- [x] Il cliente ha dichiarato di aver aggiunto `https://ale-coach-prenotazioni.pages.dev/**` alla allowlist Redirect URLs Supabase. **L'effettiva redirezione di una email non è stata ancora collaudata**.
+- [ ] P0: login con account di test reale su Cloudflare, ricarica sessione, logout, password recovery tramite email SMTP e verifica che il link ritorni a `pages.dev` e non a Vercel.
+- [ ] P0: creazione prenotazione e approvazione/rifiuto con identità reali, Stripe Checkout Sandbox e backup/restore.
+
+La verifica pubblica non richiede password, non genera email, non crea utenti/prenotazioni/pagamenti e non è equivalente al collaudo E2E autenticato.
