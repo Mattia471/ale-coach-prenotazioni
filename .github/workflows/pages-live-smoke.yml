@@ -1,0 +1,30 @@
+name: QA | Cloudflare Pages smoke (manual)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-pages:
+    name: HTTPS, prelaunch headers, SPA and PWA
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Cloudflare Pages deployment (GET only)
+        run: node scripts/qa-cloudflare-pages-smoke.mjs
+  preview-cors:
+    name: Supabase CORS for the exact technical Pages URL
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Edge preflight from Cloudflare Pages (OPTIONS only)
+        env:
+          QA_ALLOWED_ORIGIN: https://ale-coach-prenotazioni.pages.dev
+        run: node scripts/qa-cors-preflight.mjs

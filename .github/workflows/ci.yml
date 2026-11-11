@@ -26,6 +26,8 @@ jobs:
           bash -n scripts/backup-cloud-encrypted.sh
           bash -n scripts/verify-encrypted-backup.sh
           bash -n scripts/qa-backup-crypto-smoke.sh
+      - name: Syntax check read-only Cloudflare Pages HTTP smoke script
+        run: node --check scripts/qa-cloudflare-pages-smoke.mjs
       - name: Cloudflare Pages prelaunch build and static asset checks
         run: npm run pages:build
       - uses: denoland/setup-deno@v2
