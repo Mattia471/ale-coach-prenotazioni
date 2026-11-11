@@ -239,3 +239,11 @@ La CI avvia **il vero handler Deno** `supabase/functions/stripe-webhook/index.ts
 - [x] Workflow GitHub manuale `.github/workflows/edge-cors-preflight.yml` preparato per ritestare Vercel, `alecoach.online` e `www.alecoach.online` senza JWT né segreti.
 - [ ] **P0:** aggiornare `ADDITIONAL_APP_ORIGINS` nel Supabase del cliente, preservando il valore esistente di `PUBLIC_APP_URL`; test remoto verde su entrambi gli host prima della configurazione finale Pages.
 - [ ] **P0:** autorizzare redirect Supabase Auth e testare email, reset password e checkout Sandbox da Pages. Il GO commerciale rimane NO-GO.
+
+## Risultato aggiornato: CORS Cloudflare chiuso (11/11/2026)
+
+- [x] Il cliente ha inserito `ADDITIONAL_APP_ORIGINS` e il test HTTP remoto [43056433094](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43056433094) ha verificato `OPTIONS` reale su **tutte e tre le Edge Functions** per `https://alecoach.online`, `https://www.alecoach.online` e Vercel QA: HTTP 200, allow-origin esatto, `Vary: Origin`. `https://evil.example` continua a essere rifiutato.
+- [x] PR temporanea diagnostica #45 chiusa senza merge. Nessuna modifica a chiavi, pagamenti, prenotazioni o funzioni Edge durante il test.
+- [ ] **Prossimo gate P0:** creare progetto Cloudflare Pages sul GitHub del titolare e build `prelaunch` su `*.pages.dev`; verificare noindex, route SPA, PWA, header e TLS.
+- [ ] **P0 successivo:** configurazione redirect Auth, login/reset password, email SMTP, intero checkout Sandbox e test mobile sull'URL Pages prima del cutover DNS.
+- [ ] **P0 commerciale:** approvazioni legali, backup reale con prova restore e successivo collegamento dominio apex tramite zona Cloudflare, **solo dopo autorizzazione al GO**.
