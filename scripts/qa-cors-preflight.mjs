@@ -11,7 +11,7 @@ function exactHttpsOrigin(value) {
  try {
   const url=new URL(value);
   if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||
-     url.search||url.hash||url.origin!==value.replace(/\/$/,''))return false;
+     url.search||url.hash||url.origin!==value)return false;
   return true;
  } catch {return false;}
 }
