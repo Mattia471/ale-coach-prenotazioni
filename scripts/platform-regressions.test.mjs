@@ -289,3 +289,19 @@ test('Cloudflare / Vercel CORS preflight checks approved origin and blocks looka
  const badFetch=async()=>new Response('',{status:200,headers:{'Access-Control-Allow-Origin':'*'}});
  await assert.rejects(runCorsPreflight({allowedOrigin:approved,fetchImpl:badFetch}),/expected HTTP 200/);
 });
+
+
+test('Prelaunch senza approvazione legale blocca tutti i checkout dal frontend',()=>{
+ const app=read('src/App.tsx');
+ const legal=read('src/legal.ts');
+ assert.match(legal,/blockUnreviewedLegal\s*=\s*import\.meta\.env\.PROD\s*&&\s*!legalReady\s*&&\s*!internalQa/);
+ assert.match(app,/const buyPackage=async\(p:Pack\)=>\{\s*if\(blockUnreviewedLegal\)\{submitMsg\('Acquisti non attivi:[^']*','error'\);return\}/);
+ assert.match(app,/const payBooking=async\(b:Booking\)=>\{\s*if\(blockUnreviewedLegal\)\{submitMsg\('Pagamenti non attivi:[^']*','error'\);return\}/);
+ assert.match(app,/onClick=\{\(\)=>void buyPackage\(p\)\} disabled=\{busy\|\|p\.type==='subscription'\|\|blockUnreviewedLegal\}/);
+ assert.equal((app.match(/onClick=\{\(\)=>void payBooking\(b\)\} disabled=\{busy\|\|blockUnreviewedLegal\}/g)||[]).length,2);
+ assert.match(app,/Prenotazioni non attive: informative legali non ancora approvate/);
+ // The test-only QA override does not imply permission to activate live payments.
+ const pages=read('scripts/cloudflare-pages-postbuild.mjs');
+ assert.match(pages,/env\.VITE_PRELAUNCH_QA==='true'/);
+ assert.match(pages,/NO-GO Cloudflare Pages/);
+});
