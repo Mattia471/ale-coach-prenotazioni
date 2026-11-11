@@ -88,3 +88,33 @@ BEGIN
 END $qa$;
 SELECT 'QA cancellazioni proprietario: PASS (ROLLBACK)' AS qa_result;
 ROLLBACK;
+
+
+-- C. Mancanza identità JWT: le RPC di prenotazione/hold negano subito.
+-- Nessun lock di prenotazioni o scrittura: transazione strettamente READ ONLY.
+BEGIN TRANSACTION READ ONLY;
+SET LOCAL statement_timeout='5s';
+SET LOCAL ROLE authenticated;
+DO $qa$
+DECLARE message_text text;
+BEGIN
+ IF auth.uid() IS NOT NULL THEN RAISE EXCEPTION 'QA invalid JWT-less context'; END IF;
+ message_text:=null;
+ BEGIN
+  PERFORM public.create_booking_v2('single','talenti',current_date+2,600);
+ EXCEPTION WHEN others THEN GET STACKED DIAGNOSTICS message_text=MESSAGE_TEXT;
+ END;
+ IF message_text IS DISTINCT FROM 'Devi accedere per prenotare' THEN
+  RAISE EXCEPTION 'QA create_booking_v2 missing JWT not denied: %',message_text;
+ END IF;
+ message_text:=null;
+ BEGIN
+  PERFORM public.reserve_slot_v2('single',current_date+2,600,'talenti');
+ EXCEPTION WHEN others THEN GET STACKED DIAGNOSTICS message_text=MESSAGE_TEXT;
+ END;
+ IF message_text IS DISTINCT FROM 'Accedi per riservare uno slot' THEN
+  RAISE EXCEPTION 'QA reserve_slot_v2 missing JWT not denied: %',message_text;
+ END IF;
+END $qa$;
+SELECT 'QA prenotazione/hold senza JWT: PASS (READ ONLY)' AS qa_result;
+ROLLBACK;
