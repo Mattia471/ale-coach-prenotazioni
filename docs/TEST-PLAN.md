@@ -137,7 +137,20 @@ Questo checkpoint documenta la riconciliazione di eventi **già avvenuti**, non 
 - [x] Quattro PaymentIntent di test con cattura manuale associati a quattro booking nel DB: approvato/pagato, rifiutato/non pagato, annullato/non pagato, scaduto/non pagato.
 - [x] Flex 5: un checkout di 250,00 € pagato corrisponde a **un** portafoglio crediti con 4 crediti residui su 5 e scadenza a circa 3 mesi.
 - [x] Ordini Flex `expired` e `pending` non hanno generato wallet.
-- [x] Individuato un checkout Flex scaduto e non pagato su Stripe ma rimasto `pending` nel DB: la funzione webhook precedente ignorava `checkout.session.expired` con `kind='package'`. Correzione versionata nella PR #31, integrata in main, ma non ancora deployata sul progetto Edge live.
-- [x] Hardening di `cancel_unpaid_booking` per identità nulla versionato nella PR #30, integrato in main, ma migrazione non ancora applicata al database live.
+- [x] Individuato un checkout Flex scaduto e non pagato su Stripe ma rimasto `pending` nel DB: la funzione webhook precedente ignorava `checkout.session.expired` con `kind='package'`. Correzione integrata tramite PR #31 e successivamente distribuita su Supabase Edge Function `stripe-webhook` v11 l'11/11/2026. Il test end-to-end con nuovo evento firmato rimane aperto.
+- [x] Hardening di `cancel_unpaid_booking` per identità nulla integrato tramite PR #30; migrazione applicata al database cloud l'11/11/2026 (`cancel_unpaid_booking_null_identity`) e verificata su definizione, finestra 24h e privilegi.
 
-**Ancora P0 aperti:** deploy controllato e QA del nuovo webhook Sandbox, riconciliazione sicura dell'ordine pregresso `pending` solo dopo verifica della sessione Stripe, verifica retry/idempotenza e due clienti simultanei, esecuzione e controllo della migrazione sicurezza su ambiente isolato, Auth/SMTP, GDPR e backup restore. Nessuna attivazione di incassi live o Cloudflare live prima del GO.
+**Ancora P0 aperti:** nuovo test end-to-end del webhook v11 con evento firmato e retry/idempotenza, concorrenza di due utenti su ultimo slot/credito, test negativo delle RPC su account autorizzati, Auth/SMTP, GDPR e backup/restore. Nessuna attivazione di incassi live o Cloudflare live prima del GO.
+
+## Checkpoint cloud dell'11 novembre 2026 (dopo il deploy controllato)
+
+- [x] `stripe-webhook` aggiornata da v10 a **v11** sul progetto Supabase Ale Coach; mantenuto `verify_jwt=false` per la firma di Stripe, verificata all'interno dell'handler. Il codice distribuito differisce dalla v10 soltanto per il ramo di scadenza Flex e una guardia esplicita sul secret.
+- [x] Checkout Flex 5 da 250 € rimasto `pending`: Stripe Sandbox conferma `expired`, `unpaid`, ordine associato corretto e nessun PaymentIntent. Riconciliato con UPDATE a una sola riga, vincolato a session ID, importo, stato e assenza wallet.
+- [x] Ordini pacchetti dopo la riconciliazione: **1 pagato, 2 scaduti, 0 sospesi**. Nessun wallet collegato a ordini non pagati.
+- [x] Migrazione `cancel_unpaid_booking_null_identity` applicata sul cloud: vecchio confronto SQL `<>` con `auth.uid()` nullo sostituito da `IS DISTINCT FROM`. Il controllo logico è stato verificato con quattro casi (proprietario, altro cliente, coach, identità assente) prima dell'applicazione. Permessi `anon=false`, `authenticated=true`, invariati.
+- [x] Monitoraggio dei due cron nelle 24 ore precedenti: 288 esecuzioni riuscite ciascuno, **0 fallite**. Nessuna prenotazione `processing` oltre due ore, wallet negativi o ordini Flex scaduti rimasti `pending` al controllo.
+- [x] Supabase Health Advisor: nessun rilievo.
+- [ ] **Non equivale a collaudo E2E:** da ripetere con flussi isolati e due clienti; non è stato inviato un nuovo webhook firmato dopo la v11 né effettuato un vero test con carta per questo checkpoint.
+- [ ] Security Advisor continua a segnalare 12 RPC `SECURITY DEFINER` accessibili ad authenticated (revisione di autorizzazioni necessaria) e protezione dalle password compromesse disabilitata; la tabella `package_checkout_orders` è server-only e senza permessi browser.
+- [ ] Per Cloudflare: creare Pages nell'account del cliente, configurare Auth/allowlist origini e verificare login, checkout Sandbox e redirect prima di modificare il dominio pubblico.
+

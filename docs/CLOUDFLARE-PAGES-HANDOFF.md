@@ -52,9 +52,10 @@ La build `pages:build` si chiude con errore se `PAGES_RELEASE_MODE=live` ma manc
 - [ ] Anteprima Pages con `PAGES_RELEASE_MODE=prelaunch` buildata; route dirette `/privacy`, `/termini`, `/cookie` e asset PWA verificati.
 - [ ] Security headers, `noindex` e risposte a HTTP/HTTPS verificati.
 - [ ] Dopo deploy/allowlist Edge Functions: login, logout, reset password, creazione prenotazioni, coach approva/rifiuta e pagamento Stripe Sandbox da origine Pages.
-- [ ] Distribuire e verificare anche `stripe-webhook` aggiornato: evento firmato `checkout.session.expired` dei pacchetti passa solo `pending` → `expired`, senza toccare ordini `paid` o wallet. Riconciliare separatamente gli ordini vecchi confermati scaduti su Stripe; non applicare correzioni indiscriminate ai pagamenti.
+- [x] Distribuito `stripe-webhook` v11 su Supabase (11/11/2026); corregge `checkout.session.expired` dei pacchetti da `pending` a `expired` con controllo su ordine/sessione. Riconciliato separatamente l'unico ordine Flex storico verificato scaduto su Stripe.
+- [ ] **Ancora da testare:** nuovo evento webhook firmato, replay idempotente e retry; verificare dopo la v11 che ordini già `paid` e wallet non vengano alterati. Nessun test con carta live.
 - [ ] Redirect di Auth verificati su Pages e dominio personalizzato.
-- [ ] Controllo di concorrenza ultimo credito e ultimo slot in ambiente isolato.
+- [ ] Controllo di concorrenza ultimo credito e ultimo slot in ambiente isolato (non eseguire sul dataset commerciale).
 - [ ] Migrazione/disdette/rimborsi solo dopo approvazione della policy e verifica Sandbox.
 - [ ] Backup con restore provato, configurazione SMTP dominio, RLS e consulenza legale/fiscale completati.
 - [ ] Controllo sito su smartphone e desktop; nessun errore console, RLS o Edge; PWA ricaricata correttamente.

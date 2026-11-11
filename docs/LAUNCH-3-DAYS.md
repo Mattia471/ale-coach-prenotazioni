@@ -1,5 +1,7 @@
 # Ale Coach | Rilascio operativo su cloud e successivo dominio
 
+> **Aggiornamento operativo 11/11/2026:** le tabelle con date 4–6 novembre sono uno storico del piano iniziale, non lo stato attuale. Il webhook Stripe Sandbox v11 e la migrazione `cancel_unpaid_booking_null_identity` sono ora applicati a Supabase; un vecchio ordine Flex scaduto è stato riconciliato. CI verde, ma il GO commerciale resta **NO-GO** finché Stripe E2E, concorrenza, Auth/SMTP, GDPR, backup/restore e Cloudflare Pages non sono verificati. Si veda [TEST-PLAN.md](TEST-PLAN.md).
+
 **Stato al 4 novembre 2026:** il backend è sul Supabase Free dell'account Ale Coach e il frontend è online sul Vercel personale dello sviluppatore. **Non esistono più database o seed locali.** Il rilascio commerciale sul dominio **alecoach.online** resta subordinato al completamento dei controlli sicurezza, GDPR e pagamenti.
 
 ## Decisione di prodotto · 10 novembre 2026

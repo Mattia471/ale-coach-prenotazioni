@@ -73,12 +73,12 @@ La promozione deve essere eseguita **solo dopo conferma dell'identità del vero 
 | --- | --- |
 | Catalogo, sedi e orari su Supabase | API reali verificate |
 | Autenticazione email/password | Auth pronto, conferma email attiva; SMTP e redirect da controllare |
-| Account coach | **Non ancora assegnato**: nessun utente è stato creato automaticamente |
+| Account coach | Un profilo con ruolo `coach` presente all'11/11; identità e accesso operativo ancora da confermare con il titolare |
 | Nuove prenotazioni | RPC live e anti-overbooking su DB, test E2E multiutente da eseguire |
 | Promozione `ALECOACH15` | Verifica server; test su account cliente necessario |
 | Google Calendar | **Non incluso nella prima release**; backend dormiente, attivabile solo mediante progetto extra concordato |
 | Conferme coach | Consentite senza Google, previa verifica server di slot, corsi, chiusure e spostamenti |
-| Stripe | Edge Functions online, **chiavi e preautorizzazione v2 non pronti** |
+| Stripe | Solo Sandbox: flussi preautorizzazione/approvazione/rifiuto/storno osservati e riconciliati; `stripe-webhook` v11 distribuito all'11/11, nuovi test E2E ancora richiesti |
 | Push e email transazionali | Predisposte, servizi esterni non ancora collegati |
 | GDPR | Informative non finali; accesso ristretto, nessun uso commerciale |
 | Cron scadenza prenotazioni | Configurato lato database; verificare periodicamente job e log |
@@ -98,12 +98,12 @@ di database. Le prove multiutente richiedono account autenticati veri.
 
 ## Passaggio futuro a Cloudflare Pages
 
-1. Configurare repository, `npm run release:build` e output `dist`.
+1. Configurare repository, `npm run pages:build` con `PAGES_RELEASE_MODE=prelaunch` e output `dist`.
 2. Impostare le variabili `VITE_SUPABASE_*` pubbliche nello stesso modo;
    le credenziali privilegiate rimangono solo su Supabase.
 3. Completare informative e togliere `VITE_PRELAUNCH_QA` con approvazione formale.
-4. Abilitare i redirect di Auth, HTTPS `alecoach.online`, OAuth e la mail.
-5. Eseguire GO/NO-GO GDPR, sicurezza, calendari e pagamenti prima del traffico reale.
+4. Abilitare i redirect di Auth, HTTPS `alecoach.online` e SMTP; Google OAuth resta escluso dalla V1.
+5. Eseguire GO/NO-GO GDPR, sicurezza, calendari e pagamenti prima del traffico reale. Per aggiornamenti backend verificati l'11/11/2026 vedere [TEST-PLAN.md](TEST-PLAN.md).
 
 Documenti correlati: [V2-DELTA.md](V2-DELTA.md),
 [TEST-PLAN.md](TEST-PLAN.md), [GDPR-COMPLIANCE.md](GDPR-COMPLIANCE.md).
