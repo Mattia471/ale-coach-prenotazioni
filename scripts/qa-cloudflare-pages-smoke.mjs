@@ -65,9 +65,7 @@ export async function runPagesSmoke(){
  assert.ok(cssBody.length>1000,'CSS asset unexpectedly small');
  assert.match(script.headers.get('content-type')||'',/javascript/i,'JS asset has wrong content type');
  assert.match(css.headers.get('content-type')||'',/css/i,'CSS asset has wrong content type');
- assert.ok(scriptBody.includes(expectedSupabaseHost),
-  'Supabase URL missing from built frontend bundle; check Cloudflare Pages variables');
- report('versioned JS/CSS assets healthy; frontend points to correct Supabase project');
+ report('versioned JS/CSS assets are served and have correct MIME types');
 
  const manifestRes=await fetchPage('/manifest.webmanifest','application/manifest+json');
  const manifest=await manifestRes.json();
@@ -81,6 +79,9 @@ export async function runPagesSmoke(){
  assert.ok(sw.length>40,'Service Worker missing or empty');
  assert.match(swRes.headers.get('content-type')||'',/javascript/i,'Service Worker is not JS');
  report('PWA manifest, icon and service worker are served successfully');
+ assert.ok(scriptBody.includes(expectedSupabaseHost),
+  'Supabase URL missing from built frontend bundle; set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Cloudflare Production and redeploy');
+ report('compiled frontend bundle includes the expected Supabase project hostname');
 
  console.log('PASS: all Cloudflare Pages static/deep-link checks passed.');
  console.log('NOTE: authenticated booking, recovery email, Stripe Sandbox and mobile require other QA.');
