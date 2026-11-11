@@ -154,3 +154,16 @@ Questo checkpoint documenta la riconciliazione di eventi **già avvenuti**, non 
 - [ ] Security Advisor continua a segnalare 12 RPC `SECURITY DEFINER` accessibili ad authenticated (revisione di autorizzazioni necessaria) e protezione dalle password compromesse disabilitata; la tabella `package_checkout_orders` è server-only e senza permessi browser.
 - [ ] Per Cloudflare: creare Pages nell'account del cliente, configurare Auth/allowlist origini e verificare login, checkout Sandbox e redirect prima di modificare il dominio pubblico.
 
+
+
+## Checkpoint P0 autorizzazioni (11 novembre 2026, sessione QA)
+
+**Eseguiti senza dati di prova persistenti** sul cloud del cliente. Script ripetibile: [QA-RPC-RLS-READONLY.sql](QA-RPC-RLS-READONLY.sql).
+
+- [x] Sessione SQL `authenticated` con un profilo `client` esistente, senza esposizione di ID o dati personali; `private.is_coach()=false`.
+- [x] In `READ ONLY` il cliente non vede record di altri utenti in `profiles`, `bookings`, `notifications`, `wallet_credits` e `slot_holds`. `package_checkout_orders` resta priva di SELECT browser.
+- [x] Sei RPC con privilegi coach verificati con test **negativi effettivi** da ruolo cliente: `coach_set_in_person`, `coach_set_booking_method`, `coach_mark_in_person_paid`, `coach_decide_booking`, `coach_classify_external_event`, `claim_booking_decision`. Tutte hanno negato l'operazione prima della scrittura.
+- [x] Due RPC di cancellazione `claim_booking_cancellation` e `cancel_unpaid_booking` testate con UUID assente e controllo preliminare del guard SQL. Esecuzione in transazione esplicitamente **ROLLBACK**, perché `SELECT FOR UPDATE` non funziona in una transazione `READ ONLY`.
+- [x] Script eseguito su Supabase senza errori e protetto dal test di regressione CI che verifica transazioni, ruolo, limiti di tempo e rollback.
+
+**Attenzione:** l'identità SQL simulata a partire da un profilo cliente è un collaudo amministrativo dei controlli database, **non** una sessione browser con JWT verificato. Non sostituisce test reali con due account di prova, concorrenza ultimo slot/credito, permessi nelle altre RPC (12 avvisi in totale), né collaudo di webhook e pagamenti.
