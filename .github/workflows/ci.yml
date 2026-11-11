@@ -35,6 +35,10 @@ jobs:
         run: |
           deno check --node-modules-dir=auto supabase/functions/create-checkout/index.ts supabase/functions/cancel-booking/index.ts supabase/functions/decide-booking/index.ts supabase/functions/stripe-webhook/index.ts
           deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts
+      - name: One-shot CORS preflight to Supabase Edge (OPTIONS only, no credentials)
+        env:
+          QA_ALLOWED_ORIGIN: https://ale-coach-prenotazioni.vercel.app
+        run: node scripts/qa-cors-preflight.mjs
       # Il backend è sul Supabase Cloud Ale Coach. Non eseguire seed o reset dei dati in CI.
 
   isolated-postgres-concurrency:
