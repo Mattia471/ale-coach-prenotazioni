@@ -46,3 +46,7 @@ La verifica autentica l'intero stream con age e verifica la firma **PGDMP** del 
 5. Solo dopo backup reale, copia offsite e ripristino riuscito segnare il gate come completato.
 
 **Limiti:** non è stato ancora eseguito il backup dei dati commerciali, né un ripristino completo. Free può non garantire l'RPO necessario al cliente; valutare Supabase Pro con backup gestiti, o backup offsite automatici correttamente supervisionati. Le chiavi private devono rimanere in custodia del titolare.
+
+## Controlli CI e disponibilità dei mirror
+
+La CI obbligatoria esegue `bash -n` e controlli statici sulle guardie dei due script, senza connessioni DB. Una prova age con dati fittizi si avvia separatamente da GitHub Actions → **QA | Encrypted backup cryptography (manual)** tramite workflow_dispatch. Questo isolamento impedisce che guasti DNS dei mirror Ubuntu per l'installazione di age blocchino le release del frontend. La verifica crittografica è stata superata nel workflow della PR #37; la sua indisponibilità temporanea non equivale a un difetto dell'app né a un backup reale.
