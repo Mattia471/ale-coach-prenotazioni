@@ -180,3 +180,15 @@ Casi coperti, superati in CI sul database PostgreSQL temporaneo:
 - [x] Una prenotazione rifiutata libera lo slot per una nuova prenotazione confermata.
 
 **Limite:** lo schema minimo del test riproduce i vincoli e gli statement PostgreSQL essenziali delle migrazioni verificate nel repository, ma non invoca la RPC reale di Supabase con utenti e Stripe. Il collaudo completo end-to-end in un ambiente isolato resta obbligatorio prima dell'apertura commerciale. Nessun dato, segreto o chiave del cliente è accessibile al runner.
+
+
+## Backup Free Plan | Procedura preparata (11/11/2026)
+
+- [x] Piano Supabase verificato: organizzazione cliente **Free**. Backup giornalieri gestiti non disponibili.
+- [x] Script di dump logico con cifratura immediata age, senza output temporaneo in chiaro o password in CLI: scripts/backup-cloud-encrypted.sh.
+- [x] Script verifica decrittazione autenticata e firma PGDMP **solo in memoria**: scripts/verify-encrypted-backup.sh.
+- [x] Runbook con file Supabase Storage da salvare separatamente, custodia chiavi e ripristino solo su ambiente isolato: [BACKUP-RESTORE-RUNBOOK.md](BACKUP-RESTORE-RUNBOOK.md).
+- [ ] **P0 aperto:** eseguire primo backup reale con il titolare autorizzato e verificare la copia offsite.
+- [ ] **P0 aperto:** prova di ripristino completo su progetto isolato, incluso Auth/Storage, senza sostituire Supabase live.
+
+Nessun dump, secret o password è stato esportato né inserito nel repository.
