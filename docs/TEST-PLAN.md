@@ -213,3 +213,18 @@ In totale: **10 controlli negativi RPC superati** nei blocchi database di questo
 - [x] **Test remoto reale dal runner GitHub:** tutte e tre le Edge Functions hanno risposto correttamente al preflight `OPTIONS` con origine Vercel approvata e hanno rifiutato `https://evil.example` senza header CORS. Eseguito senza JWT, API key, prenotazioni o pagamenti; run [43045747412](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43045747412) (11/11/2026). La PR temporanea #40 usata per la prova è stata chiusa senza merge per non creare dipendenza di rete nella CI quotidiana.
 - [ ] Test reale **Cloudflare** dopo configurazione `ADDITIONAL_APP_ORIGINS` / `PUBLIC_APP_URL` e redirect Supabase Auth. Non ancora verificato; l'esito Vercel non implica automaticamente che il nuovo dominio sia abilitato.
 - [ ] Da verificare separatamente redirect di login/recupero password e checkout Stripe Sandbox dai nuovi host. Nessuna apertura pubblica prima del GO.
+
+
+## Test del webhook firmato con backend simulato (11 novembre 2026)
+
+La CI avvia **il vero handler Deno** `supabase/functions/stripe-webhook/index.ts` in un processo locale isolato con chiavi Stripe finte e Supabase REST simulato su `127.0.0.1`. Non interagisce con Stripe Sandbox reale o con il database del cliente. Script: `scripts/qa-stripe-webhook-isolated.mjs`.
+
+- [ ] Evento `checkout.session.expired` con firma Stripe HMAC valida fa passare l'ordine Flex di prova da pending a expired.
+- [ ] Replay del medesimo evento: la transizione resta idempotente.
+- [ ] Evento scaduto riferito a ordine pagato: lo stato `paid` resta invariato.
+- [ ] Associazione sessione/ordine differente: nessuna alterazione.
+- [ ] Firma non valida o contenuto manipolato: `400` prima di ogni chiamata al DB.
+- [ ] Evento livemode=true in ambiente test: `400`; firma assente: `503`.
+- [ ] Test isolato completamente verde nella GitHub CI.
+
+**Non sostituisce** un webhook realmente consegnato da Stripe Sandbox né il test end-to-end di checkout e pagamento, che restano bloccanti per GO commerciale.
