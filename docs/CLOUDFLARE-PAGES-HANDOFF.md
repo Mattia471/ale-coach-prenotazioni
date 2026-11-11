@@ -105,3 +105,18 @@ Il precedente HTTP 403 documentato sopra rappresenta **lo stato storico prima** 
 **Nuovo passo corrente:** creare nell'account Cloudflare del cliente un progetto Pages con GitHub `Mattia471/ale-coach-prenotazioni`, branch `main`, comando `npm run pages:build`, output `dist`, Node 22 e `PAGES_RELEASE_MODE=prelaunch`. Configurare gli env pubblici Supabase. Fare primo deploy su `*.pages.dev` e verificarne asset, header e SPA. **Non associare subito il dominio commerciale** e non abilitare pagamenti Live o iscrizioni pubbliche prima del GO. Il semplice `noindex` **non è un controllo di accesso**: se la preview deve restare riservata, configurare Cloudflare Access o altra vera protezione, senza cambiare JWT/RLS.
 
 L'URL di preview `*.pages.dev` e i redirect Supabase Auth vanno testati prima del collegamento del dominio. Per il dominio apex `alecoach.online`, Cloudflare Pages richiede che la zona DNS e i nameserver siano gestiti da Cloudflare. Non creare un progetto Workers per errore: selezionare esplicitamente **Pages → Import an existing Git repository**.
+
+
+## Primo deployment Cloudflare Pages verificato | 11 novembre 2026
+
+Indirizzo tecnico creato dal cliente: **https://ale-coach-prenotazioni.pages.dev/**. Test HTTP reali eseguiti dal runner GitHub Actions con richieste GET/OPTIONS pubbliche, **senza JWT, chiavi, pagamenti o scritture**: [43059834311](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43059834311).
+
+**PASS:** HTTPS, root HTML React/Vite, `X-Robots-Tag: noindex` (prelaunch), header di sicurezza, fallback SPA per `/privacy`, `/termini`, `/cookie`, bundle JS/CSS, manifest PWA, icona e Service Worker.
+
+**Due blocchi di configurazione rilevati:**
+1. Il bundle JavaScript servito da Pages **non contiene l'hostname Supabase ALE COACH previsto**. Il frontend `src/lib.ts` utilizza `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` in fase di compilazione. Aprire Cloudflare Pages → Settings → Environment variables, per l'ambiente **Production**, configurare `VITE_SUPABASE_URL=https://mmtnzjdvvlouiwgrydlf.supabase.co` e `VITE_SUPABASE_PUBLISHABLE_KEY` con la **chiave pubblica** del progetto. Poi effettuare **un nuovo deployment da `main`**: Vite non aggiorna un bundle statico senza build. Nessuna `service_role` o secret Stripe in Cloudflare.
+2. Un `OPTIONS` con `Origin: https://ale-coach-prenotazioni.pages.dev` verso `create-checkout` riceve **403**; le origini `alecoach.online`, `www.alecoach.online` e Vercel erano già state verificate con 200. In Supabase Edge Secrets aggiungere l'origine tecnica esatta `https://ale-coach-prenotazioni.pages.dev` a `ADDITIONAL_APP_ORIGINS` **mantenendo tutte le origini esistenti** e lasciando invariato `PUBLIC_APP_URL`.
+
+**Per evitare il problema in futuro:** `scripts/cloudflare-pages-postbuild.mjs` verifica nelle build reali Pages (`CF_PAGES=1`) che le due variabili pubbliche Supabase siano presenti e che l'URL sia quello del progetto autorizzato, anche in `prelaunch`. La CI su GitHub conserva build e test senza credenziali; i test di rete sono disponibili solo nel workflow manuale **QA | Cloudflare Pages smoke (manual)**, che controlla separatamente la parte statica e il preflight Pages → Supabase.
+
+**GO resta bloccato** finché entrambi i test manuali non tornano verdi, più Auth/SMTP, Stripe Sandbox E2E, backup/restore e approvazione legale. `noindex` **non protegge l'accesso** alla preview; per tenerla privata serve Cloudflare Access. Non associare ancora il dominio commerciale né attivare Stripe Live.
