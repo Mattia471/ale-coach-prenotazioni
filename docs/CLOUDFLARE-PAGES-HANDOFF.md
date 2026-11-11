@@ -38,13 +38,25 @@ La build `pages:build` si chiude con errore se `PAGES_RELEASE_MODE=live` ma manc
 ## Supabase Auth e CORS durante la migrazione
 
 1. Supabase Authentication → URL Configuration: consentire esattamente `https://alecoach.online/**`, `https://www.alecoach.online/**` e `https://ale-coach-prenotazioni.vercel.app/**`. Cambiare la **Site URL** di default in `https://alecoach.online` soltanto al go-live.
-2. Le chiamate Edge Functions da browser usano una allowlist *exact-match*; deployare la revisione di `create-checkout`, `cancel-booking` e `decide-booking` del branch Cloudflare soltanto dopo test CI e revisione del cambiamento.
+2. Le chiamate Edge Functions da browser usano una allowlist *exact-match*. **Deploy già eseguito e verificato sul cloud l'11/11/2026**: `create-checkout` v11, `cancel-booking` v10 e `decide-booking` v3, tutte `ACTIVE` con `verify_jwt=true` e dipendenza `_shared/trusted-origins.ts` presente. Il codice distribuito corrisponde al branch principale.
 3. Nei **Secrets delle Edge Functions Supabase**, usare `PUBLIC_APP_URL=https://alecoach.online` come default pubblico e `ADDITIONAL_APP_ORIGINS=https://ale-coach-prenotazioni.vercel.app,https://www.alecoach.online` (ed eventualmente l'URL `*.pages.dev` **esatto**, non wildcard, se autorizzato per collaudo).
 4. L'allowlist non sostituisce autenticazione o RLS: le RPC continuano a verificare l'utente; CORS non deve mai diventare `*`.
 5. I nuovi Stripe Checkout creati dal browser vengono riportati **all'origine di richiesta approvata** (Cloudflare oppure Vercel). Checkout avviati in precedenza conservano i redirect già memorizzati da Stripe.
 6. Verificare, da entrambi gli host, il preflight `OPTIONS` e la risposta di `create-checkout`, `cancel-booking`, `decide-booking`. Verificare che `Origin: https://evil.example` sia rifiutato.
 
-**Attenzione:** il passaggio delle origini nel backend non avviene con il solo deploy Cloudflare. Occorre applicare la nuova versione delle tre Edge Functions e configurare l'allowlist sul Supabase del cliente. Fino a quel momento l'origine Vercel resta l'unica configurata.
+**Attenzione:** le tre Edge Functions sono già state distribuite, ma **non basta il deploy del codice**: occorre impostare/verificare `PUBLIC_APP_URL` e `ADDITIONAL_APP_ORIGINS` nei Secrets del progetto Supabase senza cambiare anticipatamente la Site URL di Auth. La disponibilità effettiva da Cloudflare è ancora da testare. Nessuna credenziale server va inserita in Pages.
+
+### Smoke test CORS non distruttivo
+
+Da una shell con Node.js 22 e accesso a Internet (nessuna chiave o JWT richiesti per la simulazione del preflight):
+
+```bash
+QA_ALLOWED_ORIGIN=https://ale-coach-prenotazioni.vercel.app node scripts/qa-cors-preflight.mjs
+# Soltanto DOPO aver aggiunto il dominio esatto ai Secrets Edge:
+QA_ALLOWED_ORIGIN=https://alecoach.online node scripts/qa-cors-preflight.mjs
+```
+
+Lo script verifica le risposte `OPTIONS` delle tre funzioni: **200** e `Access-Control-Allow-Origin` esatto per l'origine autorizzata; **403** e nessun header di autorizzazione CORS per `https://evil.example`. Un esito 401 o 503 indica che il preflight è bloccato a monte e richiede correzione, non va aggirato. La CI testa la logica dello script con un server simulato, ma il test remoto reale resta P0.
 
 ## Checklist della consegna, senza nuovi moduli
 
