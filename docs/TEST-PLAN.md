@@ -278,3 +278,14 @@ Test HTTP **effettivo**, dalla preview `https://ale-coach-prenotazioni.pages.dev
 - [ ] P0: creazione prenotazione e approvazione/rifiuto con identità reali, Stripe Checkout Sandbox e backup/restore.
 
 La verifica pubblica non richiede password, non genera email, non crea utenti/prenotazioni/pagamenti e non è equivalente al collaudo E2E autenticato.
+
+
+## Checkpoint 11/11/2026: autenticazione confermata dal cliente e prossima QA E2E
+
+- [x] **Verifica manuale dichiarata dal cliente** su Cloudflare Pages: login, persistenza della sessione dopo refresh, logout e recupero password tramite email funzionanti. La prova browser non è stata osservata da un runner automatico; il cliente ne ha confermato l'esito.
+- [x] Audit read-only successivo: Stripe Sandbox `livemode=false`, sessioni e PaymentIntent di prova già presenti, nessun wallet negativo o associato a ordine non pagato, nessun pacchetto scaduto ancora `pending`, nessuna prenotazione bloccata in `authorizing`/`processing` oltre due ore.
+- [x] Fix UI: il prelaunch senza approvazione legale blocca anche acquisti pacchetti Flex e riprese dell'autorizzazione carta, non solo nuove prenotazioni e registrazioni; relativi CTA disabilitati. Test di regressione CI aggiunto.
+- [ ] **P0 prossimo:** test prenotazione e pagamenti Stripe Sandbox dalla preview QA protetta. Servono due account client autorizzati per il test di concorrenza con due sessioni reali; il database ne registra attualmente uno. Non creare o alterare account commerciali in automatico.
+- [ ] **P0 ancora aperti:** chiusura legale, backup/restore verificato, protezione delle password compromesse, ultime verifiche mobile e GO verso dominio custom.
+
+Procedura dettagliata e casi B01–R01: [QA-BOOKING-STRIPE-SANDBOX.md](QA-BOOKING-STRIPE-SANDBOX.md). `VITE_PRELAUNCH_QA` è una modalità di collaudo interno da non attivare su un frontend Pages pubblico senza un controllo di accesso effettivo; non equivale al consenso a vendere o all'approvazione legale.
