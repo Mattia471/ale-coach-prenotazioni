@@ -56,3 +56,5 @@ Lato Stripe Sandbox, verificare manualmente che le sessioni e i PaymentIntent ge
 Continuano a richiedere chiusura e approvazione: GDPR/termini commerciali, backup cifrato reale con restore isolato, sicurezza Auth (protezione password compromesse), verifica finale mobile, domini DNS definitivi e decisione esplicita di GO. Google Calendar, Hevy e ulteriori integrazioni sono **fuori perimetro V1**.
 
 **Stato attuale:** Auth su Cloudflare confermata dal cliente; controlli SQL, Stripe Sandbox pregressa e simulazioni di concorrenza verdi; **B01–R01 non ancora certificati end-to-end su Pages**.
+
+**Gate automatico aggiunto:** le build Cloudflare Pages del branch `main` (`CF_PAGES=1`, `CF_PAGES_BRANCH=main`) falliscono se `VITE_PRELAUNCH_QA=true`, anche in `prelaunch`. La modalità QA è riservata a un branch preview separato con Cloudflare Access o protezione equivalente verificata. Il controllo è in `scripts/cloudflare-pages-postbuild.mjs` ed è coperto da regressione CI.
