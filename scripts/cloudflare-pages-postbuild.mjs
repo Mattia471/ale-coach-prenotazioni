@@ -31,6 +31,16 @@ export function buildCloudflareHeaders(source,env={},legalText='') {
  return source.replace(noIndex+'\n','')+pagesHostRules;
 }
 
+export function assertCloudflareRuntimeConfig(env={}) {
+ // GitHub CI has no customer credentials. Cloudflare injects CF_PAGES=1.
+ if(env.CF_PAGES!=='1')return;
+ const url=String(env.VITE_SUPABASE_URL||'').trim().replace(/\/$/,'');
+ if(url!=='https://mmtnzjdvvlouiwgrydlf.supabase.co')
+  throw new Error('Cloudflare Pages: VITE_SUPABASE_URL must reference the authorized Ale Coach Supabase project');
+ if(!String(env.VITE_SUPABASE_PUBLISHABLE_KEY||'').trim())
+  throw new Error('Cloudflare Pages: VITE_SUPABASE_PUBLISHABLE_KEY is missing; provide only the public publishable key');
+}
+
 export function assertPagesBuild(dist='dist') {
  const paths=['index.html','_headers','manifest.webmanifest','sw.js'];
  for(const path of paths)if(!existsSync(`${dist}/${path}`))
@@ -43,6 +53,7 @@ export function assertPagesBuild(dist='dist') {
 
 if(process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1]){
  assertPagesBuild();
+ assertCloudflareRuntimeConfig(process.env);
  const source=readFileSync('dist/_headers','utf8');
  const legalText=readFileSync('src/LegalPage.tsx','utf8');
  const modified=buildCloudflareHeaders(source,process.env,legalText);
