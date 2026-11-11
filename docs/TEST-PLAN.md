@@ -192,3 +192,13 @@ Casi coperti, superati in CI sul database PostgreSQL temporaneo:
 - [ ] **P0 aperto:** prova di ripristino completo su progetto isolato, incluso Auth/Storage, senza sostituire Supabase live.
 
 Nessun dump, secret o password è stato esportato né inserito nel repository.
+
+
+## Checkpoint 11/11: accesso senza JWT alle RPC prenotazione
+
+- [x] Ruolo PostgreSQL authenticated ma identità auth.uid() assente: create_booking_v2 nega la chiamata con il messaggio di autenticazione previsto.
+- [x] Stesso contesto senza JWT: reserve_slot_v2 nega la prenotazione dello slot prima di scritture.
+- [x] Entrambi verificati in transazione PostgreSQL READ ONLY, ora ripetibili nel terzo blocco dello script QA-RPC-RLS-READONLY.sql.
+- [ ] Restano da verificare con sessioni reali il comportamento delle RPC read-only di disponibilità e il rilascio slot, oltre ai casi E2E con due clienti autenticati.
+
+In totale: **10 controlli negativi RPC superati** nei blocchi database di questo checkpoint, senza modifiche persistenti.
