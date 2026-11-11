@@ -31,3 +31,36 @@ jobs:
           deno check --node-modules-dir=auto supabase/functions/create-checkout/index.ts supabase/functions/cancel-booking/index.ts supabase/functions/decide-booking/index.ts supabase/functions/stripe-webhook/index.ts
           deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts
       # Il backend è sul Supabase Cloud Ale Coach. Non eseguire seed o reset dei dati in CI.
+
+  isolated-postgres-concurrency:
+    name: P0 slot and credit race tests (ephemeral PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: alecoach_ci
+          POSTGRES_PASSWORD: local_ci_only
+          POSTGRES_DB: alecoach_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U alecoach_ci -d alecoach_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify psql is available
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Run simultaneous PostgreSQL transactions without Supabase access
+        env:
+          QA_DATABASE_URL: postgresql://alecoach_ci:local_ci_only@127.0.0.1:5432/alecoach_ci
+        run: node scripts/qa-concurrency.mjs
