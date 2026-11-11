@@ -79,3 +79,19 @@ Lo script verifica le risposte `OPTIONS` delle tre funzioni: **200** e `Access-C
 **Non serve migrare database o avviare Hevy/Google Calendar.** Queste restano estensioni a pagamento separate. Vercel può mantenere l'ambiente di collaudo, ma dal GO il dominio pubblico del cliente è **Cloudflare Pages**.
 
 Riferimenti: [Cloudflare Pages React](https://developers.cloudflare.com/pages/framework-guides/deploy-a-react-site/), [SPA fallback](https://developers.cloudflare.com/pages/configuration/serving-pages/), [Header](https://developers.cloudflare.com/pages/configuration/headers/), [Scope V1](RELEASE-V1-SCOPE.md).
+
+
+### Blocco origine Cloudflare verificato (11/11/2026)
+
+**Test remoto effettivo**: il runner GitHub [43047876472](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43047876472) ha inviato un `OPTIONS` a `create-checkout` con `Origin: https://alecoach.online` e ricevuto **HTTP 403** senza `Access-Control-Allow-Origin`. Il test Vercel [43045747412](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43045747412) continua invece a dare 200 e rifiuto corretto di `evil.example`. Quindi **il dominio commerciale non è ancora nella allowlist Edge effettiva**. La PR diagnostica temporanea #42 è stata chiusa senza merge.
+
+**Configurazione da eseguire sull'account Supabase ALE COACH prima di collegare il nuovo frontend**:
+
+1. Dashboard Supabase → progetto Ale Coach → Edge Functions → Secrets (o Settings → Edge Function Secrets secondo UI). Individuare `PUBLIC_APP_URL` e `ADDITIONAL_APP_ORIGINS`. **Non stampare né esportare altri secrets**, e non inserirli nella repository.
+2. **Mantenere intatto** `PUBLIC_APP_URL` fino al cutover. Aggiungere a `ADDITIONAL_APP_ORIGINS`, **senza cancellare origini QA già presenti**: `https://alecoach.online,https://www.alecoach.online`. Sono host esatti, senza slash finale, wildcard, path o porte.
+3. Salvare e verificare la propagazione delle variabili alle Edge Functions; se richiesto dal servizio, eseguire un redeploy controllato delle sole funzioni CORS. Versioni applicate: `create-checkout` v11, `cancel-booking` v10 e `decide-booking` v3. Non abilitare Stripe Live.
+4. Da GitHub → Actions → **QA | Edge CORS origin probe (manual)** → Run workflow, selezionare prima Vercel e poi ciascuno dei due host Cloudflare. I tre test devono risultare verdi (200 con allow-origin esatto, 403 per origine non autorizzata).
+5. Nella configurazione Supabase Auth aggiungere gli URL di redirect HTTPS approvati per entrambi gli host Cloudflare. **Non cambiare ancora Site URL di default**. Verificare login e reset password solo dopo la disponibilità di Pages e SMTP.
+6. Dopo GO commerciale, collegare `alecoach.online` al Pages del cliente, commutare la Site URL e (se richiesto dal checkout server-to-server) il default `PUBLIC_APP_URL`, conservando Vercel in `ADDITIONAL_APP_ORIGINS` per QA. Ripetere smoke test e verifica dei redirect.
+
+**Regola di stop:** il codice Edge è installato ma la preflight Cloudflare fallisce realmente. Fino a un test verde, il dominio non è utilizzabile per i flussi protetti di booking e checkout. Nessun downgrade a CORS `*` e nessuna disabilitazione dell'autenticazione.
