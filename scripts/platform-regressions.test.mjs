@@ -260,3 +260,32 @@ test('P0 backup: cifratura in streaming, nessun dump plaintext e restore drill s
  assert.match(docs,/Non equivale a un restore riuscito/);
  assert.doesNotMatch(backup,/--password|STRIPE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/);
 });
+
+
+test('Cloudflare / Vercel CORS preflight checks approved origin and blocks lookalike domains',async()=>{
+ const {runCorsPreflight}=await import('./qa-cors-preflight.mjs');
+ const approved='https://ale-coach-prenotazioni.vercel.app';
+ const origins=[];
+ const fakeFetch=async (_url, options)=>{
+  const origin=options.headers.Origin;
+  origins.push(origin);
+  assert.equal(options.method,'OPTIONS');
+  assert.equal(options.redirect,'error');
+  assert.match(options.headers['Access-Control-Request-Headers'],/authorization/);
+  if(origin==='https://evil.example')return new Response('',{status:403});
+  return new Response('',{status:200,headers:{
+   'Access-Control-Allow-Origin':approved,
+   'Access-Control-Allow-Methods':'POST, OPTIONS',
+   'Vary':'Origin'
+  }});
+ };
+ assert.deepEqual(await runCorsPreflight({allowedOrigin:approved,fetchImpl:fakeFetch}),
+  ['create-checkout','cancel-booking','decide-booking']);
+ assert.equal(origins.length,6);
+ await assert.rejects(runCorsPreflight({allowedOrigin:'https://evil.example',fetchImpl:fakeFetch}),/approved HTTPS origin/);
+ await assert.rejects(runCorsPreflight({allowedOrigin:'http://alecoach.online',fetchImpl:fakeFetch}),/approved HTTPS origin/);
+ await assert.rejects(runCorsPreflight({allowedOrigin:'https://alecoach.online/',fetchImpl:fakeFetch}),/approved HTTPS origin/);
+ await assert.rejects(runCorsPreflight({allowedOrigin:'https://alecoach.online/checkout',fetchImpl:fakeFetch}),/approved HTTPS origin/);
+ const badFetch=async()=>new Response('',{status:200,headers:{'Access-Control-Allow-Origin':'*'}});
+ await assert.rejects(runCorsPreflight({allowedOrigin:approved,fetchImpl:badFetch}),/expected HTTP 200/);
+});
