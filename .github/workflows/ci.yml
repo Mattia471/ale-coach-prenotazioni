@@ -41,6 +41,13 @@ jobs:
         run: node scripts/qa-stripe-webhook-isolated.mjs
       - name: TEMP Pages JS bundle inspection (read only; no secrets printed)
         run: node scripts/qa-pages-bundle-diagnostic.mjs
+      - name: TEMP Verify full Cloudflare Pages prelaunch smoke
+        run: node scripts/qa-cloudflare-pages-smoke.mjs
+      - name: TEMP Verify technical Pages preview origin CORS
+        if: always()
+        env:
+          QA_ALLOWED_ORIGIN: https://ale-coach-prenotazioni.pages.dev
+        run: node scripts/qa-cors-preflight.mjs
       # Il backend è sul Supabase Cloud Ale Coach. Non eseguire seed o reset dei dati in CI.
 
   isolated-postgres-concurrency:
