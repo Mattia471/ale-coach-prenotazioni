@@ -453,6 +453,7 @@ function App(){
   }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
  const buyPackage=async(p:Pack)=>{
+  if(blockUnreviewedLegal){submitMsg('Acquisti non attivi: informative legali non ancora approvate.','error');return}
   if(!profile){setScreen('auth');setAuthMode('signup');return}
   if(p.type==='subscription'){submitMsg('Gli abbonamenti mensili saranno attivati dopo la configurazione Stripe.','info');return}
   if(!profile.virgin_member){submitMsg('Conferma prima l’iscrizione Virgin Active nel tuo profilo.','error');return}
@@ -461,6 +462,7 @@ function App(){
   try{const {data,error}=await supabase.functions.invoke('create-checkout',{body:{packageId:p.id}});if(error||!data?.url)throw Error(data?.error||error?.message||'Checkout non disponibile');location.assign(data.url)}catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
  const payBooking=async(b:Booking)=>{
+  if(blockUnreviewedLegal){submitMsg('Pagamenti non attivi: informative legali non ancora approvate.','error');return}
   if(!supabase){submitMsg('Checkout non disponibile: Stripe non è ancora configurato.','info');return}
   setBusy(true);
   try{const {data,error}=await supabase.functions.invoke('create-checkout',{body:{bookingId:b.id}});if(error)throw error;if(!data?.url||!String(data.url).startsWith('https://checkout.stripe.com/'))throw Error(data?.error||'Checkout non configurato');location.assign(data.url)}catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
