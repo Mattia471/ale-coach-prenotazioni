@@ -239,3 +239,22 @@ test('QA SQL autorizzazioni e RLS non altera dati e impone rollback',()=>{
  assert.match(sql,/public\.wallet_credits where client_id IS DISTINCT FROM auth\.uid\(\)/);
  assert.doesNotMatch(sql,/^\s*(?:INSERT|UPDATE|DELETE|TRUNCATE|COMMIT|ALTER|DROP)\s/mi);
 });
+
+
+test('P0 backup: cifratura in streaming, nessun dump plaintext e restore drill separato',()=>{
+ const backup=read('scripts/backup-cloud-encrypted.sh');
+ const verify=read('scripts/verify-encrypted-backup.sh');
+ const docs=read('docs/BACKUP-RESTORE-RUNBOOK.md');
+ assert.match(backup,/set -Eeuo pipefail/);
+ assert.match(backup,/PGSERVICE/);
+ assert.match(backup,/PGPASSFILE/);
+ assert.match(backup,/BACKUP_DIR/);
+ assert.match(backup,/pg_dump --format=custom[\s\S]*?\|\s*\n\s*age --recipient/);
+ assert.match(backup,/Refusing to save customer backup inside Git repository/);
+ assert.match(backup,/trap cleanup EXIT/);
+ assert.match(verify,/age --decrypt[\s\S]*?\|\s*node --input-type=module/);
+ assert.match(verify,/PGDMP/);
+ assert.match(docs,/Supabase Storage separato/);
+ assert.match(docs,/Non equivale a un restore riuscito/);
+ assert.doesNotMatch(backup,/--password|STRIPE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/);
+});
