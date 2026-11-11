@@ -120,3 +120,14 @@ Indirizzo tecnico creato dal cliente: **https://ale-coach-prenotazioni.pages.dev
 **Per evitare il problema in futuro:** `scripts/cloudflare-pages-postbuild.mjs` verifica nelle build reali Pages (`CF_PAGES=1`) che le due variabili pubbliche Supabase siano presenti e che l'URL sia quello del progetto autorizzato, anche in `prelaunch`. La CI su GitHub conserva build e test senza credenziali; i test di rete sono disponibili solo nel workflow manuale **QA | Cloudflare Pages smoke (manual)**, che controlla separatamente la parte statica e il preflight Pages → Supabase.
 
 **GO resta bloccato** finché entrambi i test manuali non tornano verdi, più Auth/SMTP, Stripe Sandbox E2E, backup/restore e approvazione legale. `noindex` **non protegge l'accesso** alla preview; per tenerla privata serve Cloudflare Access. Non associare ancora il dominio commerciale né attivare Stripe Live.
+
+
+## Accesso Auth dalla preview Pages | Verifica 11/11/2026
+
+La preview Pages include la chiave pubblica Supabase corretta e riesce a interrogare i servizi GoTrue Auth: `GET /auth/v1/health` e `GET /auth/v1/settings` sono **200**. I cataloghi pubblici sono leggibili, mentre le tabelle private non espongono righe a utenti anonimi; una richiesta Auth con JWT falso è respinta. Vedi GitHub Actions [43062615798](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43062615798).
+
+Per ricontrollare senza toccare dati reali, usare Actions → **QA | Cloudflare Auth public & RLS (manual)** → Run workflow. Il test HTTP effettua soltanto GET e non stampa la chiave pubblica.
+
+**Passo di collaudo manuale non ancora completato:** dalla preview aprire il login, usare un account di test autorizzato, verificare dashboard e ricarica pagina, fare logout, poi chiedere recupero password verso una casella di test; il link deve tornare esattamente a `https://ale-coach-prenotazioni.pages.dev/`. Non inviare qui password, JWT o link di reset. Se fallisce il recapito email, sistemare prima SMTP e template `{{ .RedirectTo }}` lato Supabase Auth. Concluso questo percorso, verificare prenotazione e checkout esclusivamente in Stripe Sandbox.
+
+**Restano NO-GO:** non è stata eseguita una autenticazione reale da browser, né un reset via email, né un pagamento E2E dalla preview. Il redirect URL aggiunto dal cliente è dichiarato, ma non certificato con un link email effettivo.
