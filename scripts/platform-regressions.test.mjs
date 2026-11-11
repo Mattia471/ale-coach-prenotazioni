@@ -228,13 +228,15 @@ test('Stripe Sandbox: scadenza checkout pacchetto non lascia ordini pending e no
 test('QA SQL autorizzazioni e RLS non altera dati e impone rollback',()=>{
  const sql=read('docs/QA-RPC-RLS-READONLY.sql');
  assert.match(sql,/BEGIN TRANSACTION READ ONLY;/);
- assert.equal((sql.match(/^ROLLBACK;$/gm)||[]).length,2);
- assert.equal((sql.match(/^SET LOCAL ROLE authenticated;$/gm)||[]).length,2);
+ assert.equal((sql.match(/^ROLLBACK;$/gm)||[]).length,3);
+ assert.equal((sql.match(/^SET LOCAL ROLE authenticated;$/gm)||[]).length,3);
  assert.match(sql,/SET LOCAL statement_timeout='5s'/);
  assert.match(sql,/has_table_privilege\(current_user,'public\.package_checkout_orders','SELECT'\)/);
  assert.match(sql,/v_b\.client_id IS DISTINCT FROM auth\.uid\(\)/);
  assert.match(sql,/claim_booking_cancellation/);
  assert.match(sql,/cancel_unpaid_booking/);
+ assert.match(sql,/create_booking_v2/);
+ assert.match(sql,/reserve_slot_v2/);
  assert.match(sql,/pg_get_functiondef/);
  assert.match(sql,/public\.wallet_credits where client_id IS DISTINCT FROM auth\.uid\(\)/);
  assert.doesNotMatch(sql,/^\s*(?:INSERT|UPDATE|DELETE|TRUNCATE|COMMIT|ALTER|DROP)\s/mi);
