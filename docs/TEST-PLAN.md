@@ -230,3 +230,12 @@ La CI avvia **il vero handler Deno** `supabase/functions/stripe-webhook/index.ts
 **Non sostituisce** un webhook realmente consegnato da Stripe Sandbox né il test end-to-end di checkout e pagamento, che restano bloccanti per GO commerciale.
 
 **CI verificata:** run GitHub Actions [43048715876](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43048715876): handler Deno avviato con backend fittizio, 8 scenari superati e job PostgreSQL parallelo verde. Nessuna scrittura su Supabase cloud né addebito Stripe.
+
+
+## Checkpoint Cloudflare bloccato | 11/11/2026
+
+- [x] Test reale da GitHub con origine `https://alecoach.online`: **HTTP 403**, header `Access-Control-Allow-Origin` assente per `create-checkout` (run [43047876472](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43047876472)). È una **verifica negativa**, non un pass di autorizzazione Cloudflare.
+- [x] L'origine Vercel QA continua a essere autorizzata dalle tre Edge Functions; `evil.example` bloccata.
+- [x] Workflow GitHub manuale `.github/workflows/edge-cors-preflight.yml` preparato per ritestare Vercel, `alecoach.online` e `www.alecoach.online` senza JWT né segreti.
+- [ ] **P0:** aggiornare `ADDITIONAL_APP_ORIGINS` nel Supabase del cliente, preservando il valore esistente di `PUBLIC_APP_URL`; test remoto verde su entrambi gli host prima della configurazione finale Pages.
+- [ ] **P0:** autorizzare redirect Supabase Auth e testare email, reset password e checkout Sandbox da Pages. Il GO commerciale rimane NO-GO.

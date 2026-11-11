@@ -1,0 +1,29 @@
+name: QA | Edge CORS origin probe (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      origin:
+        description: 'Origine HTTPS verificata: Vercel QA oppure Cloudflare cliente'
+        required: true
+        type: choice
+        default: https://ale-coach-prenotazioni.vercel.app
+        options:
+          - https://ale-coach-prenotazioni.vercel.app
+          - https://alecoach.online
+          - https://www.alecoach.online
+permissions:
+  contents: read
+jobs:
+  preflight-only:
+    name: OPTIONS check for the chosen exact origin
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real OPTIONS preflight against three Supabase Edge functions (no JWT or secrets)
+        env:
+          QA_ALLOWED_ORIGIN: ${{ inputs.origin }}
+        run: node scripts/qa-cors-preflight.mjs
