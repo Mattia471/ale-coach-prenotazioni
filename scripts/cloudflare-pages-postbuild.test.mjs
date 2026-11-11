@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {buildCloudflareHeaders,assertPagesBuild} from './cloudflare-pages-postbuild.mjs';
+import {buildCloudflareHeaders,assertPagesBuild,assertCloudflareRuntimeConfig} from './cloudflare-pages-postbuild.mjs';
 
 const src=`# Prelaunch
 /*
@@ -58,4 +58,22 @@ test('Cloudflare build has native SPA fallback and expected static artifacts',()
   writeFileSync(join(folder,'404.html'),'not found');
   assert.throws(()=>assertPagesBuild(folder),/404.html/);
  }finally{rmSync(folder,{recursive:true,force:true})}
+});
+
+
+test('Cloudflare Pages production build rejects absent or wrong Supabase public variables even in prelaunch',()=>{
+ const cfg={CF_PAGES:'1',PAGES_RELEASE_MODE:'prelaunch'};
+ assert.throws(()=>assertCloudflareRuntimeConfig(cfg),/VITE_SUPABASE_URL/);
+ assert.throws(()=>assertCloudflareRuntimeConfig({
+  ...cfg,VITE_SUPABASE_URL:'https://another-project.supabase.co',
+  VITE_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_dummy'
+ }),/authorized Ale Coach/);
+ assert.throws(()=>assertCloudflareRuntimeConfig({
+  ...cfg,VITE_SUPABASE_URL:'https://mmtnzjdvvlouiwgrydlf.supabase.co'
+ }),/VITE_SUPABASE_PUBLISHABLE_KEY/);
+ assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({
+  ...cfg,VITE_SUPABASE_URL:'https://mmtnzjdvvlouiwgrydlf.supabase.co',
+  VITE_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_dummy'
+ }));
+ assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({}));
 });
