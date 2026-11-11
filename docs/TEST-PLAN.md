@@ -204,3 +204,11 @@ Nessun dump, secret o password è stato esportato né inserito nel repository.
 In totale: **10 controlli negativi RPC superati** nei blocchi database di questo checkpoint, senza modifiche persistenti.
 
 - [x] CI release indipendente da download age: bash syntax + controlli Node restano obbligatori. Prova di cifratura age con dati sintetici disponibile nel workflow manuale `.github/workflows/backup-crypto-smoke.yml`, già superata nel run della PR #37. Un successivo run può dipendere dalla disponibilità del mirror Ubuntu.
+
+
+## CORS Cloudflare | Checkpoint 11/11/2026
+
+- [x] `create-checkout` v11, `cancel-booking` v10, `decide-booking` v3 distribuite su Supabase. Confrontate con `main`: logica commerciale invariata, `verify_jwt=true` mantenuto, modulo `_shared/trusted-origins.ts` distribuito per ciascuna.
+- [x] Test Deno `trusted-origins_test.ts` già inclusi in CI; nuovo script `scripts/qa-cors-preflight.mjs` testabile in Node con risposte simulate e senza credenziali.
+- [ ] Test **remoto reale** dei preflight OPTIONS dalle origini Vercel, Cloudflare e rifiuto delle origini sconosciute, dopo impostazione dei Secrets `ADDITIONAL_APP_ORIGINS`. Non verificato da un browser reale.
+- [ ] Da verificare separatamente redirect di login/recupero password e checkout Stripe Sandbox dai nuovi host. Nessuna apertura pubblica prima del GO.
