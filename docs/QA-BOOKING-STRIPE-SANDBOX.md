@@ -64,12 +64,14 @@ Continuano a richiedere chiusura e approvazione: GDPR/termini commerciali, backu
 
 La preview usa `functions/_middleware.js` e `public/_routes.json` che intercettano ogni URL (anche JS/CSS, service worker, deep link). **Il test GitHub** `scripts/qa-pages-password-gate.test.mjs` verifica: 401 senza password, 401 con password errata, 503 se il segreto non è configurato, 200 con password valida, no-store e noindex.
 
-Configurazione Cloudflare Pages **Preview**, non Production:
+**Preferire un secondo progetto Cloudflare Pages dedicato esclusivamente ai test**, per evitare che le variabili dell'ambiente Preview del progetto principale vengano condivise da altre anteprime. Nome consigliato: `ale-coach-qa-sandbox`, stesso repository GitHub, branch di produzione QA `qa/booking-stripe-sandbox`, build `npm run pages:build`, output `dist`, Node 22. Il middleware Basic è disponibile solo su questo branch, non su `main`. Configurazione di questo **progetto QA separato**:
 
-1. `Settings → Variables and Secrets → Preview → Add`: **`QA_ACCESS_PASSWORD`**, tipo **Encrypted secret**, password casuale ASCII senza spazi lunga almeno 24 caratteri (massimo 128). Mantenerla privata e non inserirla in `VITE_*` né in chat.
+1. `Settings → Variables and Secrets → Production → Add` **nel progetto QA separato**: **`QA_ACCESS_PASSWORD`**, tipo **Encrypted secret**, password casuale ASCII senza spazi lunga almeno 24 caratteri (massimo 128). Mantenerla privata e non inserirla in `VITE_*` né in chat.
 2. Eseguire il deploy del branch QA e verificare da un browser in incognito che il server richieda **utente `ale-tester`** e la password scelta. Nessun HTML o asset deve risultare accessibile con password errata; se il segreto manca il server risponde HTTP 503.
 3. Nelle impostazioni di Cloudflare Pages Runtime/Functions verificare, se disponibile, **Fail closed**: in caso di esaurimento delle risorse Functions non deve essere servito il frontend senza passare dal middleware.
-4. **Solo dopo** il collaudo della password, impostare `VITE_PRELAUNCH_QA=true` **soltanto su Preview**, mantenendo `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false` e tutte le Production variables immutate. Fare un nuovo deploy.
+4. **Solo dopo** il collaudo della password, impostare `VITE_PRELAUNCH_QA=true` **soltanto sul progetto QA separato**, mantenendo `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false` e tutte le variabili del progetto Pages commerciale immutate. Fare un nuovo deploy.
 5. Usare solo Stripe Sandbox (`sk_test_`, `STRIPE_ENVIRONMENT=test`) e account di test autorizzati. Non aprire né collegare il dominio commerciale.
 
 Il browser può ricordare temporaneamente credenziali Basic, quindi per verificare il 401 usare una nuova finestra anonima. L'accesso con password è un cancello **QA temporaneo**, non un sistema di autenticazione clienti definitivo. Non fare mai merge della PR QA #53 in `main`.
+
+**Non impostare `VITE_PRELAUNCH_QA=true` nel progetto Pages commerciale, nemmeno nel suo ambiente Preview**, perché potrebbe interessare altre preview non protette. Se Cloudflare non permette un secondo progetto collegato al repository, mantenere la modalità QA disabilitata e verificare prima una soluzione di isolamento equivalente.
