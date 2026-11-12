@@ -320,3 +320,22 @@ test('Cloudflare main production refuses legal QA bypass before publishing',asyn
  // A non-Pages build is unaffected, preserving local and GitHub CI workflows.
  assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES:'',VITE_PRELAUNCH_QA:'true'}));
 });
+
+test('Desktop V1: workspace più ampio e layout a due colonne soltanto sui monitor grandi',()=>{
+ const css=read('src/minimal-focus-live.css');
+ const marker='* V1 desktop polish: expand the authenticated workspace';
+ assert.ok(css.includes(marker),'Desktop-only polish comment missing');
+ const desktop=css.slice(css.indexOf(marker));
+ assert.match(desktop,/@media \(min-width:1280px\)/);
+ assert.match(desktop,/\.mf-live \.mf-workspace\{max-width:1800px;grid-template-columns:228px minmax\(0,1fr\)\}/);
+ assert.match(desktop,/max-width:1380px/);
+ assert.match(desktop,/\.mf-live \.mf-live-book \.service-list\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(desktop,/\.mf-live \.mf-live-book \.packages-area\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(desktop,/\.mf-live \.mf-live-lessons \.booking-list\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(desktop,/\.mf-live \.mf-live-book \.packages-area>\.footnote\{grid-column:1\/-1\}/);
+ assert.doesNotMatch(desktop,/@media\s*\(max-width:/,'Desktop changes must not override mobile styles');
+ // Ensure the pre-existing tablet/mobile rules and the original booking steps remain unchanged.
+ assert.match(css,/@media\(max-width:760px\)/);
+ assert.match(css,/\.mf-live \.client-layout\.mf-main,\.mf-live \.coach-layout\.mf-main\{padding:0 18px 125px\}/);
+ assert.match(css,/\.mf-live \.wizard\{max-width:1000px;margin:0 auto\}/);
+});
