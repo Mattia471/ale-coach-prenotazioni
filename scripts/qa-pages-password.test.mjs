@@ -14,7 +14,11 @@ function ctx({password=strongPassword,header,method='GET',path='/',next}={}){
 }
 function basic(password=strongPassword){return 'Basic '+btoa('ale-tester:'+password)}
 test('password not configured or weak: fail closed before serving HTML and JS',async()=>{
- for(const password of ['',undefined,'short','x'.repeat(129),'unicodeé'.repeat(5)]){
+ const missing=ctx();delete missing.context.env.QA_ACCESS_PASSWORD;
+ const unavailable=await onRequest(missing.context);
+ assert.equal(unavailable.status,503);
+ assert.equal(missing.calls(),0);
+ for(const password of ['','short','x'.repeat(129),'unicodeé'.repeat(5)]){
   const {context,calls}=ctx({password});
   const response=await onRequest(context);
   assert.equal(response.status,503);
