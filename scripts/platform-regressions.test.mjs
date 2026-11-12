@@ -321,26 +321,37 @@ test('Cloudflare main production refuses legal QA bypass before publishing',asyn
  assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES:'',VITE_PRELAUNCH_QA:'true'}));
 });
 
-test('Desktop V1: landing and authenticated workspace expand, mobile stays untouched',()=>{
+test('V1 fluid responsive: no app width caps and separate mobile/tablet/desktop rules',()=>{
  const live=read('src/minimal-focus-live.css');
  const base=read('src/styles.css');
- const marker='/* Authenticated workspace: fluid desktop layout';
- assert.ok(live.includes(marker),'Desktop workspace styles missing');
- const desktop=live.slice(live.indexOf(marker));
- assert.match(desktop,/@media \(min-width:900px\)/);
- assert.match(desktop,/\.mf-live \.mf-workspace\{width:100%;max-width:1800px/);
- assert.match(desktop,/\.mf-live \.mf-main>section,[\s\S]*?width:100%;max-width:none/);
- assert.match(desktop,/\.mf-live \.mf-view-key\{max-width:none\}/);
- assert.match(desktop,/@media \(min-width:1200px\)/);
- assert.match(desktop,/\.mf-live \.mf-live-book \.service-list\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
- assert.match(desktop,/\.mf-live \.mf-live-book \.packages-list\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
- assert.match(desktop,/\.mf-live \.mf-live-lessons \.booking-list\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
- assert.match(base,/\.client-layout\{max-width:516px/);
- assert.match(base,/\.app-shell>\.client-layout\.landing-page\{[\s\S]*?max-width:1320px/);
- assert.match(base,/\.landing-page \.service-list\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
- assert.match(base,/\.landing-page \.packages-list\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
- assert.doesNotMatch(desktop,/@media\s*\(max-width:/,'Desktop overrides must not affect mobile');
+ const focus=read('src/minimal-focus.css');
+
+ // Eliminate original caps rather than only overriding them on very large screens.
+ assert.match(base,/\.client-layout\{width:100%;min-width:0;max-width:none/);
+ assert.match(base,/\.coach-layout\{width:100%;min-width:0;max-width:none/);
+ assert.match(base,/\.header-inner\{[^}]*width:100%;max-width:none/);
+ assert.match(focus,/\.mf-workspace\{width:100%;max-width:none/);
+ assert.match(focus,/\.mf-view-key\{width:100%;max-width:none/);
+ assert.match(live,/\.mf-live \.mf-main>section,[^}]*width:100%;max-width:none/);
+ assert.match(live,/\.mf-live \.wizard\{width:100%;max-width:none/);
+
+ // Mobile / tablet / desktop are distinct. Cards wrap automatically at wide widths.
+ assert.match(base,/@media \(max-width:760px\)/);
+ assert.match(base,/@media \(min-width:761px\) and \(max-width:1199px\)/);
+ assert.match(base,/@media \(min-width:1200px\)/);
+ assert.match(live,/@media \(min-width:761px\) and \(max-width:1199px\)/);
+ assert.match(live,/@media \(min-width:1200px\)/);
+ assert.match(base,/\.landing-page \.service-list\{grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,340px\),1fr\)\)/);
+ assert.match(base,/\.landing-page \.packages-list\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,420px\),1fr\)\)/);
+ assert.match(live,/\.mf-live \.mf-live-book \.service-list\{[\s\S]*?grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,320px\),1fr\)\)/);
+ assert.match(live,/\.mf-live \.mf-live-lessons \.booking-list\{[\s\S]*?grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,410px\),1fr\)\)/);
+ assert.match(live,/\.mf-live \.mf-workspace\{width:100%;max-width:none/);
+ assert.match(base,/\.auth-page\{display:grid;grid-template-columns:minmax\(0,1fr\)/);
+
+ // Existing compact mobile agenda and safe booking behavior must be preserved.
  assert.match(live,/@media\(max-width:760px\)/);
  assert.match(live,/\.mf-live \.client-layout\.mf-main,\.mf-live \.coach-layout\.mf-main\{padding:0 18px 125px\}/);
- assert.match(live,/\.mf-live \.wizard\{max-width:1000px;margin:0 auto\}/);
+ const newDesktop=live.slice(live.indexOf('/* Responsive authenticated workspace:'));
+ assert.doesNotMatch(newDesktop,/max-width:(?:1000|1320|1380|1490|1800)px/);
+ assert.doesNotMatch(newDesktop,/@media\s*\(max-width:/);
 });
