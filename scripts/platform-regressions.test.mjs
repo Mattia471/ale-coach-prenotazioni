@@ -333,3 +333,24 @@ test('Approved Minimal Focus visual baseline is restored pending desktop redesig
  assert.doesNotMatch(live,/V1 desktop polish|Responsive authenticated workspace:/);
  assert.doesNotMatch(base,/V1 fluid layout|V1 desktop: the public landing/);
 });
+
+test('Auth reset and signup redirect to the current trusted site origin',()=>{
+ const app=read('src/App.tsx');
+ assert.match(app,/resetPasswordForEmail\(authForm\.email,\{redirectTo:\`\$\{location\.origin\}\/\`\}\)/);
+ assert.match(app,/emailRedirectTo:\`\$\{location\.origin\}\/\`/);
+ assert.match(app,/event==='PASSWORD_RECOVERY'/);
+ assert.match(app,/supabase\.auth\.updateUser\(\{password:newPassword\}\)/);
+ // Prevent accidental hard-coded Vercel callback in new Auth code.
+ const callbackMethods=['resetPasswordForEmail(','signUp('];
+ for(const method of callbackMethods){
+  const offset=app.indexOf(method);
+  assert.ok(offset>=0,'Missing '+method+' Auth call');
+  const callSnippet=app.slice(offset,offset+250);
+  assert.ok(!callSnippet.includes('ale-coach-prenotazioni.vercel.app'),
+   'Auth callback must follow current site origin, not Vercel');
+ }
+ const guide=read('docs/AUTH-SMTP-GO-LIVE.md');
+ assert.match(guide,/ale-coach-qa-sandbox\.pages\.dev/);
+ assert.match(guide,/alecoach\.online/);
+ assert.match(guide,/SPF\/DKIM\/DMARC/);
+});
