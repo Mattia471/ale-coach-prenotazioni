@@ -30,3 +30,21 @@ Deno.test('Server requests with no Origin are not mistaken for browsers',()=>{
  const server=new Request('https://example.supabase.co/functions/v1/create-checkout',{method:'POST'});
  ensure(!isDisallowedBrowserOrigin(server,primary,extra),'Server request rejected');
 });
+
+Deno.test('Password-protected Cloudflare QA checkout retains its exact return origin',()=>{
+ const qa='https://ale-coach-qa-sandbox.pages.dev';
+ const prodPages='https://ale-coach-prenotazioni.pages.dev';
+ const configured=[extra,qa,prodPages].join(',');
+ const browser=new Request('https://example.supabase.co/functions/v1/create-checkout',{
+  method:'POST',headers:{Origin:qa}
+ });
+ ensure(allowedAppOrigins(primary,configured).has(qa),'Missing the QA host in allowlist');
+ ensure(trustedRequestOrigin(browser,primary,configured)===qa,
+  'Stripe checkout would fall back to Vercel instead of its QA browser Origin');
+ ensure(!isDisallowedBrowserOrigin(browser,primary,configured),'QA host wrongly rejected');
+ const attacker=req('https://ale-coach-qa-sandbox.pages.dev.attacker.example');
+ ensure(isDisallowedBrowserOrigin(attacker,primary,configured),'QA subdomain lookalike accepted');
+ const publicPages=req(prodPages);
+ ensure(trustedRequestOrigin(publicPages,primary,configured)===prodPages,
+  'Public Cloudflare Pages origin wrongly rejected');
+});
