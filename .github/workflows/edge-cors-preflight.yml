@@ -9,6 +9,7 @@ on:
         default: https://ale-coach-prenotazioni.vercel.app
         options:
           - https://ale-coach-prenotazioni.vercel.app
+          - https://ale-coach-qa-sandbox.pages.dev
           - https://alecoach.online
           - https://www.alecoach.online
 permissions:
