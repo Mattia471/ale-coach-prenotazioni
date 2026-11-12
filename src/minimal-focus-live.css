@@ -99,3 +99,38 @@
  .mf-live .mf-live-trainer .coach-introduction-tags span:nth-child(3){display:none}
  .mf-live .mf-live-stats>.mf-stat{padding:13px 9px}
 }
+
+/*
+ * V1 desktop polish: expand the authenticated workspace without turning
+ * mobile layouts or the booking wizard into unreadably wide forms.
+ * Keep this behind a large-screen breakpoint to avoid tablet regressions.
+ */
+@media (min-width:1280px) {
+ .mf-live .header-inner{max-width:1800px}
+ .mf-live .mf-workspace{max-width:1800px;grid-template-columns:228px minmax(0,1fr)}
+ .mf-live .client-layout.mf-main,.mf-live .coach-layout.mf-main{
+  padding-left:clamp(28px,3vw,52px);
+  padding-right:clamp(28px,3vw,52px)
+ }
+ .mf-live .mf-main>section,
+ .mf-live .mf-main>.coach-content,
+ .mf-live .mf-main>.mf-live-header,
+ .mf-live .mf-main>.mf-live-upcoming,
+ .mf-live .mf-main>.mf-live-stats,
+ .mf-live .mf-main>.mf-live-trainer,
+ .mf-live .mf-main>.mf-live-management-nav{max-width:1380px}
+ .mf-live .mf-view-key{max-width:1380px}
+ .mf-live .mf-live-stats{gap:18px}
+ .mf-live .mf-live-book .service-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ .mf-live .mf-live-book .service-entry{min-width:0;margin-bottom:0}
+ .mf-live .mf-live-book .service-card{height:100%;align-items:center}
+ .mf-live .mf-live-book .packages-area{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  column-gap:16px;row-gap:12px
+ }
+ .mf-live .mf-live-book .packages-area>.title-block,
+ .mf-live .mf-live-book .packages-area>.footnote{grid-column:1/-1}
+ .mf-live .mf-live-book .packages-area>.title-block{margin-bottom:4px}
+ .mf-live .mf-live-book .package-card{min-width:0;margin-bottom:0}
+ .mf-live .mf-live-lessons .booking-list{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+}
