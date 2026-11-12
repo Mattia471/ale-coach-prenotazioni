@@ -1,9 +1,9 @@
 /* Approved Minimal Focus, applied only to authenticated views. */
 .mf-root.mf-live{--mf-red:#e10025;--mf-ink:#241e20;--mf-muted:#787174;--mf-border:#ece8e7;--mf-bg:#f8f7f5;--mf-card:#fff;background:var(--mf-bg)}
 .mf-live .site-header{background:#fff;border-bottom:1px solid var(--mf-border);position:sticky;top:0}
-.mf-live .header-inner{height:73px;max-width:1490px;padding:0 36px}
+.mf-live .header-inner{height:73px;width:100%;max-width:none;padding:0 36px}
 .mf-live .client-layout.mf-main,.mf-live .coach-layout.mf-main{max-width:none;width:100%;margin:0;min-width:0;padding:0 54px 112px}
-.mf-live .mf-main>section,.mf-live .mf-main>.coach-content,.mf-live .mf-main>.mf-live-header,.mf-live .mf-main>.mf-live-upcoming,.mf-live .mf-main>.mf-live-stats,.mf-live .mf-main>.mf-live-trainer,.mf-live .mf-main>.mf-live-management-nav{max-width:1000px;margin-left:auto;margin-right:auto}
+.mf-live .mf-main>section,.mf-live .mf-main>.coach-content,.mf-live .mf-main>.mf-live-header,.mf-live .mf-main>.mf-live-upcoming,.mf-live .mf-main>.mf-live-stats,.mf-live .mf-main>.mf-live-trainer,.mf-live .mf-main>.mf-live-management-nav{width:100%;max-width:none;min-width:0;margin-left:0;margin-right:0}
 .mf-live .mf-live-header{margin-top:42px;margin-bottom:25px}
 .mf-live .mf-live-header .mf-heading{margin:7px 0 0}
 .mf-live .mf-live-header h1{font-size:clamp(32px,4.1vw,50px);margin:0 0 10px}
@@ -37,7 +37,7 @@
 .mf-live .mf-live-book .service-entry{margin-bottom:12px}
 .mf-live .mf-live-book .title-block h2{font-size:27px}
 .mf-live .mf-live-book .promo-panel{margin:20px 0 30px}
-.mf-live .wizard{max-width:1000px;margin:0 auto}
+.mf-live .wizard{width:100%;max-width:none;min-width:0;margin:0}
 .mf-live .mf-live-lessons .mf-calendar{margin-top:0}
 .mf-live .mf-live-lessons .title-block{margin-top:28px}
 .mf-live .mf-live-lessons .title-block h2{font-size:25px}
@@ -100,31 +100,37 @@
  .mf-live .mf-live-stats>.mf-stat{padding:13px 9px}
 }
 
-/* Authenticated workspace: fluid desktop layout, never a narrow 1000px centered column. */
-@media (min-width:900px) {
- .mf-live .header-inner{max-width:1800px}
- .mf-live .mf-workspace{width:100%;max-width:1800px;grid-template-columns:clamp(215px,17vw,250px) minmax(0,1fr)}
- .mf-live .client-layout.mf-main,.mf-live .coach-layout.mf-main{
-  padding-left:clamp(22px,3vw,56px);
-  padding-right:clamp(22px,3vw,56px)
- }
- .mf-live .mf-main>section,
- .mf-live .mf-main>.coach-content,
- .mf-live .mf-main>.mf-live-header,
- .mf-live .mf-main>.mf-live-upcoming,
- .mf-live .mf-main>.mf-live-stats,
- .mf-live .mf-main>.mf-live-trainer,
- .mf-live .mf-main>.mf-live-management-nav{
-  width:100%;max-width:none;margin-left:0;margin-right:0
- }
- .mf-live .mf-view-key{max-width:none}
+/* Responsive authenticated workspace: sidebar + content share ALL available width. */
+.mf-live .mf-workspace{width:100%;max-width:none;margin:0}
+.mf-live .mf-view-key{width:100%;max-width:none;margin-inline:0}
+
+/* Tablet: keep sidebar, reduce horizontal padding, one booking card per row. */
+@media (min-width:761px) and (max-width:1199px){
+ .mf-live .mf-workspace{grid-template-columns:215px minmax(0,1fr)}
+ .mf-live .client-layout.mf-main,
+ .mf-live .coach-layout.mf-main{padding-inline:clamp(20px,2.5vw,34px)}
+ .mf-live .mf-live-book .service-list,
+ .mf-live .mf-live-book .packages-list,
+ .mf-live .mf-live-lessons .booking-list{grid-template-columns:minmax(0,1fr)}
 }
-@media (min-width:1200px) {
- .mf-live .mf-live-stats{gap:18px}
- .mf-live .mf-live-book .service-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+
+/* Desktop and ultrawide: fully fluid gutters and automatically wrapping grids. */
+@media (min-width:1200px){
+ .mf-live .mf-workspace{grid-template-columns:clamp(220px,17vw,280px) minmax(0,1fr)}
+ .mf-live .client-layout.mf-main,
+ .mf-live .coach-layout.mf-main{padding-inline:clamp(28px,3.5vw,88px)}
+ .mf-live .header-inner{padding-inline:clamp(24px,3vw,72px)}
+ .mf-live .mf-live-stats{gap:clamp(12px,1.3vw,22px)}
+ .mf-live .mf-live-book .service-list{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px
+ }
  .mf-live .mf-live-book .service-entry{min-width:0;margin-bottom:0}
- .mf-live .mf-live-book .service-card{min-height:118px;align-items:center}
- .mf-live .mf-live-book .packages-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ .mf-live .mf-live-book .service-card{min-height:118px}
+ .mf-live .mf-live-book .packages-list{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,390px),1fr));gap:16px
+ }
  .mf-live .mf-live-book .package-card{min-width:0;margin-bottom:0;height:100%}
- .mf-live .mf-live-lessons .booking-list{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+ .mf-live .mf-live-lessons .booking-list{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,410px),1fr));gap:16px
+ }
 }
