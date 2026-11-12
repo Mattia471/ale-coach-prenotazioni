@@ -294,3 +294,26 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
  .mf-root button.switch::after{content:'';position:absolute;inset:-9px -3px;border-radius:18px}
  .mf-root button.switch:focus-visible{outline:2px solid #e1001a;outline-offset:6px}
 }
+
+/* V1 desktop: the public landing was still constrained by the mobile-first 516px .client-layout. */
+@media (min-width:900px) {
+ .app-shell>.client-layout.landing-page{
+  width:min(100% - 80px,1320px);
+  max-width:1320px;
+  padding:38px 0 96px;
+  margin-inline:auto;
+ }
+ .landing-page .hero{
+  min-height:540px;
+  padding:clamp(36px,5vw,76px);
+ }
+ .landing-page .hero h1{font-size:clamp(62px,6.1vw,98px)}
+ .landing-page .hero p{max-width:520px;font-size:17px}
+ .landing-page .service-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ .landing-page .service-entry{min-width:0}
+ .landing-page .service-card{min-height:120px}
+ .landing-page .packages-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ .landing-page .package-card{min-width:0;height:100%}
+ .landing-page .coach-introduction{max-width:none}
+ .landing-page .promo-panel{padding:25px 30px}
+}
