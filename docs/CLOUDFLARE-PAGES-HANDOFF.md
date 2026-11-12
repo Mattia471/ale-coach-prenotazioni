@@ -25,7 +25,7 @@ Usare la pagina **Settings → Environment variables** del progetto Cloudflare P
 | `VITE_PUBLIC_SITE_URL` | `https://alecoach.online` | `https://alecoach.online` |
 | `VITE_SUPABASE_URL` | URL Supabase pubblico del cliente | Stesso |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Chiave **pubblica** Supabase | Stessa |
-| `VITE_PRELAUNCH_QA` | `false` sulla Production; `true` solo su preview branch separato **protetto da Cloudflare Access** | `false` |
+| `VITE_PRELAUNCH_QA` | `false` sulla Production; `true` soltanto sul branch QA dopo verifica della password server-side | `false` |
 | `VITE_LEGAL_APPROVED` | `false` | `true` SOLO dopo firma/approvazione legale |
 | `VITE_LEGAL_CONTROLLER_NAME`, `VITE_LEGAL_CONTROLLER_ADDRESS`, `VITE_LEGAL_CONTACT_EMAIL`, `VITE_LEGAL_TAX_ID`, `VITE_LEGAL_POLICY_VERSION` | Dati reali verificati (se disponibili) | Obbligatori e approvati |
 | `VITE_GOOGLE_ENABLED` | `false` | `false` |
@@ -133,17 +133,20 @@ Per ricontrollare senza toccare dati reali, usare Actions → **QA | Cloudflare 
 **Restano NO-GO:** non è stata eseguita una autenticazione reale da browser, né un reset via email, né un pagamento E2E dalla preview. Il redirect URL aggiunto dal cliente è dichiarato, ma non certificato con un link email effettivo.
 
 
-## QA prenotazioni e Stripe Sandbox | 12/11/2026
+## QA prenotazioni e Stripe Sandbox SENZA Zero Trust | 12/11/2026
 
-**Branch QA creato:** `qa/booking-stripe-sandbox`, derivato dal commit di `main` che include il blocco fail-closed della PR #51. Il branch **non** abilita da solo pagamenti, accesso pubblico o Stripe Live.
+**Branch protetto:** `qa/booking-stripe-sandbox`. Solo questo branch contiene `functions/_middleware.js` e `public/_routes.json`, che intercettano **tutti** i percorsi prima di servire HTML, JS, CSS, icone e service worker. Nessuna password è hardcoded o esposta a React. Il branch Production `main` non include il middleware. La modalità commerciale QA è rifiutata in build su `main` e su qualsiasi altra preview.
 
-### Configurazione Cloudflare richiesta prima del test
+### Attivazione gratuita della password Cloudflare Pages
 
-1. Cloudflare → Workers & Pages → `ale-coach-prenotazioni` → **Settings → Builds & deployments**: verificare che le preview dei branch siano abilitate e che il branch `qa/booking-stripe-sandbox` produca un URL preview distinto dalla Production. Non confondere il progetto Pages con il Worker `ale-coach`.
-2. **Prima di abilitare la modalità QA**, configurare una policy Cloudflare Access o equivalente che richieda autenticazione agli indirizzi email di tester esplicitamente autorizzati. Proteggere l'intera preview, non soltanto una singola route. Verificare in finestra anonima che un visitatore non autorizzato non possa vedere il frontend.
-3. Solo dopo che la protezione è confermata, impostare **nelle variabili Preview, non Production**, `VITE_PRELAUNCH_QA=true`, `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false`. Mantenere `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` del progetto autorizzato; non inserire mai segreti Stripe in Vite/Pages.
-4. Verificare che l'URL preview **esatto** sia incluso negli URL di redirect Supabase Auth e in `ADDITIONAL_APP_ORIGINS` delle Edge Functions. Eseguire il probe CORS per quell'origine, mantenendo il rifiuto di origini arbitrarie.
-5. Eseguire gli scenari `B01–R01` descritti in [QA-BOOKING-STRIPE-SANDBOX.md](QA-BOOKING-STRIPE-SANDBOX.md) con due account client di prova e il coach, usando **solo Stripe Sandbox**. Raccogliere esiti e anomalie senza copiare password, email, JWT o dati di pagamento.
-6. A collaudo finito rimuovere `VITE_PRELAUNCH_QA` dalla Preview, oppure disabilitare l'accesso alla preview QA. Non fare merge del branch QA in `main` per pubblicare i test.
+1. Cloudflare → Workers & Pages → `ale-coach-prenotazioni` → **Settings → Variables and Secrets** → selezionare l'ambiente **Preview**. Premere **Add**, creare `QA_ACCESS_PASSWORD` con un valore casuale **ASCII di almeno 24 caratteri**, selezionare **Encrypt**, salvare. Non usare la password di GitHub o Supabase e non inserirla in `VITE_*`, in GitHub, in chat o nei log.
+2. Verificare in **Settings → Builds & deployments** che le preview includano il branch `qa/booking-stripe-sandbox`. Eseguire un nuovo deployment QA dopo l'aggiunta del secret per renderlo disponibile alla Function.
+3. Importante per il piano Cloudflare gratuito: in **Settings → Runtime → Fail open / closed** impostare **Fail closed**; se le chiamate Pages Functions superano il limite gratuito, *Fail open* servirebbe i file statici senza autenticazione. Se non esiste l'opzione, **NON abilitare la modalità QA commerciale**.
+4. Individuare l'URL del deployment nel pannello **Deployments**, non inventarlo. Aprire in una finestra anonima: deve comparire il prompt HTTP Basic Auth. Usare username **`ale-tester`** e la password privata `QA_ACCESS_PASSWORD`. Una password sbagliata restituisce HTTP 401; la password non impostata o debole restituisce HTTP 503 (blocco di sicurezza). Confermare 401 anche su un percorso statico JS o `/sw.js`, senza login.
+5. Soltanto dopo queste verifiche, impostare nell'ambiente **Preview** `VITE_PRELAUNCH_QA=true`; **Production** conserva `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false`, `VITE_PRELAUNCH_QA=false`. La build Pages permette il bypass legale soltanto nel branch `qa/booking-stripe-sandbox`; altre preview con flag globale attivo falliscono in build.
+6. Aggiungere l'**origine preview esatta** a `ADDITIONAL_APP_ORIGINS` Supabase e il redirect `https://<preview-host>/**` in Auth, preservando origini esistenti. Il probe CORS deve essere verde per le tre funzioni con l'origine QA e negativo per `https://evil.example`.
+7. Effettuare i test B01–R01 di [QA-BOOKING-STRIPE-SANDBOX.md](QA-BOOKING-STRIPE-SANDBOX.md) soltanto con account di test autorizzati e Stripe Sandbox, senza testare carte vere. Infine disabilitare `VITE_PRELAUNCH_QA` in Preview o disattivare l'ambiente QA.
 
-**Nota di sicurezza:** `noindex`, una URL preview non pubblicizzata, l'allowlist signup o una RLS corretta **non sostituiscono** la protezione Access per una UI commerciale QA che supera i blocchi legali. Il codice sul ramo `main` fallisce intenzionalmente in build Production se `VITE_PRELAUNCH_QA=true`.
+**Importantissimo:** la password HTTP Basic è una protezione temporanea per questa preview, non una piattaforma di gestione identità. Condividere credenziali fuori da chat e repository, ruotarle dopo i test, non pubblicare mai URL di checkout o credenziali di altri utenti. Cloudflare Pages Functions è soggetto a quote del piano Free; **Fail closed** è obbligatorio per impedire che la quota esaurita lasci passare gli asset statici. Nessun abbonamento Zero Trust richiesto.
+
+Documentazione Cloudflare: https://developers.cloudflare.com/pages/functions/middleware/ · https://developers.cloudflare.com/pages/functions/bindings/ · https://developers.cloudflare.com/pages/functions/routing/
