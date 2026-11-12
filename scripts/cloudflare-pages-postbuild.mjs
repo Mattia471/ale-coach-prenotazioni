@@ -34,6 +34,10 @@ export function buildCloudflareHeaders(source,env={},legalText='') {
 export function assertCloudflareRuntimeConfig(env={}) {
  // GitHub CI has no customer credentials. Cloudflare injects CF_PAGES=1.
  if(env.CF_PAGES!=='1')return;
+ // Never allow the legal bypass in the public production branch, even during prelaunch.
+ // QA can only be run on a separate, access-controlled preview branch.
+ if(env.CF_PAGES_BRANCH==='main'&&env.VITE_PRELAUNCH_QA==='true')
+  throw new Error('Cloudflare Pages production: VITE_PRELAUNCH_QA must be disabled on main. Use a protected preview branch.');
  const url=String(env.VITE_SUPABASE_URL||'').trim().replace(/\/$/,'');
  if(url!=='https://mmtnzjdvvlouiwgrydlf.supabase.co')
   throw new Error('Cloudflare Pages: VITE_SUPABASE_URL must reference the authorized Ale Coach Supabase project');
