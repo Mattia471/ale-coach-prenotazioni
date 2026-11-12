@@ -25,7 +25,7 @@ Usare la pagina **Settings → Environment variables** del progetto Cloudflare P
 | `VITE_PUBLIC_SITE_URL` | `https://alecoach.online` | `https://alecoach.online` |
 | `VITE_SUPABASE_URL` | URL Supabase pubblico del cliente | Stesso |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Chiave **pubblica** Supabase | Stessa |
-| `VITE_PRELAUNCH_QA` | `true` solo per accessi consentiti dalla allowlist | `false` |
+| `VITE_PRELAUNCH_QA` | `false` sulla Production; `true` solo su preview branch separato **protetto da Cloudflare Access** | `false` |
 | `VITE_LEGAL_APPROVED` | `false` | `true` SOLO dopo firma/approvazione legale |
 | `VITE_LEGAL_CONTROLLER_NAME`, `VITE_LEGAL_CONTROLLER_ADDRESS`, `VITE_LEGAL_CONTACT_EMAIL`, `VITE_LEGAL_TAX_ID`, `VITE_LEGAL_POLICY_VERSION` | Dati reali verificati (se disponibili) | Obbligatori e approvati |
 | `VITE_GOOGLE_ENABLED` | `false` | `false` |
@@ -131,3 +131,19 @@ Per ricontrollare senza toccare dati reali, usare Actions → **QA | Cloudflare 
 **Passo di collaudo manuale non ancora completato:** dalla preview aprire il login, usare un account di test autorizzato, verificare dashboard e ricarica pagina, fare logout, poi chiedere recupero password verso una casella di test; il link deve tornare esattamente a `https://ale-coach-prenotazioni.pages.dev/`. Non inviare qui password, JWT o link di reset. Se fallisce il recapito email, sistemare prima SMTP e template `{{ .RedirectTo }}` lato Supabase Auth. Concluso questo percorso, verificare prenotazione e checkout esclusivamente in Stripe Sandbox.
 
 **Restano NO-GO:** non è stata eseguita una autenticazione reale da browser, né un reset via email, né un pagamento E2E dalla preview. Il redirect URL aggiunto dal cliente è dichiarato, ma non certificato con un link email effettivo.
+
+
+## QA prenotazioni e Stripe Sandbox | 12/11/2026
+
+**Branch QA creato:** `qa/booking-stripe-sandbox`, derivato dal commit di `main` che include il blocco fail-closed della PR #51. Il branch **non** abilita da solo pagamenti, accesso pubblico o Stripe Live.
+
+### Configurazione Cloudflare richiesta prima del test
+
+1. Cloudflare → Workers & Pages → `ale-coach-prenotazioni` → **Settings → Builds & deployments**: verificare che le preview dei branch siano abilitate e che il branch `qa/booking-stripe-sandbox` produca un URL preview distinto dalla Production. Non confondere il progetto Pages con il Worker `ale-coach`.
+2. **Prima di abilitare la modalità QA**, configurare una policy Cloudflare Access o equivalente che richieda autenticazione agli indirizzi email di tester esplicitamente autorizzati. Proteggere l'intera preview, non soltanto una singola route. Verificare in finestra anonima che un visitatore non autorizzato non possa vedere il frontend.
+3. Solo dopo che la protezione è confermata, impostare **nelle variabili Preview, non Production**, `VITE_PRELAUNCH_QA=true`, `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false`. Mantenere `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` del progetto autorizzato; non inserire mai segreti Stripe in Vite/Pages.
+4. Verificare che l'URL preview **esatto** sia incluso negli URL di redirect Supabase Auth e in `ADDITIONAL_APP_ORIGINS` delle Edge Functions. Eseguire il probe CORS per quell'origine, mantenendo il rifiuto di origini arbitrarie.
+5. Eseguire gli scenari `B01–R01` descritti in [QA-BOOKING-STRIPE-SANDBOX.md](QA-BOOKING-STRIPE-SANDBOX.md) con due account client di prova e il coach, usando **solo Stripe Sandbox**. Raccogliere esiti e anomalie senza copiare password, email, JWT o dati di pagamento.
+6. A collaudo finito rimuovere `VITE_PRELAUNCH_QA` dalla Preview, oppure disabilitare l'accesso alla preview QA. Non fare merge del branch QA in `main` per pubblicare i test.
+
+**Nota di sicurezza:** `noindex`, una URL preview non pubblicizzata, l'allowlist signup o una RLS corretta **non sostituiscono** la protezione Access per una UI commerciale QA che supera i blocchi legali. Il codice sul ramo `main` fallisce intenzionalmente in build Production se `VITE_PRELAUNCH_QA=true`.
