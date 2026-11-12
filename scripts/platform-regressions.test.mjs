@@ -312,9 +312,11 @@ test('Cloudflare main production refuses legal QA bypass before publishing',asyn
  const base={CF_PAGES:'1',CF_PAGES_BRANCH:'main',
   VITE_SUPABASE_URL:'https://mmtnzjdvvlouiwgrydlf.supabase.co',
   VITE_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_example_only'};
- assert.throws(()=>assertCloudflareRuntimeConfig({...base,VITE_PRELAUNCH_QA:'true'}),/VITE_PRELAUNCH_QA must be disabled/);
+ assert.throws(()=>assertCloudflareRuntimeConfig({...base,VITE_PRELAUNCH_QA:'true'}),/VITE_PRELAUNCH_QA is restricted/);
  assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({...base,VITE_PRELAUNCH_QA:'false'}));
- assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES_BRANCH:'qa/protected-preview',VITE_PRELAUNCH_QA:'true'}));
+ assert.throws(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES_BRANCH:'qa/another-preview',VITE_PRELAUNCH_QA:'true'}),/VITE_PRELAUNCH_QA is restricted/);
+ assert.throws(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES_BRANCH:undefined,VITE_PRELAUNCH_QA:'true'}),/VITE_PRELAUNCH_QA is restricted/);
+ assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES_BRANCH:'qa/booking-stripe-sandbox',VITE_PRELAUNCH_QA:'true'}));
  // A non-Pages build is unaffected, preserving local and GitHub CI workflows.
  assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES:'',VITE_PRELAUNCH_QA:'true'}));
 });
