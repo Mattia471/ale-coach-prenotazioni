@@ -6,7 +6,7 @@ La CI e il backend sono in buono stato. Stripe collegato: **Alessandro Cola sand
 
 ## Ambiente QA, obbligatorio prima di ogni pagamento test
 
-- Usare **un ambiente di preview separato o protetto tramite Cloudflare Access**, non aprire la funzionalità commerciale su una preview pubblica.
+- Usare **il branch separato `qa/booking-stripe-sandbox`**, con middleware server-side HTTP Basic su Cloudflare Pages e secret Preview cifrato `QA_ACCESS_PASSWORD`, non aprire la funzionalità commerciale su una preview pubblica. Verificare anche l'impostazione **Settings → Runtime → Fail open / closed → Fail closed** prima di abilitare QA.
 - Conservare `PAGES_RELEASE_MODE=prelaunch` e `VITE_LEGAL_APPROVED=false`. Il frontend commerciale pubblico deve continuare a bloccare prenotazioni, acquisti Flex e riprese del pagamento.
 - L'eventuale flag **`VITE_PRELAUNCH_QA=true`** serve solo a test interni autorizzati su una preview effettivamente protetta. Non abilitarlo indiscriminatamente nella Production Pages pubblica: un URL `pages.dev` con `noindex` **non è privato**.
 - Stripe deve restare `STRIPE_ENVIRONMENT=test`, con chiave server `sk_test_`, webhook di test firmato e `STRIPE_LIVE_APPROVED=false`. Le chiavi segrete devono rimanere solo su Supabase.
@@ -57,4 +57,4 @@ Continuano a richiedere chiusura e approvazione: GDPR/termini commerciali, backu
 
 **Stato attuale:** Auth su Cloudflare confermata dal cliente; controlli SQL, Stripe Sandbox pregressa e simulazioni di concorrenza verdi; **B01–R01 non ancora certificati end-to-end su Pages**.
 
-**Gate automatico aggiunto:** le build Cloudflare Pages del branch `main` (`CF_PAGES=1`, `CF_PAGES_BRANCH=main`) falliscono se `VITE_PRELAUNCH_QA=true`, anche in `prelaunch`. La modalità QA è riservata a un branch preview separato con Cloudflare Access o protezione equivalente verificata. Il controllo è in `scripts/cloudflare-pages-postbuild.mjs` ed è coperto da regressione CI.
+**Gate automatico aggiunto:** le build Cloudflare Pages del branch `main` (`CF_PAGES=1`, `CF_PAGES_BRANCH=main`) falliscono se `VITE_PRELAUNCH_QA=true`, anche in `prelaunch`. La modalità QA è riservata al branch `qa/booking-stripe-sandbox` con HTTP Basic autenticata lato server, password conservata come Secret Cloudflare Preview e `Fail closed` verificato. Il controllo è in `scripts/cloudflare-pages-postbuild.mjs` ed è coperto da regressione CI.
