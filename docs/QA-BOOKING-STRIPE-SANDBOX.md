@@ -58,3 +58,11 @@ Continuano a richiedere chiusura e approvazione: GDPR/termini commerciali, backu
 **Stato attuale:** Auth su Cloudflare confermata dal cliente; controlli SQL, Stripe Sandbox pregressa e simulazioni di concorrenza verdi; **B01–R01 non ancora certificati end-to-end su Pages**.
 
 **Gate automatico aggiunto:** le build Cloudflare Pages del branch `main` (`CF_PAGES=1`, `CF_PAGES_BRANCH=main`) falliscono se `VITE_PRELAUNCH_QA=true`, anche in `prelaunch`. La modalità QA è riservata al branch `qa/booking-stripe-sandbox` con HTTP Basic autenticata lato server, password conservata come Secret Cloudflare Preview e `Fail closed` verificato. Il controllo è in `scripts/cloudflare-pages-postbuild.mjs` ed è coperto da regressione CI.
+
+## Audit RPC Supabase, 12 novembre 2026
+
+La query ripetibile in [QA-RPC-SECURITY-AUDIT.sql](QA-RPC-SECURITY-AUDIT.sql) è stata eseguita **in sola lettura** sul progetto Supabase cloud: 21 funzioni SECURITY DEFINER, 12 eseguibili da authenticated, **0 violazioni** nei controlli automatici di grants, search_path e presenza delle guardie attese. Non sono stati alterati ruoli, policy, crediti o prenotazioni.
+
+Limite importante: la presenza testuale di `auth.uid()` o `private.is_coach()` **non dimostra da sola** che ogni ramo del codice applichi correttamente l'autorizzazione. I test RLS/RPC con rollback in [QA-RPC-RLS-READONLY.sql](QA-RPC-RLS-READONLY.sql) completano solo parzialmente la copertura. Prima del GO servono revisione puntuale dei rami di business, controllo Auth e delle eventuali nuove RPC. Le funzioni server-only per saldo pacchetti e autorizzazione Stripe non sono accessibili ad authenticated.
+
+**Non** applicare REVOKE generalizzati alle RPC authenticated: sono necessarie al booking e all'agenda. In caso di modifica SQL, verificare l'intero percorso cliente/coach con test automatici e collaudo mirato.
