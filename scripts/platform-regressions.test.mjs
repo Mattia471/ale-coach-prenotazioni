@@ -341,7 +341,7 @@ test('Auth reset and signup redirect to the current trusted site origin',()=>{
  assert.match(app,/event==='PASSWORD_RECOVERY'/);
  assert.match(app,/supabase\.auth\.updateUser\(\{password:newPassword\}\)/);
  // Prevent accidental hard-coded Vercel callback in new Auth code.
- const authCalls=app.match(/(?:resetPasswordForEmail|signUp)\([\s\S]{0,320}/g)||[];
+ const authCalls=app.match(/(?:resetPasswordForEmail|signUp)\(/g)||[];
  assert.ok(authCalls.length>=2,'Expected reset and signup Auth paths');
  assert.ok(authCalls.every(call=>!call.includes('ale-coach-prenotazioni.vercel.app')),
   'Auth callback must follow the current site origin, not Vercel');
