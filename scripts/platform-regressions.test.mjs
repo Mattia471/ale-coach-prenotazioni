@@ -321,37 +321,15 @@ test('Cloudflare main production refuses legal QA bypass before publishing',asyn
  assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES:'',VITE_PRELAUNCH_QA:'true'}));
 });
 
-test('V1 fluid responsive: no app width caps and separate mobile/tablet/desktop rules',()=>{
- const live=read('src/minimal-focus-live.css');
+test('Approved Minimal Focus visual baseline is restored pending desktop redesign',()=>{
  const base=read('src/styles.css');
  const focus=read('src/minimal-focus.css');
-
- // Eliminate original caps rather than only overriding them on very large screens.
- assert.match(base,/\.client-layout\{width:100%;min-width:0;max-width:none/);
- assert.match(base,/\.coach-layout\{width:100%;min-width:0;max-width:none/);
- assert.match(base,/\.header-inner\{[^}]*width:100%;max-width:none/);
- assert.match(focus,/\.mf-workspace\{width:100%;max-width:none/);
- assert.match(focus,/\.mf-view-key\{width:100%;max-width:none/);
- assert.match(live,/\.mf-live \.mf-main>section,[^}]*width:100%;max-width:none/);
- assert.match(live,/\.mf-live \.wizard\{width:100%;max-width:none/);
-
- // Mobile / tablet / desktop are distinct. Cards wrap automatically at wide widths.
- assert.match(base,/@media \(max-width:760px\)/);
- assert.match(base,/@media \(min-width:761px\) and \(max-width:1199px\)/);
- assert.match(base,/@media \(min-width:1200px\)/);
- assert.match(live,/@media \(min-width:761px\) and \(max-width:1199px\)/);
- assert.match(live,/@media \(min-width:1200px\)/);
- assert.match(base,/\.landing-page \.service-list\{grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,340px\),1fr\)\)/);
- assert.match(base,/\.landing-page \.packages-list\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,420px\),1fr\)\)/);
- assert.match(live,/\.mf-live \.mf-live-book \.service-list\{[\s\S]*?grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,320px\),1fr\)\)/);
- assert.match(live,/\.mf-live \.mf-live-lessons \.booking-list\{[\s\S]*?grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,410px\),1fr\)\)/);
- assert.match(live,/\.mf-live \.mf-workspace\{width:100%;max-width:none/);
- assert.match(base,/\.auth-page\{display:grid;grid-template-columns:minmax\(0,1fr\)/);
-
- // Existing compact mobile agenda and safe booking behavior must be preserved.
+ const live=read('src/minimal-focus-live.css');
+ assert.match(base,/\.client-layout\{max-width:516px;margin:0 auto/);
+ assert.match(focus,/\.mf-workspace\{max-width:1490px;margin:0 auto/);
+ assert.match(focus,/\.mf-view-key\{max-width:1000px;margin:0 auto/);
+ assert.match(live,/\.mf-live \.mf-main>section,[^\n]*max-width:1000px/);
  assert.match(live,/@media\(max-width:760px\)/);
- assert.match(live,/\.mf-live \.client-layout\.mf-main,\.mf-live \.coach-layout\.mf-main\{padding:0 18px 125px\}/);
- const newDesktop=live.slice(live.indexOf('/* Responsive authenticated workspace:'));
- assert.doesNotMatch(newDesktop,/max-width:(?:1000|1320|1380|1490|1800)px/);
- assert.doesNotMatch(newDesktop,/@media\s*\(max-width:/);
+ assert.doesNotMatch(live,/V1 desktop polish|Responsive authenticated workspace:/);
+ assert.doesNotMatch(base,/V1 fluid layout|V1 desktop: the public landing/);
 });
