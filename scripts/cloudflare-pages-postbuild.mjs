@@ -36,8 +36,8 @@ export function assertCloudflareRuntimeConfig(env={}) {
  if(env.CF_PAGES!=='1')return;
  // Never allow the legal bypass in the public production branch, even during prelaunch.
  // QA can only be run on a separate, access-controlled preview branch.
- if(env.CF_PAGES_BRANCH==='main'&&env.VITE_PRELAUNCH_QA==='true')
-  throw new Error('Cloudflare Pages production: VITE_PRELAUNCH_QA must be disabled on main. Use a protected preview branch.');
+ if(env.VITE_PRELAUNCH_QA==='true'&&env.CF_PAGES_BRANCH!=='qa/booking-stripe-sandbox')
+  throw new Error('Cloudflare Pages: VITE_PRELAUNCH_QA is restricted to the password-protected qa/booking-stripe-sandbox branch.');
  const url=String(env.VITE_SUPABASE_URL||'').trim().replace(/\/$/,'');
  if(url!=='https://mmtnzjdvvlouiwgrydlf.supabase.co')
   throw new Error('Cloudflare Pages: VITE_SUPABASE_URL must reference the authorized Ale Coach Supabase project');
