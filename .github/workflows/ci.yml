@@ -74,4 +74,6 @@ jobs:
       - name: Run simultaneous PostgreSQL transactions without Supabase access
         env:
           QA_DATABASE_URL: postgresql://alecoach_ci:local_ci_only@127.0.0.1:5432/alecoach_ci
-        run: node scripts/qa-concurrency.mjs
+        run: |
+          node scripts/qa-concurrency.mjs
+          node scripts/qa-credit-cancellation-isolated.mjs
