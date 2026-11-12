@@ -12,9 +12,9 @@ const noStoreHeaders={
 };
 const loginChallenge='Basic realm="ALE COACH QA", charset="UTF-8"';
 const encoder=new TextEncoder();
-function unavailable(){
+function unavailable(reason='invalid'){
   return new Response('ALE COACH QA non configurato.',{
-    status:503,headers:{...noStoreHeaders,'Content-Type':'text/plain; charset=utf-8'}
+    status:503,headers:{...noStoreHeaders,'Content-Type':'text/plain; charset=utf-8','X-ALE-QA-Config':reason}
   });
 }
 function denied(){
@@ -39,8 +39,10 @@ export async function onRequest(context){
   // If a runtime binding is missing, misconfigured or too weak, never serve
   // frontend HTML, JS, static assets or the service worker.
   const password=context.env?.QA_ACCESS_PASSWORD;
-  if(typeof password!=='string'||password.length<24||password.length>128||
-    !/^[\x21-\x7E]+$/.test(password))return unavailable();
+  if(typeof password!=='string')return unavailable('missing-runtime-binding');
+  if(password.length<24)return unavailable('too-short');
+  if(password.length>128)return unavailable('too-long');
+  if(!/^[\x21-\x7E]+$/.test(password))return unavailable('unsupported-characters');
 
   const provided=context.request.headers.get('Authorization')||'';
   if(provided.length>512)return denied();
