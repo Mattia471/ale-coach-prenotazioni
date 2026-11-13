@@ -354,3 +354,18 @@ test('Auth reset and signup redirect to the current trusted site origin',()=>{
  assert.match(guide,/alecoach\.online/);
  assert.match(guide,/SPF\/DKIM\/DMARC/);
 });
+
+test('Scheduled prelaunch Cloudflare checks stay read-only and never use secrets',()=>{
+ const pages=read('.github/workflows/pages-live-smoke.yml');
+ const auth=read('.github/workflows/pages-auth-public-smoke.yml');
+ for(const workflow of [pages,auth]){
+  assert.match(workflow,/workflow_dispatch:/);
+  assert.match(workflow,/schedule:\s*\n\s*- cron: '[0-9]+ [0-9]+ \* \* \*'/);
+  assert.match(workflow,/contents: read/);
+  assert.doesNotMatch(workflow,/secrets\.|STRIPE_SECRET|SUPABASE_SERVICE_ROLE|GITHUB_TOKEN:/);
+  assert.doesNotMatch(workflow,/POST|PATCH|DELETE|stripe_api_write/);
+ }
+ assert.match(pages,/node scripts\/qa-cloudflare-pages-smoke\.mjs/);
+ assert.match(pages,/node scripts\/qa-cors-preflight\.mjs/);
+ assert.match(auth,/node scripts\/qa-pages-auth-public\.mjs/);
+});
