@@ -141,3 +141,83 @@ await is('SELECT public.expire_stale_bookings();','0','expiry retry is idempoten
 await is("SELECT count(*) FROM public.notifications WHERE booking_id::text LIKE '91000000-%';",
  '5','expiry retry never duplicates notifications');
 console.log('All isolated expiry and credit-restoration checks PASSED without touching cloud records.');
+
+
+// QA 91: actual coach_decide_booking RPC, including role denial, credit
+// restitution, parallel rejection attempts, and approval without double-debit.
+const decideStart=expiryMigration.indexOf('CREATE OR REPLACE FUNCTION public.coach_decide_booking(');
+const decideEnd=expiryMigration.indexOf('$function$;',decideStart);
+assert.ok(decideStart>=0&&decideEnd>decideStart,'latest coach decision RPC must be present in the migration');
+await passSql([
+ "ALTER TABLE public.bookings ADD COLUMN service_id text NOT NULL DEFAULT 'single';",
+ "ALTER TABLE public.bookings ADD COLUMN base_amount_cents integer NOT NULL DEFAULT 0;",
+ "ALTER TABLE public.bookings ADD COLUMN amount_cents integer NOT NULL DEFAULT 0;",
+ "ALTER TABLE public.bookings ADD COLUMN approved_at timestamptz;",
+ "CREATE OR REPLACE FUNCTION private.is_coach() RETURNS boolean LANGUAGE sql STABLE AS $qa_coach$",
+ " SELECT coalesce(auth.uid()='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,false);",
+ "$qa_coach$;"
+].join('\n'));
+await passSql(expiryMigration.slice(decideStart,decideEnd+'$function$;'.length));
+console.log('PASS: verified coach decision RPC source loaded into isolated PostgreSQL');
+await passSql([
+ "INSERT INTO public.wallet_credits(id,remaining) VALUES",
+ "('a2000000-0000-4000-8000-000000000001',0),",
+ "('a2000000-0000-4000-8000-000000000002',0),",
+ "('a2000000-0000-4000-8000-000000000003',0),",
+ "('a2000000-0000-4000-8000-000000000005',0);",
+ "INSERT INTO public.bookings(id,client_id,payment_mode,starts_at,status,credit_wallet_id,payment_status,expires_at) VALUES",
+ "('a1000000-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111','credit',now()+interval '5 days','pending','a2000000-0000-4000-8000-000000000001','unpaid',now()+interval '1 day'),",
+ "('a1000000-0000-4000-8000-000000000002','11111111-1111-4111-8111-111111111111','credit',now()+interval '5 days','pending','a2000000-0000-4000-8000-000000000002','unpaid',now()+interval '1 day'),",
+ "('a1000000-0000-4000-8000-000000000003','11111111-1111-4111-8111-111111111111','credit',now()+interval '5 days','pending','a2000000-0000-4000-8000-000000000003','unpaid',now()+interval '1 day'),",
+ "('a1000000-0000-4000-8000-000000000004','11111111-1111-4111-8111-111111111111','online',now()+interval '5 days','pending',null,'authorized',now()+interval '1 day'),",
+ "('a1000000-0000-4000-8000-000000000005','11111111-1111-4111-8111-111111111111','credit',now()+interval '5 days','pending','a2000000-0000-4000-8000-000000000005','unpaid',now()-interval '1 hour');"
+].join('\n'));
+const coach='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+function decide(id,action,actor=coach){
+ const jwt=actor?"SET LOCAL request.jwt.claim.sub='"+actor+"';":"SET LOCAL request.jwt.claim.sub='';";
+ return "BEGIN; "+jwt+" SELECT public.coach_decide_booking('"+id+"'::uuid,'"+action+"'); COMMIT;";
+}
+const bk=n=>'a1000000-0000-4000-8000-'+String(n).padStart(12,'0');
+const wk=n=>'a2000000-0000-4000-8000-'+String(n).padStart(12,'0');
+await denied(decide(bk(1),'reject',owner),'Operazione riservata al coach',
+ 'client cannot reject its own booking as coach');
+await denied(decide(bk(1),'reject',null),'Operazione riservata al coach',
+ 'missing coach JWT cannot reject a booking');
+await is("SELECT status||':'||remaining FROM public.bookings b JOIN public.wallet_credits w ON w.id=b.credit_wallet_id WHERE b.id='"+bk(1)+"';",
+ 'pending:0','denied coach actions never change the booking or wallet');
+
+await is(decide(bk(1),'reject'),'rejected','authorized coach rejects a credit booking');
+await is("SELECT status||':'||remaining FROM public.bookings b JOIN public.wallet_credits w ON w.id=b.credit_wallet_id WHERE b.id='"+bk(1)+"';",
+ 'rejected:1','rejection restores exactly one Flex credit');
+await is("SELECT count(*) FROM public.notifications WHERE booking_id='"+bk(1)+"' AND kind='booking_update';",
+ '1','rejection creates one notification');
+await denied(decide(bk(1),'reject'),'Richiesta non più in attesa',
+ 'second reject cannot refund same booking twice');
+await is("SELECT remaining FROM public.wallet_credits WHERE id='"+wk(1)+"';",
+ '1','repeat rejection leaves refunded wallet untouched');
+
+const simultaneous=await Promise.all([psql(decide(bk(2),'reject')),psql(decide(bk(2),'reject'))]);
+assert.equal(simultaneous.filter(x=>x.code===0).length,1,
+ 'exactly one concurrent coach rejection should succeed');
+assert.equal(simultaneous.filter(x=>x.code!==0&&/Richiesta non più in attesa/i.test(x.stderr)).length,1,
+ 'the second concurrent coach rejection must fail on the new state');
+console.log('PASS: concurrent coach rejections allow exactly one transaction');
+await is("SELECT status||':'||remaining FROM public.bookings b JOIN public.wallet_credits w ON w.id=b.credit_wallet_id WHERE b.id='"+bk(2)+"';",
+ 'rejected:1','parallel reject restores only one credit');
+await is("SELECT count(*) FROM public.notifications WHERE booking_id='"+bk(2)+"' AND kind='booking_update';",
+ '1','parallel reject cannot duplicate notifications');
+
+await is(decide(bk(3),'approve'),'confirmed','coach approves an individual lesson paid with Flex credit');
+await is("SELECT status||':'||payment_status||':'||remaining FROM public.bookings b JOIN public.wallet_credits w ON w.id=b.credit_wallet_id WHERE b.id='"+bk(3)+"';",
+ 'confirmed:paid:0','approval marks paid without consuming another credit');
+await denied(decide(bk(3),'approve'),'Richiesta non più in attesa',
+ 'second approval cannot repeat a confirmed decision');
+await denied(decide(bk(4),'reject'),'La carta deve essere autorizzata',
+ 'online Stripe booking is protected from the wrong coach RPC');
+await is("SELECT status FROM public.bookings WHERE id='"+bk(4)+"';",
+ 'pending','rejected Stripe action has no side effects');
+await denied(decide(bk(5),'reject'),'Richiesta scaduta',
+ 'expired coach decision cannot refund through stale booking');
+await is("SELECT status||':'||remaining FROM public.bookings b JOIN public.wallet_credits w ON w.id=b.credit_wallet_id WHERE b.id='"+bk(5)+"';",
+ 'pending:0','expired request is left for expiry cron');
+console.log('All QA 91 synthetic coach rejection/approval/parallel-retry checks PASSED.');
