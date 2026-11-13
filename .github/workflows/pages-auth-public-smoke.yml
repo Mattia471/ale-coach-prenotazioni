@@ -1,6 +1,8 @@
-name: QA | Cloudflare Auth public & RLS (manual)
+name: QA | Cloudflare Auth public & RLS (daily & manual)
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '19 6 * * *'
 permissions:
   contents: read
 jobs:
