@@ -17,7 +17,7 @@ WITH flags(label,ok) AS (
      AND qual LIKE '%auth.uid()%' AND with_check LIKE '%auth.uid()%')),
  ('RLS: no browser INSERT/DELETE policy on profiles',
    NOT EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='profiles'
-     AND cmd IN ('ALL','INSERT','DELETE') AND roles && ARRAY['authenticated','public'])),
+     AND cmd IN ('ALL','INSERT','DELETE') AND roles && ARRAY['authenticated','public']::name[])),
  ('PRIV: signed-in client cannot change profile role',
    NOT has_column_privilege('authenticated','public.profiles','role','UPDATE')),
  ('PRIV: signed-in client cannot change profile id',
@@ -81,7 +81,7 @@ WITH flags(label,ok) AS (
  ('RPC: all privileged public functions use hardened search_path',
    NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
      WHERE n.nspname='public' AND p.prosecdef
-     AND NOT ('search_path=""'=ANY(p.proconfig)))),
+     AND NOT COALESCE('search_path=""'=ANY(p.proconfig),false))),
  ('RLS: client bookings SELECT checks auth.uid ownership',
    EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public'
      AND tablename='bookings' AND cmd='SELECT'
