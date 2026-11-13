@@ -16,7 +16,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO ''
 AS $signup$
-DECLARE v_email text := pg_catalog.lower(pg_catalog.btrim(pg_catalog.coalesce(NEW.email,'')));
+DECLARE v_email text := pg_catalog.lower(pg_catalog.btrim(coalesce(NEW.email,'')));
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM private.prelaunch_allowed_emails a WHERE a.email=v_email
@@ -26,9 +26,9 @@ BEGIN
   INSERT INTO public.profiles(id,email,full_name,phone,virgin_member)
   VALUES(
     NEW.id,
-    pg_catalog.coalesce(NEW.email,''),
-    pg_catalog.left(pg_catalog.coalesce(NEW.raw_user_meta_data->>'full_name',''),120),
-    pg_catalog.left(pg_catalog.coalesce(NEW.raw_user_meta_data->>'phone',''),40),
+    coalesce(NEW.email,''),
+    pg_catalog.left(coalesce(NEW.raw_user_meta_data->>'full_name',''),120),
+    pg_catalog.left(coalesce(NEW.raw_user_meta_data->>'phone',''),40),
     false
   );
   RETURN NEW;
