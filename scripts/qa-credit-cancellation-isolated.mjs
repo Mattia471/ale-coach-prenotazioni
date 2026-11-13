@@ -90,3 +90,54 @@ await denied(invoke(booking,owner),'Stato non cancellabile','a repeated cancella
 await is("SELECT remaining FROM public.wallet_credits WHERE id='"+wallet+"';",'1','repeating cancellation never duplicates the credit');
 await is("SELECT COUNT(*) FROM public.bookings WHERE status='confirmed';",'2','rejected online / under-24h cancellations remain confirmed');
 console.log('All actual-source cancellation and credit-restoration tests PASSED in isolated PostgreSQL only.');
+
+
+// QA 92: exercise the currently deployed-source expiry RPC on synthetic records.
+// The second invocation and simultaneous invocations must never refund a credit twice.
+const expiryMigration=readFileSync(new URL('../supabase/migrations/20261104143000_v2_stripe_authorize_before_request.sql',import.meta.url),'utf8');
+const expiryStart=expiryMigration.indexOf('CREATE OR REPLACE FUNCTION public.expire_stale_bookings()');
+const expiryEnd=expiryMigration.indexOf('$function$;',expiryStart);
+assert.ok(expiryStart>=0&&expiryEnd>expiryStart,'latest expiry RPC source must be found in the migration');
+await passSql("ALTER TABLE public.bookings ADD COLUMN expires_at timestamptz NOT NULL DEFAULT (now()+interval '365 days');");
+await passSql(expiryMigration.slice(expiryStart,expiryEnd+'$function$;'.length));
+console.log('PASS: actual expiry RPC from the latest migration loaded into isolated PostgreSQL');
+
+await passSql([
+ "INSERT INTO public.wallet_credits(id,remaining) VALUES",
+ "('92000000-0000-4000-8000-000000000001',0),",
+ "('92000000-0000-4000-8000-000000000002',0),",
+ "('92000000-0000-4000-8000-000000000007',0),",
+ "('92000000-0000-4000-8000-000000000008',0),",
+ "('92000000-0000-4000-8000-000000000009',0);",
+ "INSERT INTO public.bookings(id,client_id,payment_mode,starts_at,status,credit_wallet_id,payment_status,expires_at) VALUES",
+ "('91000000-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111','credit',now()+interval '5 days','pending','92000000-0000-4000-8000-000000000001','unpaid',now()-interval '1 hour'),",
+ "('91000000-0000-4000-8000-000000000002','11111111-1111-4111-8111-111111111111','credit',now()+interval '5 days','awaiting_payment','92000000-0000-4000-8000-000000000002','unpaid',now()-interval '1 hour'),",
+ "('91000000-0000-4000-8000-000000000003','11111111-1111-4111-8111-111111111111','online',now()+interval '5 days','pending',null,'authorized',now()-interval '1 hour'),",
+ "('91000000-0000-4000-8000-000000000004','11111111-1111-4111-8111-111111111111','online',now()+interval '5 days','pending',null,'unpaid',now()-interval '1 hour'),",
+ "('91000000-0000-4000-8000-000000000005','11111111-1111-4111-8111-111111111111','online',now()+interval '5 days','authorizing',null,'unpaid',now()-interval '1 hour'),",
+ "('91000000-0000-4000-8000-000000000006','11111111-1111-4111-8111-111111111111','none',now()+interval '5 days','quoted',null,'unpaid',now()-interval '1 hour'),",
+ "('91000000-0000-4000-8000-000000000007','11111111-1111-4111-8111-111111111111','credit',now()+interval '5 days','pending','92000000-0000-4000-8000-000000000007','unpaid',now()+interval '1 day'),",
+ "('91000000-0000-4000-8000-000000000008','11111111-1111-4111-8111-111111111111','credit',now()+interval '5 days','confirmed','92000000-0000-4000-8000-000000000008','unpaid',now()-interval '1 hour'),",
+ "('91000000-0000-4000-8000-000000000009','11111111-1111-4111-8111-111111111111','credit',now()+interval '5 days','expired','92000000-0000-4000-8000-000000000009','unpaid',now()-interval '1 hour');"
+].join('\n'));
+const expRuns=await Promise.all([psql('SELECT public.expire_stale_bookings();'),psql('SELECT public.expire_stale_bookings();')]);
+assert.ok(expRuns.every(x=>x.code===0),expRuns.map(x=>x.stderr).join('\n'));
+assert.deepEqual(expRuns.map(x=>Number(x.stdout)).sort((a,b)=>a-b),[0,5],
+ 'simultaneous cron invocations must process each expired request exactly once');
+console.log('PASS: simultaneous expiry runs return 0 and 5 (five bookings processed once)');
+await is("SELECT string_agg(remaining::text,',' ORDER BY id) FROM public.wallet_credits WHERE id::text LIKE '92000000-%';",
+ '1,1,0,0,0','only expired pending credit requests restore exactly one credit');
+await is("SELECT status FROM public.bookings WHERE id='91000000-0000-4000-8000-000000000003';",
+ 'pending','authorized Stripe booking must not be expired by the cron');
+await is("SELECT status FROM public.bookings WHERE id='91000000-0000-4000-8000-000000000007';",
+ 'pending','future pending credit booking must not expire prematurely');
+await is("SELECT status FROM public.bookings WHERE id='91000000-0000-4000-8000-000000000008';",
+ 'confirmed','confirmed credit booking must never be refunded by expiry');
+await is("SELECT count(*) FROM public.bookings WHERE id::text LIKE '91000000-%' AND status='expired';",
+ '6','five expired now plus the pre-existing expired booking');
+await is("SELECT count(*) FROM public.notifications WHERE booking_id::text LIKE '91000000-%';",
+ '5','exactly one notification per newly expired booking');
+await is('SELECT public.expire_stale_bookings();','0','expiry retry is idempotent');
+await is("SELECT count(*) FROM public.notifications WHERE booking_id::text LIKE '91000000-%';",
+ '5','expiry retry never duplicates notifications');
+console.log('All isolated expiry and credit-restoration checks PASSED without touching cloud records.');
