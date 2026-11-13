@@ -40,3 +40,7 @@
 - [Cloudflare Pages](CLOUDFLARE-PAGES-HANDOFF.md)
 - [Backup e ripristino](BACKUP-RESTORE-RUNBOOK.md)
 - [Piano test](TEST-PLAN.md)
+
+## Tentativo di ridistribuzione Cloudflare del 13/11/2026
+
+Su richiesta del responsabile del progetto è stato generato un nuovo commit **solo documentale** su `main` per attivare il collegamento automatico GitHub → Cloudflare Pages, senza cambiare codice, build, dati o impostazioni di rilascio. I controlli sul deploy Production restano aperti nell'[issue #75](https://github.com/Mattia471/ale-coach-prenotazioni/issues/75). **Non considerare il push una pubblicazione riuscita**: verificare l'esito reale di Cloudflare e il branch Production, mantenendo `PAGES_RELEASE_MODE=prelaunch`, la QA commerciale bloccata e Stripe Live disattivato.
