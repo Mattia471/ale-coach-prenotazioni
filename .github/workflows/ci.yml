@@ -41,6 +41,20 @@ jobs:
         run: node scripts/qa-stripe-webhook-isolated.mjs
       - name: Validate read-only Auth smoke script syntax
         run: node --check scripts/qa-pages-auth-public.mjs
+      # ONE-TIME DIAGNOSTIC BRANCH ONLY. Must be closed, NOT merged into main.
+      - name: One-shot customer HTTPS and email DNS checks (GET / DNS only)
+        continue-on-error: true
+        run: node scripts/qa-custom-domain-readonly.mjs
+      - name: One-shot production apex Edge CORS (OPTIONS only)
+        continue-on-error: true
+        env:
+          QA_ALLOWED_ORIGIN: https://alecoach.online
+        run: node scripts/qa-cors-preflight.mjs
+      - name: One-shot www Edge CORS (OPTIONS only)
+        continue-on-error: true
+        env:
+          QA_ALLOWED_ORIGIN: https://www.alecoach.online
+        run: node scripts/qa-cors-preflight.mjs
       # Il backend è sul Supabase Cloud Ale Coach. Non eseguire seed o reset dei dati in CI.
 
   isolated-postgres-concurrency:
