@@ -1,5 +1,6 @@
 // One-shot public DNS/HTTPS checks. No credentials, user data or writes.
 import dns from 'node:dns/promises';
+import tls from 'node:tls';
 
 async function records(domain,rrtype) {
  try { return await dns.resolve(domain,rrtype); }
@@ -9,8 +10,7 @@ for(const host of ['alecoach.online','www.alecoach.online']) {
  const a=await records(host,'A');
  const aaaa=await records(host,'AAAA');
  const cname=await records(host,'CNAME');
- console.log('DNS',host,'A-count',a.length,'AAAA-count',aaaa.length,
-  'CNAME-targets',cname.filter(x=>x.endsWith('pages.dev')));
+ console.log('DNS',host,'A-addresses',a,'AAAA-count',aaaa.length,'CNAME-targets',cname);
  try {
   const r=await fetch('https://'+host+'/',{
    redirect:'follow',signal:AbortSignal.timeout(12000),
@@ -22,6 +22,20 @@ for(const host of ['alecoach.online','www.alecoach.online']) {
     'react_shell',/ALE COACH|<div id="root"/i.test(html),
     'noindex',r.headers.get('x-robots-tag')||'(none)');
  }catch(e){console.log('HTTPS',host,'ERROR',e.cause?.code||e.name||'fetch failed');}
+ await new Promise(resolve=>{
+  let done=false;
+  const finish=()=>{if(!done){done=true;resolve();}};
+  const socket=tls.connect({host,port:443,servername:host,rejectUnauthorized:false,timeout:9000},()=>{
+   const cert=socket.getPeerCertificate();
+   console.log('TLS CERT',host,'auth_error',socket.authorizationError||'(none)',
+     'CN',cert.subject?.CN||'(none)','issuer',cert.issuer?.O||cert.issuer?.CN||'(none)',
+     'SAN',String(cert.subjectaltname||'').slice(0,300),
+     'valid_from',cert.valid_from||'-','valid_to',cert.valid_to||'-');
+   socket.destroy();finish();
+  });
+  socket.on('timeout',()=>{console.log('TLS CERT',host,'timeout');socket.destroy();finish();});
+  socket.on('error',e=>{console.log('TLS CERT',host,'error',e.code||e.message);finish();});
+ });
 }
 const mx=await records('alecoach.online','MX');
 const txt=await records('alecoach.online','TXT');
