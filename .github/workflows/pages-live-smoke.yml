@@ -1,6 +1,8 @@
-name: QA | Cloudflare Pages smoke (manual)
+name: QA | Cloudflare Pages smoke (daily & manual)
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '7 6 * * *'
 permissions:
   contents: read
 jobs:
