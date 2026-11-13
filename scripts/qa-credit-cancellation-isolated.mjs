@@ -154,7 +154,7 @@ await passSql([
  "ALTER TABLE public.bookings ADD COLUMN amount_cents integer NOT NULL DEFAULT 0;",
  "ALTER TABLE public.bookings ADD COLUMN approved_at timestamptz;",
  "CREATE OR REPLACE FUNCTION private.is_coach() RETURNS boolean LANGUAGE sql STABLE AS $qa_coach$",
- " SELECT auth.uid()='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid;",
+ " SELECT coalesce(auth.uid()='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,false);",
  "$qa_coach$;"
 ].join('\n'));
 await passSql(expiryMigration.slice(decideStart,decideEnd+'$function$;'.length));
