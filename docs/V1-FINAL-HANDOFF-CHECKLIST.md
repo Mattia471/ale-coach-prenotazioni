@@ -16,7 +16,7 @@
 
 | Blocco | Responsabile | Prova richiesta | Stato |
 | --- | --- | --- | --- |
-| **Privacy, Termini, cookie e policy disdette** | Titolare/consulente | Dati reali, testi e condizioni approvati; `VITE_LEGAL_APPROVED` resta `false` fino alla firma | **APERTO** |
+| **Privacy, Termini, cookie e policy disdette** | Titolare/consulente | Bozze iniziali confermate, testi standard completati in PR; verificare trattamenti, termini e versione definitiva prima di impostare `VITE_LEGAL_APPROVED=true` | **PARZIALE** |
 | **SMTP del dominio** | Titolare account email + tecnico | Mittente verificato, SPF/DKIM/DMARC, email di reset realmente ricevuta | **APERTO** |
 | **Backup reale e restore isolato** | Titolare infrastruttura + tecnico | Dump cifrato offsite, custodia chiavi, ripristino in ambiente diverso e verifica Auth/Storage | **APERTO** |
 | **Stripe Sandbox E2E residuo** | Tecnico + titolare account Stripe | Cattura/rifiuto/rimborso reali in test, replay webhook su backend, verifica redirect dalla QA Pages, 2 account concorrenti | **PARZIALE** |
@@ -44,3 +44,9 @@
 ## Tentativo di ridistribuzione Cloudflare del 13/11/2026
 
 Su richiesta del responsabile del progetto è stato generato un nuovo commit **solo documentale** su `main` per attivare il collegamento automatico GitHub → Cloudflare Pages, senza cambiare codice, build, dati o impostazioni di rilascio. I controlli sul deploy Production restano aperti nell'[issue #75](https://github.com/Mattia471/ale-coach-prenotazioni/issues/75). **Non considerare il push una pubblicazione riuscita**: verificare l'esito reale di Cloudflare e il branch Production, mantenendo `PAGES_RELEASE_MODE=prelaunch`, la QA commerciale bloccata e Stripe Live disattivato.
+
+## Aggiornamento legal V1 | 13 novembre 2026
+
+Il responsabile ha confermato l'utilizzo dei testi iniziali e ha autorizzato il completamento delle informazioni standard. La pagina Privacy, i Termini e l'informativa cookie sono stati completati senza placeholder, con i dati del titolare già forniti (Alessandro Cola, Via Augusto Camerini 91 Roma, P.IVA 16688071006, info@alecoach.online). Il testo sui pagamenti ora distingue la preautorizzazione Stripe prima della decisione coach dalla cattura dopo approvazione e dall'acquisto immediato dei pacchetti Flex. La policy disdette V1 resta di 24 ore, senza rimborso 50% automatico entro le 24 ore.
+
+**Non è un GO:** la V1 resta in prelaunch, nessuna chiave Live o flag legale è stata attivata. Il titolare deve verificare che i criteri di conservazione, le condizioni recesso, il provider email e i trasferimenti corrispondano ai trattamenti effettivi e fissare una versione finale. Dettagli e fonti in [LEGAL-V1-ASSUMPTIONS.md](LEGAL-V1-ASSUMPTIONS.md); issue di rilascio [#77](https://github.com/Mattia471/ale-coach-prenotazioni/issues/77).
