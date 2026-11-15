@@ -1,0 +1,41 @@
+name: QA TEMP | Full customer domain smoke (do not merge)
+on:
+  push:
+    branches: [qa/v1-custom-domain-monitoring-20261115]
+permissions:
+  contents: read
+jobs:
+  custom-domain-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: HTTPS SPA, headers, legal deep-links, PWA on customer apex
+        env:
+          QA_SITE_ORIGIN: https://alecoach.online
+        run: node scripts/qa-cloudflare-pages-smoke.mjs
+      - name: HTTPS SPA, headers, legal deep-links, PWA on customer www
+        env:
+          QA_SITE_ORIGIN: https://www.alecoach.online
+        run: node scripts/qa-cloudflare-pages-smoke.mjs
+      - name: Technical Pages SPA regression
+        run: node scripts/qa-cloudflare-pages-smoke.mjs
+      - name: Customer apex Auth and anonymous RLS
+        env:
+          QA_SITE_ORIGIN: https://alecoach.online
+        run: node scripts/qa-pages-auth-public.mjs
+      - name: Customer www Auth and anonymous RLS
+        env:
+          QA_SITE_ORIGIN: https://www.alecoach.online
+        run: node scripts/qa-pages-auth-public.mjs
+      - name: Customer apex CORS safe preflight
+        env:
+          QA_ALLOWED_ORIGIN: https://alecoach.online
+        run: node scripts/qa-cors-preflight.mjs
+      - name: Customer www CORS safe preflight
+        env:
+          QA_ALLOWED_ORIGIN: https://www.alecoach.online
+        run: node scripts/qa-cors-preflight.mjs
