@@ -18,7 +18,7 @@
 | --- | --- | --- | --- |
 | **Privacy, Termini, cookie e policy disdette** | Titolare/consulente | Bozze iniziali confermate, testi standard completati in PR; verificare trattamenti, termini e versione definitiva prima di impostare `VITE_LEGAL_APPROVED=true` | **PARZIALE** |
 | **SMTP del dominio** | Titolare account email + tecnico | SMTP configurato; email reset ricevuta, link sul dominio definitivo e recupero funzionanti; MX/SPF/DMARC pubblicati; verificare allineamento DKIM/SPF nell'header del messaggio | **FUNZIONALE COMPLETATO, AUTENTICAZIONE EMAIL PARZIALE** |
-| **Backup reale e restore isolato** | Titolare infrastruttura + tecnico | Dump cifrato offsite, custodia chiavi, ripristino in ambiente diverso e verifica Auth/Storage | **APERTO** |
+| **Dati di collaudo e continuità operativa** | Titolare + tecnico | Il titolare accetta di non conservare il dataset QA attuale, destinato a essere ripulito **prima** dell'apertura commerciale. Predisporre una strategia di protezione dei dati reali prima del loro ingresso | **BACKUP QA DISPENSATO; PROTEZIONE DATI REALI DA DEFINIRE** |
 | **Stripe Sandbox E2E residuo** | Tecnico + titolare account Stripe | Cattura/rifiuto/rimborso reali in test, replay webhook su backend, verifica redirect dalla QA Pages, 2 account concorrenti | **PARZIALE** |
 | **Sicurezza autorizzazioni** | Tecnico | Review ramo-per-ramo RPC `authenticated`, verifica advisor e password compromesse, RLS mirata | **PARZIALE** |
 | **Dominio Cloudflare** | Titolare Cloudflare + tecnico | DNS, HTTPS, SPA/PWA, legal deep-links, header, CORS e Auth pubblico/RLS anonima verificati su apex e www; email reset Auth rimane nel gate SMTP | **COMPLETATO (TECNICO)** |
@@ -27,8 +27,8 @@
 ## Sequenza più breve per completare
 
 1. **Cliente**: approva testi legali, conferma dati del titolare e policy disdette; verifica accesso a Cloudflare, dominio, email e Stripe.
-2. **Tecnico**: completa prove non distruttive di RLS, Stripe Sandbox, cron e deploy. Prepara backup cifrato e restore **senza** usare dati reali in ambienti pubblici.
-3. **Cliente e tecnico insieme**: configurano SMTP, eseguono backup/restore, associano dominio a Cloudflare Pages e testano Auth/email.
+2. **Tecnico**: completa prove non distruttive di RLS, Stripe Sandbox, cron e deploy; prepara un piano di pulizia selettiva e verificata dei soli dati QA, senza eseguirla ora e senza perdere configurazioni/segreti.
+3. **Cliente e tecnico insieme**: SMTP, reset email e dominio già verificati; stabiliscono la protezione dei **futuri dati reali**, prima dell'uso commerciale, e autorizzano separatamente la pulizia dei soli dati QA.
 4. **Solo con GO esplicito**: applicano configurazione commerciale, chiavi Stripe Live esclusivamente lato server, pubblicano e verificano monitoraggio.
 
 **Regole:** non integrare Hevy, Google Calendar o abbonamenti Continuity in V1. Non modificare la UI desktop senza una preview separata approvata. Non unire la PR #53 di QA in main. Non copiare segreti in repository, ticket o chat.
@@ -61,7 +61,7 @@ Il responsabile ha confermato l'utilizzo dei testi iniziali e ha autorizzato il 
 - [x] Security hardening [PR #79](https://github.com/Mattia471/ale-coach-prenotazioni/pull/79) applicato su Supabase: signup allowlist ripristinata, 31/31 audit dei privilegi cloud PASS e profili esistenti invariati.
 - [x] Nuovo controllo in sola lettura: **0** wallet negativi, ordini paid senza wallet, wallet di ordini unpaid, booking bloccati da >2 ore e sovrapposizioni attive; una sola email autorizzata alla registrazione QA.
 - [x] **SMTP e reset password**: configurazione custom SMTP dichiarata completata; tester ha confermato ricezione effettiva, link e nuovo accesso su `https://alecoach.online` dopo correzione Supabase Auth URL Configuration/template; MX/SPF/DMARC pubblicati. **Residuo**: DKIM/SPF alignment dai messaggi effettivi, non inferibile dalla sola configurazione DNS.
-- [ ] **Backup cifrato reale e restore isolato**: la prova con PostgreSQL sintetico in CI non sostituisce il backup/restauro del progetto Supabase commerciale.
+- [x] **Conservazione dati di collaudo dispensata dal responsabile il 16/11/2026**: nessun backup del dataset QA attuale richiesto. Non eseguire ora alcun reset; i dati servono per i test fino al cutover. Resta da definire una protezione ragionevole dei dati personali che arriveranno dopo il lancio.
 - [ ] **Stripe Sandbox E2E residua**: refund reale test, replay webhook server, scenario simultaneo due account in ambiente protetto. Non abilitare Stripe Live.
 - [ ] **Legal**: le bozze standard esistono; serve la verifica sui trattamenti reali, fornitori e versione finale prima di `VITE_LEGAL_APPROVED=true`.
 
@@ -73,6 +73,14 @@ Il responsabile ha confermato l'utilizzo dei testi iniziali e ha autorizzato il 
 - [x] Nuovo test DNS pubblico: MX, SPF, DMARC presenti. Resta da ispezionare l'autenticazione del mittente nel messaggio ricevuto (`Authentication-Results`: SPF, DKIM, DMARC), senza condividere token di recupero.
 - [x] Correzione P0 [PR #83](https://github.com/Mattia471/ale-coach-prenotazioni/pull/83): `cancel_unpaid_booking` ora respinge l'annullamento self-service di una prenotazione `in_person` già `paid`, evitando di azzerare a `unpaid` un incasso registrato. Tutte le altre disdette mantengono il flusso preesistente. Test PostgreSQL isolati PASS.
 - [x] Migrazione cloud `protect_paid_in_person_cancellation` **applicata e verificata**: nuovo guard presente, `anon` EXECUTE negato, `authenticated` conserva EXECUTE, 0 wallet negativi, 0 prenotazioni in-person già pagate coinvolte.
-- [ ] **Prima operazione successiva**: backup autentico PostgreSQL/Auth cifrato offsite e restore su ambiente separato usando [BACKUP-RESTORE-RUNBOOK.md](BACKUP-RESTORE-RUNBOOK.md). I test sintetici non bastano e la Free non offre backup gestiti giornalieri.
+- [x] **Backup del dataset QA attuale: non richiesto per scelta esplicita del responsabile (16/11/2026)**. Il prossimo lavoro riguarda Stripe Sandbox, sicurezza e piano di bonifica dati QA prima del GO; prima di inserire clienti reali definire continuità e backup futuro. Rimane disponibile il [runbook](BACKUP-RESTORE-RUNBOOK.md) senza forzare l'esecuzione adesso.
 
 **Commercial GO non autorizzato**: Stripe Live OFF, `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false` e signup allowlist.
+
+## Decisione 16 novembre 2026 | Dataset QA sacrificabile, nessun reset ora
+
+- Il responsabile ha dichiarato di **non voler conservare i dati attuali di collaudo**, che saranno eliminati al passaggio commerciale. Non richiedere altri interventi per effettuare backup del dataset QA.
+- I dati di test devono restare intatti durante i collaudi residui. **Eseguire l'eventuale pulizia solo con autorizzazione esplicita separata e immediatamente prima dell'apertura commerciale**, non dopo che gli utenti reali hanno iniziato a utilizzare l'app.
+- Il reset dovrà essere **selettivo e verificabile**: preservare progetto Supabase, migrazioni/schema, Edge Functions, Auth config/SMTP, cron, catalogo di servizi/sedi/disponibilità, account coach e chiavi/secret; trattare con attenzione riferimenti a Stripe Sandbox e non alterare transazioni o contabilità Live.
+- Preparare in anticipo inventario read-only, piano di esecuzione e test post-pulizia; nessun `TRUNCATE CASCADE`, `DELETE`, `DROP` o cancellazione utenti va eseguito ora.
+- L'esonero riguarda **solo la conservazione del vecchio dataset QA**, non la responsabilità di proteggere i dati personali **futuri**: definire almeno frequenza, destinazione, accesso, ripristino e responsabili del backup quando inizieranno le prenotazioni reali. Nessun GO commerciale automatico.
