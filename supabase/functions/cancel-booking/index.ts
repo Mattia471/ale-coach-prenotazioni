@@ -1,5 +1,6 @@
 import { corsForRequest, isDisallowedBrowserOrigin } from '../_shared/trusted-origins.ts';
 import Stripe from 'npm:stripe@22.0.0';
+import {isRefundIntentForBooking} from '../_shared/refund-binding.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 Deno.serve(async req=>{
  const cors=corsForRequest(req);
@@ -68,7 +69,12 @@ Deno.serve(async req=>{
   if(b.status!=='confirmed'||b.payment_status!=='paid'||b.payment_mode!=='online'||!b.stripe_payment_intent_id)return json({error:'Prenotazione non rimborsabile online'},409);
   if(!b.starts_at||new Date(b.starts_at).getTime()-Date.now()<24*3600000)return json({error:'Il limite per la disdetta gratuita è di 24 ore prima'},409);
   const stripe=new Stripe(key);
-  await stripe.refunds.create({payment_intent:b.stripe_payment_intent_id,reason:'requested_by_customer'},{idempotencyKey:`ale-refund-${b.id}`});
+  // Fails closed before any money-moving API call if the DB booking has a
+  // mismatched, uncaptured, wrong-customer, or wrong-amount PaymentIntent.
+  const intent=await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id);
+  if(!isRefundIntentForBooking(intent,b))
+   return json({error:'Pagamento Stripe non corrispondente alla prenotazione: contatta il coach'},409);
+  await stripe.refunds.create({payment_intent:intent.id,reason:'requested_by_customer'},{idempotencyKey:`ale-refund-${b.id}`});
   const {data:saved,error:saveError}=await admin.from('bookings')
    .update({status:'cancelled',payment_status:'refunded',cancelled_at:new Date().toISOString()})
    .eq('id',b.id).eq('status','confirmed').eq('payment_status','paid')
