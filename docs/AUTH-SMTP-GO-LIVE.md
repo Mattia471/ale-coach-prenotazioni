@@ -1,6 +1,6 @@
 # ALE COACH V1 | Supabase Auth, SMTP e redirect per Cloudflare
 
-**Stato 12/11/2026: DA VERIFICARE CON L'ACCOUNT DEL TITOLARE.** La logica di recupero password esiste nell'app, ma non si può dichiarare che le email siano recapitate senza un messaggio ricevuto e senza accesso alla configurazione SMTP. Non attivare la registrazione commerciale prima dell'approvazione legale.
+**Stato 15/11/2026: RESET PASSWORD FUNZIONANTE (conferma del titolare).** SMTP personalizzato configurato su Supabase Auth, email di recupero ricevuta, link corretto sul dominio definitivo dopo aggiornamento di URL Configuration/Email Template e flusso verificato. MX/SPF/DMARC risultano pubblicati tramite controllo esterno. **Autenticazione SPF/DKIM/DMARC del messaggio e limiti/rate SMTP restano da verificare** sugli header reali; nessun GO commerciale prima delle altre verifiche.
 
 ## 1. Preparare la casella e il provider SMTP
 
@@ -15,7 +15,7 @@ In Supabase Dashboard → **Authentication → URL Configuration**:
 
 | Campo | Durante QA protetta | Al GO commerciale |
 | --- | --- | --- |
-| Site URL | Conservare il valore esistente finché il passaggio non è approvato | `https://alecoach.online` |
+| Site URL | `https://alecoach.online` dopo test effettuato dal titolare il 15/11/2026 | `https://alecoach.online` |
 | Redirect URLs | Consentire URL esatti necessari a QA, Vercel e Cloudflare, inclusi `https://ale-coach-qa-sandbox.pages.dev/**`, `https://ale-coach-prenotazioni.pages.dev/**`, `https://alecoach.online/**`, `https://www.alecoach.online/**` | Rimuovere gradualmente gli host tecnici non più necessari; mantenere i soli redirect autorizzati |
 
 Il frontend usa `supabase.auth.resetPasswordForEmail(email,{redirectTo: location.origin + '/'})` e `signUp(...,{emailRedirectTo: location.origin + '/'})`. Pertanto l'origine della pagina di partenza **deve** essere consentita nell'allowlist Auth. Non serve modificare il codice per ogni host; verificare però la configurazione effettiva di Supabase.
@@ -37,3 +37,11 @@ Il frontend usa `supabase.auth.resetPasswordForEmail(email,{redirectTo: location
 Se la consegna fallisce, **non** impostare `PAGES_RELEASE_MODE=live`, `VITE_LEGAL_APPROVED=true` o Stripe Live. Conservare il precedente `Site URL` e ripristinare il provider SMTP precedente soltanto dopo verifica del titolare. Nessuna modifica a wallet, prenotazioni o pagamenti è necessaria.
 
 Collegamenti: [Checklist V1](V1-FINAL-HANDOFF-CHECKLIST.md), [Cloudflare](CLOUDFLARE-PAGES-HANDOFF.md), [Supabase Auth](https://supabase.com/docs/guides/auth/auth-smtp).
+
+## Verifica completata, 15 novembre 2026
+
+1. Test condotto dal titolare dalla homepage `https://alecoach.online`: richiesta password dimenticata, email ricevuta dal server SMTP dedicato.
+2. In prima verifica, il link rimandava ancora all'indirizzo Vercel: da configurazione Supabase Auth, Site URL, Redirect URLs ed eventualmente Email Template del reset allineati al dominio ufficiale. Successivamente il titolare ha confermato che **tutto il flusso funziona**.
+3. Test remoto DNS read-only: MX, SPF e DMARC pubblicati. Non dedurre da ciò la firma DKIM né l'effettivo allineamento del messaggio, che richiede analisi degli header e una reale casella destinataria.
+4. Rimangono inalterate le protezioni prelaunch: signup allowlist, `VITE_LEGAL_APPROVED=false`, `PAGES_RELEASE_MODE=prelaunch`, Stripe Live OFF.
+5. Il gate SMTP per invio/recupero credenziali è chiuso sul piano **funzionale**. La deliverability completa va valutata con invii reali e header SPF, DKIM, DMARC, senza riportare link/token né password nei log di collaudo.
