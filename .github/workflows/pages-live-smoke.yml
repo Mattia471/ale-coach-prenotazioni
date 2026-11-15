@@ -34,7 +34,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify Edge preflight from Cloudflare Pages (OPTIONS only)
+      - name: Verify Edge preflight from technical Pages origin (OPTIONS only)
         env:
           QA_ALLOWED_ORIGIN: https://ale-coach-prenotazioni.pages.dev
+        run: node scripts/qa-cors-preflight.mjs
+      - name: Verify Edge preflight for customer apex (OPTIONS only)
+        env:
+          QA_ALLOWED_ORIGIN: https://alecoach.online
+        run: node scripts/qa-cors-preflight.mjs
+      - name: Verify Edge preflight for customer www (OPTIONS only)
+        env:
+          QA_ALLOWED_ORIGIN: https://www.alecoach.online
         run: node scripts/qa-cors-preflight.mjs
