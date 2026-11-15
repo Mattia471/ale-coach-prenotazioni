@@ -38,7 +38,7 @@ jobs:
       - name: Check Supabase Edge Functions and trusted-origin tests (no deployment)
         run: |
           deno check --node-modules-dir=auto supabase/functions/create-checkout/index.ts supabase/functions/cancel-booking/index.ts supabase/functions/decide-booking/index.ts supabase/functions/stripe-webhook/index.ts
-          deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts
+          deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts supabase/functions/_shared/refund-binding_test.ts
       - name: P0 Stripe signed-webhook retries, tampering and paid-order guard (fake local backend)
         run: node scripts/qa-stripe-webhook-isolated.mjs
       - name: Validate read-only Auth smoke script syntax
