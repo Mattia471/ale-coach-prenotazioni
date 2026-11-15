@@ -32,7 +32,7 @@ Non sviluppare, abilitare, promettere o considerare bloccante una delle integraz
 
 1. Booking reale: disponibilità corretta, blocco conflitti e tentativi simultanei, decisione coach, annullamento e notifiche; test con account di prova autorizzati.
 2. Pagamenti e crediti: Stripe Sandbox completo (autorizzazione/cattura, webhook firmati/idempotenti, rimborso, scadenze, rifiuto), test Flex incluso; nessun pagamento live prima del GO.
-3. Autenticazione, autorizzazioni e dati: RLS, privilegi RPC, email e reset password, protezione dati e procedure backup/restore.
+3. Autenticazione, autorizzazioni e dati: RLS, privilegi RPC, email e reset password. Il dataset QA non verrà conservato per decisione del responsabile (16/11/2026); prevedere un piano di rimozione selettiva **prima** del GO e la protezione dei dati clienti **futuri**, non un backup obbligatorio dei dati test attuali.
 4. Legal/commerciale: condizioni e privacy approvate dal titolare, completezza dati obbligatori, informativa corretta e policy disdette coerente tra UI/backend; gestione degli obblighi fiscali.
 5. Distribuzione e verifica: build e test CI verdi, deploy e dominio scelto verificati, test base su smartphone e desktop, logging/monitoraggio operativi.
 
