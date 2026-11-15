@@ -3,15 +3,27 @@
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
 
-const pageUrl='https://ale-coach-prenotazioni.pages.dev';
+const allowedOrigins=new Set([
+ 'https://ale-coach-prenotazioni.pages.dev',
+ 'https://alecoach.online',
+ 'https://www.alecoach.online'
+]);
+const pageUrl=process.env.QA_SITE_ORIGIN||'https://ale-coach-prenotazioni.pages.dev';
+if(!allowedOrigins.has(pageUrl))throw new Error('QA_SITE_ORIGIN must be an approved ALE COACH HTTPS host');
 const base='https://mmtnzjdvvlouiwgrydlf.supabase.co';
 const requestTimeoutMs=12000;
 
 async function safeFetch(url,headers={}){
  const response=await fetch(url,{
-  method:'GET',redirect:'error',signal:AbortSignal.timeout(requestTimeoutMs),
+  method:'GET',redirect:'follow',signal:AbortSignal.timeout(requestTimeoutMs),
   headers:{'Cache-Control':'no-cache',...headers}
  });
+ const startUrl=new URL(url);
+ const finalUrl=new URL(response.url);
+ const allowCanonical=startUrl.hostname==='www.alecoach.online' &&
+   finalUrl.hostname==='alecoach.online' && finalUrl.protocol==='https:';
+ assert.ok(startUrl.origin===finalUrl.origin||allowCanonical,
+   'Unexpected off-domain redirect in read-only Auth probe');
  return response;
 }
 async function loadPagePublishableKey(){
@@ -76,7 +88,7 @@ export async function run(){
   'Supabase Auth must deny a fabricated access token');
  report('Auth user endpoint rejects fabricated JWT');
 
- console.log('PASS: Cloudflare public Auth and anon RLS connectivity QA completed.');
+ console.log('PASS: Auth and anon RLS public QA completed for '+pageUrl+'.');
  console.log('NOT TESTED: real password login, signout, reset email, redirect allowlist, two-account booking or Stripe checkout.');
 }
 if(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url){

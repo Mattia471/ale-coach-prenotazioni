@@ -150,3 +150,16 @@ Per ricontrollare senza toccare dati reali, usare Actions → **QA | Cloudflare 
 **Importantissimo:** la password HTTP Basic è una protezione temporanea per questa preview, non una piattaforma di gestione identità. Condividere credenziali fuori da chat e repository, ruotarle dopo i test, non pubblicare mai URL di checkout o credenziali di altri utenti. Cloudflare Pages Functions è soggetto a quote del piano Free; **Fail closed** è obbligatorio per impedire che la quota esaurita lasci passare gli asset statici. Nessun abbonamento Zero Trust richiesto.
 
 Documentazione Cloudflare: https://developers.cloudflare.com/pages/functions/middleware/ · https://developers.cloudflare.com/pages/functions/bindings/ · https://developers.cloudflare.com/pages/functions/routing/
+
+## Stato attuale dopo attivazione DNS e Custom domains (15 novembre 2026)
+
+**Questo aggiornamento prevale sui vecchi checkpoint storici della presente pagina che riportano HTTP 403 CORS o HTTPS/TLS in errore durante il cutover.** La configurazione è stata completata dal titolare.
+
+- `https://alecoach.online` e `https://www.alecoach.online`: HTTPS valido, HTTP 200, SPA/PWA, deep-link legali, asset e header `noindex` verificati da runner esterno.
+- Le tre Edge Functions `create-checkout`, `cancel-booking`, `decide-booking` accettano oggi **entrambe** le origini custom e continuano a rifiutare un'origine estranea. Non modificare l'allowlist prima del GO.
+- Le pagine pubbliche e il catalogo Supabase sono raggiungibili e la RLS blocca l'accesso anonimo ai dati privati. Non si sono usati JWT, password, checkout, email né scritture nel database per questi smoke.
+- Il controllo completo [GitHub Actions 43724163003](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43724163003) ha superato tutte le prove remote su apex e www, oltre al confronto con l'host tecnico `*.pages.dev`.
+- `.github/workflows/pages-live-smoke.yml` e `pages-auth-public-smoke.yml` monitorano ogni giorno sia l'indirizzo tecnico sia apex e www. I test sono solo GET/OPTIONS e non richiedono chiavi.
+- La **modalità commerciale resta disattivata**: `PAGES_RELEASE_MODE=prelaunch`, sito `noindex`, Stripe Live OFF, signup protetto da allowlist. È necessario il GO esplicito dopo SMTP, backup/restore, Stripe Sandbox residua e verifica legale.
+
+**Nota email**: MX e SPF sono presenti; DMARC non risulta pubblicato e l'effettiva consegna email, DKIM e reset password non sono certificati da un controllo DNS. Non cambiare i record email copiati da Register.it senza identificare il provider.

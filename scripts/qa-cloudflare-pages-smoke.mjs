@@ -2,8 +2,15 @@
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
 
-const host='ale-coach-prenotazioni.pages.dev';
-const origin='https://'+host;
+// Only trusted ALE COACH publication hosts. No arbitrary URLs or credentials.
+const allowedOrigins = new Set([
+ 'https://ale-coach-prenotazioni.pages.dev',
+ 'https://alecoach.online',
+ 'https://www.alecoach.online'
+]);
+const origin=process.env.QA_SITE_ORIGIN||'https://ale-coach-prenotazioni.pages.dev';
+if(!allowedOrigins.has(origin))throw new Error('QA_SITE_ORIGIN must be an approved ALE COACH HTTPS host');
+const host=new URL(origin).hostname;
 const expectedSupabaseHost='mmtnzjdvvlouiwgrydlf.supabase.co';
 const timeoutMs=15000;
 async function fetchPage(path,accept='*/*'){
@@ -13,7 +20,11 @@ async function fetchPage(path,accept='*/*'){
   redirect:'follow',signal:AbortSignal.timeout(timeoutMs)
  });
  const final=new URL(res.url);
- assert.equal(final.hostname,host,'Unexpected cross-site redirect for '+path);
+ assert.equal(final.protocol,'https:','Unexpected non-HTTPS redirect for '+path);
+ // A future canonical www->apex redirect is acceptable; unexpected sites are not.
+ const validDestinations=new Set(host==='www.alecoach.online'
+   ? ['www.alecoach.online','alecoach.online'] : [host]);
+ assert.ok(validDestinations.has(final.hostname),'Unexpected cross-site redirect for '+path);
  assert.equal(res.status,200,path+': expected HTTP 200, got '+res.status);
  return res;
 }
@@ -83,7 +94,7 @@ export async function runPagesSmoke(){
   'Supabase URL missing from built frontend bundle; set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Cloudflare Production and redeploy');
  report('compiled frontend bundle includes the expected Supabase project hostname');
 
- console.log('PASS: all Cloudflare Pages static/deep-link checks passed.');
+ console.log('PASS: all Cloudflare static/deep-link checks passed for '+origin+'.');
  console.log('NOTE: authenticated booking, recovery email, Stripe Sandbox and mobile require other QA.');
 }
 if(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url){
