@@ -17,7 +17,7 @@
 | Blocco | Responsabile | Prova richiesta | Stato |
 | --- | --- | --- | --- |
 | **Privacy, Termini, cookie e policy disdette** | Titolare/consulente | Bozze iniziali confermate, testi standard completati in PR; verificare trattamenti, termini e versione definitiva prima di impostare `VITE_LEGAL_APPROVED=true` | **PARZIALE** |
-| **SMTP del dominio** | Titolare account email + tecnico | Mittente verificato, SPF/DKIM/DMARC, email di reset realmente ricevuta | **APERTO** |
+| **SMTP del dominio** | Titolare account email + tecnico | SMTP configurato; email reset ricevuta, link sul dominio definitivo e recupero funzionanti; MX/SPF/DMARC pubblicati; verificare allineamento DKIM/SPF nell'header del messaggio | **FUNZIONALE COMPLETATO, AUTENTICAZIONE EMAIL PARZIALE** |
 | **Backup reale e restore isolato** | Titolare infrastruttura + tecnico | Dump cifrato offsite, custodia chiavi, ripristino in ambiente diverso e verifica Auth/Storage | **APERTO** |
 | **Stripe Sandbox E2E residuo** | Tecnico + titolare account Stripe | Cattura/rifiuto/rimborso reali in test, replay webhook su backend, verifica redirect dalla QA Pages, 2 account concorrenti | **PARZIALE** |
 | **Sicurezza autorizzazioni** | Tecnico | Review ramo-per-ramo RPC `authenticated`, verifica advisor e password compromesse, RLS mirata | **PARZIALE** |
@@ -60,9 +60,19 @@ Il responsabile ha confermato l'utilizzo dei testi iniziali e ha autorizzato il 
 - [x] Workflow di monitoraggio giornaliero ampliati ai due domini custom, senza chiavi o richieste commerciali. Test integrati su runner temporaneo [43724163003](https://github.com/Mattia471/ale-coach-prenotazioni/actions/runs/43724163003): PASS; workflow temporaneo rimosso dal branch prima del merge.
 - [x] Security hardening [PR #79](https://github.com/Mattia471/ale-coach-prenotazioni/pull/79) applicato su Supabase: signup allowlist ripristinata, 31/31 audit dei privilegi cloud PASS e profili esistenti invariati.
 - [x] Nuovo controllo in sola lettura: **0** wallet negativi, ordini paid senza wallet, wallet di ordini unpaid, booking bloccati da >2 ore e sovrapposizioni attive; una sola email autorizzata alla registrazione QA.
-- [ ] **SMTP/DMARC**: MX e SPF presenti su DNS, record `_dmarc.alecoach.online` non trovato; DKIM/consegna/reset password reali non certificati. Prima del GO servono configurazione provider, verifica DNS e prova di consegna con account autorizzato.
+- [x] **SMTP e reset password**: configurazione custom SMTP dichiarata completata; tester ha confermato ricezione effettiva, link e nuovo accesso su `https://alecoach.online` dopo correzione Supabase Auth URL Configuration/template; MX/SPF/DMARC pubblicati. **Residuo**: DKIM/SPF alignment dai messaggi effettivi, non inferibile dalla sola configurazione DNS.
 - [ ] **Backup cifrato reale e restore isolato**: la prova con PostgreSQL sintetico in CI non sostituisce il backup/restauro del progetto Supabase commerciale.
 - [ ] **Stripe Sandbox E2E residua**: refund reale test, replay webhook server, scenario simultaneo due account in ambiente protetto. Non abilitare Stripe Live.
 - [ ] **Legal**: le bozze standard esistono; serve la verifica sui trattamenti reali, fornitori e versione finale prima di `VITE_LEGAL_APPROVED=true`.
 
 **Distinzione indispensabile:** il dominio risponde correttamente ma la presenza del sito **non** autorizza iscrizioni pubbliche, acquisti o cambio Stripe Live. Mantenere `PAGES_RELEASE_MODE=prelaunch`, `VITE_PRELAUNCH_QA=false`, `VITE_LEGAL_APPROVED=false`.
+
+## Checkpoint 15 novembre 2026 | Accesso e integrità pagamenti in presenza
+
+- [x] Titolare conferma che reset password con SMTP personalizzato recapita email e che link, schermata e accesso funzionano sul dominio definitivo; Supabase Site URL/redirect e template allineati. Nessun token o password registrato.
+- [x] Nuovo test DNS pubblico: MX, SPF, DMARC presenti. Resta da ispezionare l'autenticazione del mittente nel messaggio ricevuto (`Authentication-Results`: SPF, DKIM, DMARC), senza condividere token di recupero.
+- [x] Correzione P0 [PR #83](https://github.com/Mattia471/ale-coach-prenotazioni/pull/83): `cancel_unpaid_booking` ora respinge l'annullamento self-service di una prenotazione `in_person` già `paid`, evitando di azzerare a `unpaid` un incasso registrato. Tutte le altre disdette mantengono il flusso preesistente. Test PostgreSQL isolati PASS.
+- [x] Migrazione cloud `protect_paid_in_person_cancellation` **applicata e verificata**: nuovo guard presente, `anon` EXECUTE negato, `authenticated` conserva EXECUTE, 0 wallet negativi, 0 prenotazioni in-person già pagate coinvolte.
+- [ ] **Prima operazione successiva**: backup autentico PostgreSQL/Auth cifrato offsite e restore su ambiente separato usando [BACKUP-RESTORE-RUNBOOK.md](BACKUP-RESTORE-RUNBOOK.md). I test sintetici non bastano e la Free non offre backup gestiti giornalieri.
+
+**Commercial GO non autorizzato**: Stripe Live OFF, `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false` e signup allowlist.
