@@ -12,6 +12,8 @@ if(!['127.0.0.1','localhost'].includes(url.hostname)||url.pathname!=='/alecoach_
 
 const migration=readFileSync(new URL('../supabase/migrations/20261110144000_cancel_unpaid_booking_null_identity.sql',import.meta.url),'utf8');
 assert.match(migration,/CREATE OR REPLACE FUNCTION public\.cancel_unpaid_booking/i);
+const paidInPersonGuard=readFileSync(new URL('../supabase/migrations/20261115160000_protect_paid_in_person_cancellation.sql',import.meta.url),'utf8');
+assert.match(paidInPersonGuard,/CREATE OR REPLACE FUNCTION public\.cancel_unpaid_booking/i);
 const psql=sql=>new Promise((resolve,reject)=>{
  const proc=spawn('psql',['-X','-q','-v','ON_ERROR_STOP=1','-At','-d',databaseUrl,'-c',sql],{stdio:['ignore','pipe','pipe']});
  let stdout='',stderr='';
@@ -73,7 +75,8 @@ await passSql(`
   ('${online}','${owner}','online',now()+interval '5 days','confirmed','${walletOnline}','paid');
 `);
 await passSql(migration);
-console.log('PASS: actual cancellation migration loaded into an ephemeral database');
+await passSql(paidInPersonGuard);
+console.log('PASS: cancellation RPC including paid-in-person integrity guard loaded into isolated PostgreSQL');
 
 await denied(invoke(booking,other),'Operazione non autorizzata','another client cannot cancel the booking');
 await denied(invoke(booking,null),'Operazione non autorizzata','missing JWT cannot cancel the booking');
@@ -90,6 +93,29 @@ await denied(invoke(booking,owner),'Stato non cancellabile','a repeated cancella
 await is("SELECT remaining FROM public.wallet_credits WHERE id='"+wallet+"';",'1','repeating cancellation never duplicates the credit');
 await is("SELECT COUNT(*) FROM public.bookings WHERE status='confirmed';",'2','rejected online / under-24h cancellations remain confirmed');
 console.log('All actual-source cancellation and credit-restoration tests PASSED in isolated PostgreSQL only.');
+
+
+// QA P0: a self-service cancellation must not silently erase an in-person
+// payment already recorded by the coach. Unpaid in-person cancellations still work.
+const alreadyPaid='99000000-0000-4000-8000-000000000001';
+const stillDue='99000000-0000-4000-8000-000000000002';
+await passSql(`
+ INSERT INTO public.bookings(id,client_id,payment_mode,starts_at,status,credit_wallet_id,payment_status) VALUES
+ ('${alreadyPaid}','${owner}','in_person',now()+interval '5 days','confirmed',null,'paid'),
+ ('${stillDue}','${owner}','in_person',now()+interval '5 days','confirmed',null,'due_in_person');
+`);
+await denied(invoke(alreadyPaid,owner),'Pagamento in presenza gia registrato',
+ 'paid in-person booking cannot lose its payment status on self-service cancellation');
+await is("SELECT status||':'||payment_status FROM public.bookings WHERE id='"+alreadyPaid+"';",
+ 'confirmed:paid','payment recorded by coach remains paid after attempted cancellation');
+await is("SELECT count(*) FROM public.notifications WHERE booking_id='"+alreadyPaid+"';",
+ '0','denied paid-in-person cancellation causes no notification side effect');
+await passSql(invoke(stillDue,owner));
+await is("SELECT status||':'||payment_status FROM public.bookings WHERE id='"+stillDue+"';",
+ 'cancelled:unpaid','unpaid in-person cancellation still works with existing policy');
+await is("SELECT count(*) FROM public.notifications WHERE booking_id='"+stillDue+"';",
+ '1','unpaid in-person cancellation retains one notification');
+console.log('All paid-in-person payment integrity regression checks PASSED.');
 
 
 // QA 92: exercise the currently deployed-source expiry RPC on synthetic records.
