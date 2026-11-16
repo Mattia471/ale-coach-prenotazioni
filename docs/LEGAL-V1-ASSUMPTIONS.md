@@ -15,7 +15,7 @@ I dati sono visibili come fallback pubblico in `src/legal.ts`, ma la build comme
 - Per prenotazione di una lezione online: `create_booking_v2` crea una richiesta `authorizing`, `create-checkout` crea Stripe Checkout con `capture_method:'manual'`, webhook registra l'autorizzazione e solo allora il coach riceve la richiesta.
 - L'azione `approve` nella Edge `decide-booking` cattura l'importo preautorizzato una volta sola; `reject` annulla l'autorizzazione prima dell'incasso. Il release gate non cambia queste funzioni.
 - Pacchetti Flex: pagamento immediato nel checkout; validità/quantità secondo il prodotto; un credito per una lezione individuale; nessun abbonamento ricorrente in V1.
-- Disdette standard: fino a 24 ore prima per cancellazione self-service di lezione confermata, restituzione credito nel medesimo pacchetto se ammissibile; refund tramite Stripe per lezioni già pagate. Prima della decisione coach il cliente può liberare un'autorizzazione. Il rimborso automatico del 50% nelle ultime 24 ore **non** è attivo. I diritti inderogabili del consumatore prevalgono sempre.
+- Disdette standard: fino a 24 ore prima per cancellazione self-service di una lezione confermata, **salvo le lezioni pagate in presenza per cui l'incasso sia già stato registrato**; in quest'ultimo caso `cancel_unpaid_booking` rifiuta la disdetta automatica e richiede riconciliazione con il coach, preservando lo stato del pagamento (migrazione 15/11/2026). Restituzione credito nel medesimo pacchetto se ammissibile; rimborso tramite Stripe per lezioni pagate online. Prima della decisione coach il cliente può liberare un'autorizzazione. Il rimborso automatico del 50% nelle ultime 24 ore **non** è attivo. La disdetta manuale non deve limitare eventuali diritti inderogabili del consumatore.
 - Nessun Google Calendar, Hevy o rinnovo automatico incluso in V1.
 
 ## Criteri di conservazione documentati, **non** automazione implementata
@@ -42,3 +42,9 @@ Prima del GO verificare fattivamente le categorie conservate da Supabase, Stripe
 - [Codice civile, art. 2220, conservazione scritture contabili](https://www.normattiva.it/)
 
 **Stato:** testi completi come proposta V1 e senza placeholder, conferma della base iniziale acquisita; revisione normativa e controllo implementazioni effettive non sostituiti; nessun GO automatico.
+
+## Verifica allineamento tecnico 16 novembre 2026
+
+- La revisione ha individuato una discrepanza tra la formulazione generale della disdetta autonoma in `src/LegalPage.tsx` e il blocco applicativo per le prenotazioni `in_person` con `payment_status='paid'`: il testo ora chiarisce che la gestione di quell'incasso richiede il contatto con il coach e una verifica manuale dell'eventuale rimborso o soluzione dovuta. La protezione SQL è attiva su Supabase; **nessuna modifica al meccanismo economico né ai dati** è introdotta da questa revisione testuale.
+- È attiva su Supabase `cancel-booking` v14, che verifica ID, cliente, booking, valuta, importo e cattura del PaymentIntent prima di richiedere un rimborso online. La [PR #89](https://github.com/Mattia471/ale-coach-prenotazioni/pull/89) aggiunge test isolati dell'handler reale su errori e retry; **non sostituiscono il rimborso effettivo Stripe Sandbox**.
+- Testi ancora **in bozza in attesa di approvazione finale** dei dati, condizioni di recesso (soprattutto Flex), ruoli/trasferimenti dei fornitori, tempi di conservazione, procedure richieste GDPR e coerente trattamento delle disdette in presenza. Non impostare `VITE_LEGAL_APPROVED=true` solo perché il testo è tecnicamente allineato.

@@ -142,8 +142,9 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
             La V1 non attiva abbonamenti con rinnovo automatico.</p>
         </section>
         <section><h2>4. Disdette, crediti e rimborsi</h2>
-          <p>La policy ordinaria della V1 consente di disdire autonomamente una lezione
-            <strong> fino a 24 ore prima dell'inizio</strong>. In caso di lezione online
+          <p>La policy ordinaria della V1 consente in generale di disdire autonomamente una lezione
+            <strong> fino a 24 ore prima dell'inizio</strong>, fatti salvi i casi in cui
+            è necessario un intervento del titolare. In caso di lezione online
             già pagata e disdetta nei termini, viene avviato il rimborso sul metodo
             di pagamento originario; i tempi di riaccredito dipendono dal circuito
             e dall'istituto emittente. Se la lezione è stata prenotata con credito Flex,
@@ -151,7 +152,10 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
             che rimane soggetto alla scadenza originaria.
             Prima dell'approvazione, una richiesta con carta soltanto preautorizzata
             può essere annullata con il rilascio dell'autorizzazione, senza un rimborso
-            di somme non ancora incassate.</p>
+            di somme non ancora incassate. Per le lezioni con pagamento in presenza
+            già registrato come incassato, l'app non completa autonomamente la disdetta:
+            il cliente deve contattare il titolare per verificare l'incasso e gestire
+            l'eventuale rimborso o altra soluzione dovuta, nel rispetto dei diritti di legge.</p>
           <p>Nelle ultime 24 ore il flusso ordinario di disdetta/rimborso automatico
             non è disponibile. Eventuali impedimenti, contestazioni, diritti
             inderogabili previsti dalla legge o richieste eccezionali possono essere
