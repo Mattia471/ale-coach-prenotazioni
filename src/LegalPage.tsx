@@ -12,7 +12,7 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
   const version=legal.version || 'Bozza V1 del 13 novembre 2026';
 
   return <div className="legal-site">
-    <header className="legal-header"><a href="/" className="legal-logo">ALE COACH</a><a href="/">Torna all'app</a></header>
+    <header className="legal-header"><span className="legal-logo">ALE COACH</span></header>
     <main className="legal-document">
       <span className="legal-eyebrow">TRASPARENZA &amp; TUTELA</span>
       <h1>{title}</h1>
@@ -225,7 +225,6 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
       <a href={legalPaths.privacy}>Privacy</a>
       <a href={legalPaths.terms}>Condizioni</a>
       <a href={legalPaths.cookies}>Cookie</a>
-      <a href="/">Ale Coach</a>
     </footer>
   </div>;
 }
