@@ -369,3 +369,16 @@ test('Scheduled prelaunch Cloudflare checks stay read-only and never use secrets
  assert.match(pages,/node scripts\/qa-cors-preflight\.mjs/);
  assert.match(auth,/node scripts\/qa-pages-auth-public\.mjs/);
 });
+
+test('Privacy, Termini e Cookie sono pagine consultabili senza navigazione verso l’app',()=>{
+ const legal=read('src/LegalPage.tsx');
+ assert.match(legal,/<span className="legal-logo">ALE COACH<\/span>/);
+ assert.doesNotMatch(legal,/Torna all.app|href=["']\/["']/i);
+ assert.doesNotMatch(legal,/<a href=["']\/["'] className="legal-logo"/);
+ assert.match(legal,/href=\{legalPaths\.privacy\}/);
+ assert.match(legal,/href=\{legalPaths\.terms\}/);
+ assert.match(legal,/href=\{legalPaths\.cookies\}/);
+ assert.match(legal,/kind === 'privacy'/);
+ assert.match(legal,/kind === 'termini'/);
+ assert.match(legal,/kind === 'cookie'/);
+});
