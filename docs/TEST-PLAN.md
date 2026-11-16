@@ -1,3 +1,5 @@
+> **Aggiornamento 16/11/2026 (vale sullo storico che segue):** frontend principale su **Cloudflare Pages** ai domini `https://alecoach.online` e `https://www.alecoach.online`, non più Vercel. Il progetto separato `ale-coach-qa-sandbox` è stato cancellato; non è attualmente disponibile una preview QA autenticata verificata. I test già confermati dal responsabile su login, acquisto Flex, prenotazione e credito sono validi e non vanno ripetuti. CI attuale include i test dell'handler refund reale con Stripe/Supabase sintetici, lo scenario di doppia disdetta simultanea e la prova del futuro signup pubblico con rollback su PostgreSQL temporaneo. **Il refund reale Stripe Sandbox resta non certificato**, come la firma legale e il GO. L'archivio dei dati QA non viene richiesto; questi record saranno rimossi con autorizzazione prima dell'ingresso di dati clienti. Per lo stato e le procedure attuali vedere [checklist finale](V1-FINAL-HANDOFF-CHECKLIST.md) e [cutover](V1-PRE-GO-QA-DATA-CUTOVER.md).
+
 # Ale Coach · Piano di collaudo sul solo Supabase Cloud
 
 **Ambiente unico:** progetto Ale Coach (`mmtnzjdvvlouiwgrydlf`) e frontend https://ale-coach-prenotazioni.vercel.app.
