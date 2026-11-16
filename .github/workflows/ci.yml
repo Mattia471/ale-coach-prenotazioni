@@ -39,6 +39,18 @@ jobs:
         run: |
           deno check --node-modules-dir=auto supabase/functions/create-checkout/index.ts supabase/functions/cancel-booking/index.ts supabase/functions/decide-booking/index.ts supabase/functions/stripe-webhook/index.ts
           deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts supabase/functions/_shared/refund-binding_test.ts
+      - name: P0 Stripe refund cancellation handler (real handler, fake local Stripe and Supabase only)
+        env:
+          STRIPE_SECRET_KEY: sk_test_synthetic_ci_no_real_payments
+          STRIPE_ENVIRONMENT: test
+          STRIPE_PAYMENTS_ENABLED: 'true'
+          STRIPE_LIVE_APPROVED: 'false'
+          SUPABASE_URL: http://127.0.0.1:54321
+          SUPABASE_ANON_KEY: synthetic_ci_public_key
+          SUPABASE_SERVICE_ROLE_KEY: synthetic_ci_service_key
+          PUBLIC_APP_URL: https://alecoach.online
+          ADDITIONAL_APP_ORIGINS: https://www.alecoach.online
+        run: deno run --no-check --import-map=scripts/refund-handler-isolated/import_map.json --allow-env --allow-net scripts/refund-handler-isolated/run.ts
       - name: P0 Stripe signed-webhook retries, tampering and paid-order guard (fake local backend)
         run: node scripts/qa-stripe-webhook-isolated.mjs
       - name: Validate read-only Auth smoke script syntax
