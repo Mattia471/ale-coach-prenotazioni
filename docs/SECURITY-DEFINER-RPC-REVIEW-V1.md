@@ -37,3 +37,14 @@ Supabase Security Advisor segnala 12 funzioni `public` con `SECURITY DEFINER` ed
 **Non sono emersi bypass evidenti dei controlli di ownership/ruolo nella lettura dei 12 corpi RPC.** Il warning di Supabase resta come promemoria di superficie privilegiata, non come vulnerabilità confermata né come certificazione di sicurezza. Non effettuare mutazioni al database senza una migration, test isolati e un piano di rollback.
 
 Documentazione ufficiale: [SECURITY DEFINER Advisor](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable), [Password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection), [QA residua](QA-BOOKING-STRIPE-SANDBOX.md).
+
+## Verifica addizionale del 16 novembre 2026
+
+L'audit live, effettuato con sole query di catalogo e conteggi, conferma:
+- 0 funzioni `SECURITY DEFINER` eseguibili da `anon`; le 12 funzioni pubbliche eseguibili da `authenticated` rimangono le RPC funzionali previste, con controlli nel corpo.
+- I permessi **a livello di colonna** di `authenticated` **non** consentono `UPDATE` diretto di `public.profiles.role`, `public.profiles.allow_in_person`, `public.bookings.payment_status`, `public.wallet_credits.remaining` e `public.notifications.body`. L'utente può modificare `notifications.read_at` (con RLS di proprietà).
+- I cataloghi `services` e `packages`, la disponibilità e le modifiche al calendario sono gestiti da policy `private.is_coach()` sui comandi di scrittura. `push_subscriptions` ha policy di proprietà `user_id=auth.uid()`.
+- 0 wallet con saldo negativo, 0 wallet associati a ordini non pagati, 0 ordini pacchetto pagati senza wallet, 0 sovrapposizioni di prenotazioni attive e 0 prenotazioni bloccate oltre due ore al campionamento. Cron delle ultime 24h senza errori.
+- Il Security Advisor continua a segnalare 12 RPC `SECURITY DEFINER` eseguibili da authenticated (superficie intenzionale da monitorare), una tabella server-only con RLS senza policy (per progetto) e leaked-password protection disattivata. La protezione password compromesse è disponibile su Supabase **Pro e superiori**, non sul piano Free, secondo [password security](https://supabase.com/docs/guides/auth/password-security).
+
+**Limiti:** questa verifica di cataloghi/permessi e gli smoke anonimizzati non sostituiscono un penetration test né l'esercizio con due JWT di veri utenti. Le policy future devono conservare la separazione `anon` / `authenticated` / `service_role`. Non è stato abilitato alcun servizio a pagamento.
