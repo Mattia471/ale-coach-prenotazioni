@@ -29,3 +29,11 @@
 L'esonero deciso dal responsabile riguarda **solo il dataset di collaudo**. Prima di raccogliere dati reali, concordare una strategia operativa per proteggere dati e continuità: backup automatizzati/gestiti o esportazioni cifrate programmate, custodia credenziali, luogo di conservazione, frequenza, possibilità di ripristino e responsabile degli incidenti. Vedi [BACKUP-RESTORE-RUNBOOK.md](BACKUP-RESTORE-RUNBOOK.md) per la procedura già preparata. La prova sintetica di restore esistente non equivale a protezione dei dati in produzione.
 
 **Stato:** pianificazione e inventario soltanto. Nessuna cancellazione autorizzata o effettuata. Il sito rimane in `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false`, Stripe Live OFF e signup allowlist attivo.
+
+## Script di apertura registrazioni: sequenza successiva alla pulizia QA
+
+Una volta terminato il collaudo, ottenuta autorizzazione al reset e rimossi i **soli** dati QA, il progetto deve preservare l'account del coach e le configurazioni. Le iscrizioni sono ancora limitate dalla funzione Supabase `private.on_signup()` finché non si effettua un GO deliberato. I due script [GO pubblico](sql/V1-GO-PUBLIC-SIGNUP-NOT-APPLIED.sql) e [rollback allowlist](sql/V1-ROLLBACK-RESTORE-SIGNUP-ALLOWLIST-NOT-APPLIED.sql) sono versionati **fuori** da `supabase/migrations`, per evitare applicazioni automatiche.
+
+L'ordine è: approvazioni legali e Stripe; pianificazione dei backup futuri; blocco delle nuove operazioni QA; reset selettivo autorizzato e verificato; conferma config/coach; **GO esplicito**; esecuzione dello script di apertura iscrizioni nell'ambiente Supabase corretto; verifica di un nuovo account cliente con `role='client'` e senza privilegi; verifica dell'endpoint web pubblico, delle informazioni legali e degli avvisi; abilitazione commerciale soltanto quando tutti i gate sono passati. Eventuale rollback blocca **nuove iscrizioni** ma non revoca account/sessioni già esistenti.
+
+Nessuno di questi passaggi sul cloud è stato eseguito durante la preparazione.
