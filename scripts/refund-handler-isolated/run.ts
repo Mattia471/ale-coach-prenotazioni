@@ -127,8 +127,11 @@ try{
  state.failStripeOnce=true;
  result=await post();
  assert.equal(result.status,500);
- mustUnchanged('Stripe transient error');
+ assert.equal(state.refundsCreated,0);
  assert.equal(state.refundCalls,1);
+ assert.equal(state.updates,0);
+ assert.equal(state.notifications,0);
+ assert.equal(state.booking.status,'confirmed');
  pass('Stripe failure does not mark booking refunded or notify');
 
  reset();
