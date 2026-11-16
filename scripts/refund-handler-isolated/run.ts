@@ -153,6 +153,21 @@ try{
  assert.equal(state.notifications,1);
  pass('retry after DB failure reuses idempotency key and avoids duplicate refund');
 
+ reset();
+ const responses=await Promise.all([post(),post()]);
+ assert.ok(responses.some(response=>response.status===200),
+  'at least one parallel request must complete');
+ assert.ok(responses.every(response=>[200,409,500].includes(response.status)),
+  'parallel calls should never bypass authorization or return unknown status');
+ assert.equal(state.refundsCreated,1,
+  'parallel cancels must create exactly one refund with Stripe idempotency');
+ assert.equal(state.refundKeys.size,1);
+ assert.equal(state.booking.status,'cancelled');
+ assert.equal(state.booking.payment_status,'refunded');
+ assert.equal(state.updates,1);
+ assert.equal(state.notifications,1);
+ pass('simultaneous double cancellation cannot create a second Stripe refund or client notification');
+
  console.log('All isolated production refund handler checks PASSED. Stripe and Supabase were fake modules only.');
  Deno.exit(0);
 }catch(error){
