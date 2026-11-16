@@ -93,4 +93,5 @@ jobs:
           node scripts/qa-credit-cancellation-isolated.mjs
           node scripts/qa-flex-booking-isolated.mjs
           node scripts/qa-signup-allowlist-isolated.mjs
+          node scripts/qa-go-signup-isolated.mjs
           node scripts/qa-backup-restore-isolated.mjs
