@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "npm:stripe@22.0.0": "./stripe-mock.ts",
+    "npm:@supabase/supabase-js@2": "./supabase-mock.ts"
+  }
+}
