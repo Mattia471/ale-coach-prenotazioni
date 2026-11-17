@@ -12,6 +12,14 @@
 - Interfaccia **Minimal Focus** responsive cliente e coach, navigazione mobile Gestione e feedback dopo 3 secondi.
 - Documentazione essenziale, test di regressione, configurazione e monitoraggio della V1.
 
+## Adeguamenti contrattuali confermati il 17/11/2026
+
+Il responsabile ha accettato integralmente le revisioni di Privacy, Termini e Cookie del cliente. **Sono ora inclusi nel rilascio** il termine massimo di 48 ore per la decisione del coach (sempre prima dell'inizio e della scadenza Stripe), la disdetta prima dell'inizio con rimborso online **100% se almeno 24 ore prima, 50% nelle ultime 24**, la restituzione del credito Flex anche sotto le 24 ore, no-show senza rimborso e cancellazione dal coach con rimborso integrale o restituzione del credito. Incassi in contanti già acquisiti sono restituiti fisicamente e segnati dal coach dopo conferma. La funzione Stripe server e le RPC devono essere verificate sui soli account QA prima del GO.
+
+È incluso il modulo `/recesso` per pacchetti Flex (14 giorni, importo proporzionale alle lezioni svolte). **Il cliente esercita il diritto via email e la pratica di pacchetto viene evasa manualmente**: calcolo proporzionale, Stripe rimborso e blocco dei crediti rimborsati, come da [runbook](V1-FLEX-WITHDRAWAL-RECEIPTS-RUNBOOK.md). Non è promesso il rimborso automatico dei pacchetti dal frontend. Le ricevute Stripe via email sono richieste e dipendono dall'attivazione di **Successful payments** nel conto del cliente.
+
+Le pagine legali non mostrano più versioni, numeri di revisione o banner di bozza. Il documento finale operativo è [Release Fast Track](V1-RELEASE-FAST-TRACK-NOV2026.md). Rimangono separati i gate tecnici, Stripe Sandbox, la protezione dei dati reali futuri, la pulizia selettiva del dataset QA e il GO commerciale: nessun flag di pubblicazione o Stripe Live si attiva automaticamente.
+
 ## Escluso esplicitamente dalla V1
 
 - **Hevy**: collegamento API, sincronizzazione allenamenti, esercizi, schede e progressi tramite piattaforme terze.
