@@ -57,7 +57,7 @@ export function assertPagesBuild(dist='dist') {
 
 
 export function assertCloudflareLocalFonts(dist='dist',css=readFileSync('src/local-fonts.css','utf8')) {
- const paths=[...css.matchAll(/url\\('\\/(fonts\\/[^']+\\.ttf)'\\)/g)].map(match=>match[1]);
+ const paths=css.split('\n').filter(line=>line.includes("src:url('/fonts/")).map(line=>line.split("url('/")[1].split("')")[0]);
  if(paths.length!==12||new Set(paths).size!==12)
   throw new Error('Cloudflare Pages: i 12 font locali attesi non sono tutti dichiarati');
  for(const path of paths)if(!existsSync(`${dist}/${path}`))
