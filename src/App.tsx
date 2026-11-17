@@ -480,6 +480,24 @@ function App(){
    submitMsg('Prenotazione disdetta');void refresh();
   }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
+ const coachCancelConfirmed=async(b:Booking)=>{
+  if(!supabase||b.status!=='confirmed'||!b.starts_at||new Date(b.starts_at)<=new Date())return;
+  const cashAlreadyPaid=b.payment_mode==='in_person'&&b.payment_status==='paid';
+  if(cashAlreadyPaid){
+   if(!confirm(`Hai già restituito al cliente ${currency(b.amount_cents)} IN CONTANTI? Prosegui solo dopo aver effettivamente eseguito il rimborso.`))return;
+  }else if(!confirm('Confermi l’annullamento della lezione da parte del coach? Il cliente riceverà il rimborso integrale o il credito Flex.'))return;
+  setBusy(true);
+  try{
+   if(b.payment_mode==='online'){
+    const {data,error}=await supabase.functions.invoke('cancel-booking',{body:{bookingId:b.id,actor:'coach'}});
+    if(error||data?.error)throw Error(data?.error||error?.message||'Rimborso Stripe non riuscito');
+   }else{
+    const {error}=await supabase.rpc('coach_cancel_confirmed_booking',{p_booking_id:b.id,p_cash_refunded:cashAlreadyPaid});
+    if(error)throw error;
+   }
+   submitMsg('Lezione annullata: rimborso o credito gestiti.');void refresh();
+  }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
+ };
  const inPersonPaid=async(b:Booking)=>{
   setBusy(true);try{
    if(!supabase)throw new Error('Supabase non configurato');
@@ -888,7 +906,7 @@ function App(){
      <FocusWeekCalendar bookings={bookings.filter(b=>b.status==='confirmed')} selectedDate={focusDate} onSelectDate={d=>{setFocusDate(d);setAgendaShowAll(false)}} weekOffset={focusWeekOffset} onWeekChange={offset=>{setFocusWeekOffset(offset);setAgendaShowAll(false)}}/>
      <div className="coach-content mf-agenda-list">
       <div className="mf-agenda-actions"><span>{agendaShowAll?'Tutti gli appuntamenti confermati':new Date(focusDate+'T12:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</span><button type="button" className="mf-outline-button" onClick={()=>setAgendaShowAll(s=>!s)}>{agendaShowAll?'Mostra solo il giorno':'Mostra tutte le lezioni'}</button></div>
-     <Title eyebrow="CALENDARIO" sub="Lezioni confermate, impegni e chiusure del calendario interno.">LA TUA AGENDA</Title>{(agendaShowAll?futureBookings:futureBookings.filter(b=>b.starts_at&&romeDateKey(b.starts_at)===focusDate)).length===0?<Empty title="Agenda libera" desc="Nessuna lezione confermata nella selezione."/>:(agendaShowAll?futureBookings:futureBookings.filter(b=>b.starts_at&&romeDateKey(b.starts_at)===focusDate)).map(b=><article key={b.id} className="agenda-card"><div className="agenda-day"><strong>{b.starts_at?dateLabel(b.starts_at):'Da definire'}</strong><span>{b.starts_at?timeLabel(b.starts_at):'--:--'}</span></div><div className="agenda-detail"><b>{services.find(s=>s.id===b.service_id)?.name}</b><span>{clients.find(c=>c.id===b.client_id)?.full_name||'Cliente'} · {venues.find(v=>v.id===b.venue_id)?.name}</span><span>{b.payment_mode==='in_person'&&b.payment_status==='due_in_person'?'Da incassare in palestra':b.payment_status==='paid'?'Pagata':b.payment_mode==='credit'?'Credito usato':'Gratuita'}</span></div>{b.payment_mode==='in_person'&&b.payment_status==='due_in_person'&&<Button variant="outline" disabled={busy} onClick={()=>void inPersonPaid(b)}>SEGNA PAGATA</Button>}</article>)}<details className="agenda-extra"><summary>Impegni, corsi e chiusure ({courseBlocks.filter(x=>x.is_active).length+closures.filter(x=>x.is_active).length})</summary><p className="small-muted">Questi impegni bloccano gli slot per i clienti. Per modificarli apri Orari.</p>{courseBlocks.filter(x=>x.is_active).map(x=><div className="agenda-extra-row" key={'course-'+x.id}><b>{x.title}</b><span>{x.on_date||dayNames[(x.weekday||1)-1]} · {formatStartMinute(x.start_minute)}–{formatStartMinute(x.end_minute)}</span>{x.needs_review&&<span className="review-tag">DA VERIFICARE · SLOT BLOCCATI</span>}</div>)}{closures.filter(x=>x.is_active).map(x=><div className="agenda-extra-row" key={'closure-'+x.id}><b>Chiusura · {x.reason}</b><span>{x.start_date} → {x.end_date}</span></div>)}</details></div></section>}
+     <Title eyebrow="CALENDARIO" sub="Lezioni confermate, impegni e chiusure del calendario interno.">LA TUA AGENDA</Title>{(agendaShowAll?futureBookings:futureBookings.filter(b=>b.starts_at&&romeDateKey(b.starts_at)===focusDate)).length===0?<Empty title="Agenda libera" desc="Nessuna lezione confermata nella selezione."/>:(agendaShowAll?futureBookings:futureBookings.filter(b=>b.starts_at&&romeDateKey(b.starts_at)===focusDate)).map(b=><article key={b.id} className="agenda-card"><div className="agenda-day"><strong>{b.starts_at?dateLabel(b.starts_at):'Da definire'}</strong><span>{b.starts_at?timeLabel(b.starts_at):'--:--'}</span></div><div className="agenda-detail"><b>{services.find(s=>s.id===b.service_id)?.name}</b><span>{clients.find(c=>c.id===b.client_id)?.full_name||'Cliente'} · {venues.find(v=>v.id===b.venue_id)?.name}</span><span>{b.payment_mode==='in_person'&&b.payment_status==='due_in_person'?'Da incassare in palestra':b.payment_status==='paid'?'Pagata':b.payment_mode==='credit'?'Credito usato':'Gratuita'}</span></div>{b.payment_mode==='in_person'&&b.payment_status==='due_in_person'&&<Button variant="outline" disabled={busy} onClick={()=>void inPersonPaid(b)}>SEGNA PAGATA</Button>}<Button variant="outline" disabled={busy} onClick={()=>void coachCancelConfirmed(b)}>ANNULLA LEZIONE</Button></article>)}<details className="agenda-extra"><summary>Impegni, corsi e chiusure ({courseBlocks.filter(x=>x.is_active).length+closures.filter(x=>x.is_active).length})</summary><p className="small-muted">Questi impegni bloccano gli slot per i clienti. Per modificarli apri Orari.</p>{courseBlocks.filter(x=>x.is_active).map(x=><div className="agenda-extra-row" key={'course-'+x.id}><b>{x.title}</b><span>{x.on_date||dayNames[(x.weekday||1)-1]} · {formatStartMinute(x.start_minute)}–{formatStartMinute(x.end_minute)}</span>{x.needs_review&&<span className="review-tag">DA VERIFICARE · SLOT BLOCCATI</span>}</div>)}{closures.filter(x=>x.is_active).map(x=><div className="agenda-extra-row" key={'closure-'+x.id}><b>Chiusura · {x.reason}</b><span>{x.start_date} → {x.end_date}</span></div>)}</details></div></section>}
     {coachTab==='clients'&&<section className="coach-content"><Title eyebrow="RELAZIONI" sub="Anagrafica, pagamenti consentiti e storico delle prenotazioni.">I TUOI CLIENTI</Title>
      {selectedClientId?(()=>{
        const c=clients.find(x=>x.id===selectedClientId);
@@ -981,7 +999,7 @@ function App(){
      <div className="coach-footer-note"><Settings2 size={15}/> Pannello riservato al coach. Autorizzazioni verificate dal database in modalità reale.</div>
   </main></div>}
   </>}
-  <footer className="site-footer"><div><Logo small/><span>NON BASTA ALLENARSI. CONTA COME LO FAI.</span></div><p>© 2026 Ale Coach · Roma Talenti e Nuovo Salario</p><p className="legal-links"><a href={legalPaths.privacy}>Privacy</a><a href={legalPaths.terms}>Condizioni</a><a href={legalPaths.cookies}>Cookie</a>{legal.contactEmail&&<a href={`mailto:${legal.contactEmail}?subject=Richiesta%20privacy%20Ale%20Coach`}>Diritti sui dati</a>}</p><p className="developer">Sviluppato da <a href="https://www.instagram.com/mattiacucuzza_/" target="_blank" rel="noreferrer">Mattia Cucuzza <Instagram size={13}/></a></p></footer>
+  <footer className="site-footer"><div><Logo small/><span>NON BASTA ALLENARSI. CONTA COME LO FAI.</span></div><p>© 2026 Ale Coach · Roma Talenti e Nuovo Salario</p><p className="legal-links"><a href={legalPaths.privacy}>Privacy</a><a href={legalPaths.terms}>Condizioni</a><a href={legalPaths.cookies}>Cookie</a><a href={legalPaths.withdrawal}>Recesso</a>{legal.contactEmail&&<a href={`mailto:${legal.contactEmail}?subject=Richiesta%20privacy%20Ale%20Coach`}>Diritti sui dati</a>}</p><p className="developer">Sviluppato da <a href="https://www.instagram.com/mattiacucuzza_/" target="_blank" rel="noreferrer">Mattia Cucuzza <Instagram size={13}/></a></p></footer>
   {ready&&<div className="readiness-note">{onlineReady?<><CheckCircle2 size={14}/> Servizio dati collegato</>:null}</div>}
  </div>
 }
