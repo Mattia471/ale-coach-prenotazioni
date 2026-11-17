@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 const read = path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
 test('PWA mobile conserva il viewport stabile e i form senza zoom involontario',()=>{
@@ -381,4 +381,49 @@ test('Privacy, Termini e Cookie sono pagine consultabili senza navigazione verso
  assert.match(legal,/kind === 'privacy'/);
  assert.match(legal,/kind === 'termini'/);
  assert.match(legal,/kind === 'cookie'/);
+});
+
+test('Cookie V1: nessun Google Fonts CDN, font locali correttamente presenti e licenziati',()=>{
+ const html=read('index.html');
+ const main=read('src/main.tsx');
+ const fontStyles=read('src/local-fonts.css');
+ const headers=read('public/_headers');
+ const legal=read('src/LegalPage.tsx');
+ assert.doesNotMatch(html,/fonts\\.(?:googleapis|gstatic)\\.com|<script[^>]+src=["']https?:/i);
+ assert.doesNotMatch(headers,/fonts\\.(?:googleapis|gstatic)\\.com/i);
+ assert.match(main,/import '\\.\\/local-fonts\\.css';/);
+ assert.match(fontStyles,/font-family:'Barlow'/);
+ assert.match(fontStyles,/font-family:'Barlow Condensed'/);
+ assert.match(fontStyles,/font-family:'Caveat'/);
+ const fontFiles=[...fontStyles.matchAll(/url\\('\\/(fonts\\/[^']+\\.ttf)'\\)/g)].map(m=>m[1]);
+ assert.equal(fontFiles.length,12,'Expected the original font weights, italics and Caveat variable file');
+ for(const file of fontFiles){
+  const stats=statSync(new URL('../public/'+file,import.meta.url));
+  assert.ok(stats.size>10000,'Missing or invalid local font '+file);
+ }
+ for(const family of ['barlow','barlow-condensed','caveat']){
+  assert.match(read('public/fonts/'+family+'/OFL.txt'),/SIL OPEN FONT LICENSE Version 1\\.1/);
+ }
+ assert.match(legal,/I font dell'interfaccia sono ospitati direttamente sul dominio ALE COACH/);
+ assert.doesNotMatch(legal,/I font dell'interfaccia sono caricati tramite Google Fonts/);
+ assert.match(legal,/legal-tools-table/);
+ for(const name of ['__cf_bm','__stripe_mid','__stripe_sid']){
+  assert.ok(legal.includes(name),'Cookie transparency table missing '+name);
+ }
+});
+
+test('Cookie V1: nessuna SDK advertising o profiling caricata prima di eventuale consenso',()=>{
+ const sources=['index.html','src/App.tsx','src/lib.ts','src/main.tsx',
+  'src/styles.css','src/minimal-focus.css','src/minimal-focus-live.css','public/sw.js'];
+ const code=sources.map(read).join('\\n');
+ for(const disallowed of [
+  /googletagmanager\\.com/i,/google-analytics\\.com/i,
+  /connect\\.facebook\\.net\\/.*fbevents/i,/facebook\\.com\\/tr\\?/i,
+  /hotjar\\.com/i,/static\\.hotjar\\.com/i,
+  /segment\\.io\\/analytics/i,/clarity\\.ms\\/tag/i,
+  /gtag\\s*\\(/i,/fbq\\s*\\(/i,
+  /fonts\\.(?:googleapis|gstatic)\\.com/i
+ ]){
+  assert.doesNotMatch(code,disallowed,'A non-essential or external tracking resource was added: '+disallowed);
+ }
 });
