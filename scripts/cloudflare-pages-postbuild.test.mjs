@@ -83,7 +83,7 @@ test('Cloudflare build rifiuta font locali assenti e accetta solo asset completi
  try{
   assert.throws(()=>assertCloudflareLocalFonts(dir),/font locale mancante/);
   const css=readFileSync(new URL('../src/local-fonts.css',import.meta.url),'utf8');
-  const paths=[...css.matchAll(/url\\('\\/(fonts\\/[^']+\\.ttf)'\\)/g)].map(x=>x[1]);
+  const paths=css.split('\n').filter(line=>line.includes("src:url('/fonts/")).map(line=>line.split("url('/")[1].split("')")[0]);
   assert.equal(paths.length,12);
   for(const file of paths){
    const dest=join(dir,file);
