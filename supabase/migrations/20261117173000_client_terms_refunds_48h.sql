@@ -158,3 +158,57 @@ BEGIN
 END;
 $verify$;
 -- Existing grants/RLS and security-definer search_paths remain unchanged.
+
+-- Coach cancellation of CONFIRMED non-online lessons. This does not move
+-- Stripe funds. When cash has already been collected, explicit confirmation
+-- that the cash was physically returned is required before recording it.
+CREATE OR REPLACE FUNCTION public.coach_cancel_confirmed_booking(
+ p_booking_id uuid, p_cash_refunded boolean DEFAULT false
+) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
+AS $coach$
+DECLARE b public.bookings%rowtype;
+BEGIN
+ IF auth.uid() IS NULL OR NOT coalesce(private.is_coach(),false) THEN
+  RAISE EXCEPTION 'Operazione riservata al coach';
+ END IF;
+ SELECT * INTO b FROM public.bookings WHERE id=p_booking_id FOR UPDATE;
+ IF NOT FOUND OR b.status<>'confirmed' OR b.starts_at IS NULL OR b.starts_at<=now() THEN
+  RAISE EXCEPTION 'Lezione non cancellabile da questo flusso';
+ END IF;
+ IF b.payment_mode='online' THEN
+  RAISE EXCEPTION 'Usa la funzione Stripe per il rimborso online';
+ END IF;
+ IF b.payment_mode='in_person' AND b.payment_status='paid' AND NOT p_cash_refunded THEN
+  RAISE EXCEPTION 'Restituisci prima il contante e conferma il rimborso';
+ END IF;
+ UPDATE public.bookings SET status='cancelled',cancelled_at=now(),
+  payment_status=CASE
+   WHEN b.payment_mode='credit' OR
+        (b.payment_mode='in_person' AND b.payment_status='paid')
+    THEN 'refunded' ELSE 'unpaid' END,
+  refunded_amount_cents=CASE WHEN b.payment_mode='in_person' AND b.payment_status='paid'
+   THEN b.amount_cents ELSE 0 END,
+  refunded_at=CASE WHEN b.payment_mode='in_person' AND b.payment_status='paid'
+   THEN now() ELSE NULL END
+ WHERE id=b.id;
+ IF b.credit_wallet_id IS NOT NULL THEN
+  UPDATE public.wallet_credits SET remaining=remaining+1 WHERE id=b.credit_wallet_id;
+ END IF;
+ INSERT INTO public.notifications(recipient_id,title,body,kind,booking_id)
+ VALUES(b.client_id,'Lezione annullata dal coach',
+  CASE WHEN b.payment_mode='credit'
+    THEN 'Il coach ha annullato la lezione. Il credito Flex è stato restituito.'
+    WHEN b.payment_mode='in_person' AND b.payment_status='paid'
+    THEN 'Il coach ha annullato la lezione e registrato il rimborso in contanti.'
+    ELSE 'Il coach ha annullato la lezione senza alcun costo.' END,
+  'booking_cancelled',b.id);
+ RETURN jsonb_build_object('ok',true,'cashRefunded',b.payment_mode='in_person'
+  AND b.payment_status='paid');
+END;
+$coach$;
+REVOKE ALL ON FUNCTION public.coach_cancel_confirmed_booking(uuid,boolean)
+ FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.coach_cancel_confirmed_booking(uuid,boolean)
+ TO authenticated;
+
