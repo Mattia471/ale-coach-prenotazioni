@@ -11,6 +11,7 @@ export const state = {
  refundKeys: new Set<string>(),
  retrievals: 0,
  updates: 0,
+ refundClaims: 0,
  notifications: 0,
  failStripeOnce: false,
  failDbUpdateOnce: false
@@ -21,6 +22,7 @@ export function reset() {
   payment_status:'paid',payment_mode:'online',
   stripe_payment_intent_id:'pi_test_fake_refundable',
   starts_at:new Date(Date.now()+5*24*3600000).toISOString(),
+  refunded_amount_cents:0,
   amount_cents:5500
  };
  state.intent = {
@@ -34,6 +36,7 @@ export function reset() {
  state.refundKeys.clear();
  state.retrievals = 0;
  state.updates = 0;
+ state.refundClaims = 0;
  state.notifications = 0;
  state.failStripeOnce = false;
  state.failDbUpdateOnce = false;
