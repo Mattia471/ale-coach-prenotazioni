@@ -67,21 +67,31 @@ Deno.serve(async req=>{
    return json({ok:true,authorizationReleased:true});
   }
   if(b.status!=='confirmed'||b.payment_status!=='paid'||b.payment_mode!=='online'||!b.stripe_payment_intent_id)return json({error:'Prenotazione non rimborsabile online'},409);
-  if(!b.starts_at||new Date(b.starts_at).getTime()-Date.now()<24*3600000)return json({error:'Il limite per la disdetta gratuita è di 24 ore prima'},409);
+  if(!b.starts_at||new Date(b.starts_at).getTime()<=Date.now())return json({error:'La lezione è già iniziata: contatta il coach'},409);
+  // Cancellation >=24h before start refunds 100%; later cancellations refund
+  // 50%. Do not modify the captured price or silently erase the remainder.
+  const refundAmountCents=new Date(b.starts_at).getTime()-Date.now()>=24*3600000
+   ? b.amount_cents : Math.round(b.amount_cents/2);
+  if(!Number.isInteger(refundAmountCents)||refundAmountCents<1)
+   return json({error:'Importo del rimborso non valido'},409);
   const stripe=new Stripe(key);
   // Fails closed before any money-moving API call if the DB booking has a
   // mismatched, uncaptured, wrong-customer, or wrong-amount PaymentIntent.
   const intent=await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id);
   if(!isRefundIntentForBooking(intent,b))
    return json({error:'Pagamento Stripe non corrispondente alla prenotazione: contatta il coach'},409);
-  await stripe.refunds.create({payment_intent:intent.id,reason:'requested_by_customer'},{idempotencyKey:`ale-refund-${b.id}`});
+  await stripe.refunds.create({
+   payment_intent:intent.id,
+   amount:refundAmountCents,
+   reason:'requested_by_customer'
+  },{idempotencyKey:`ale-refund-${b.id}`});
   const {data:saved,error:saveError}=await admin.from('bookings')
-   .update({status:'cancelled',payment_status:'refunded',cancelled_at:new Date().toISOString()})
+   .update({status:'cancelled',payment_status:'refunded',refunded_amount_cents:refundAmountCents,refunded_at:new Date().toISOString(),cancelled_at:new Date().toISOString()})
    .eq('id',b.id).eq('status','confirmed').eq('payment_status','paid')
    .select('id').maybeSingle();
   if(saveError)throw saveError;
   if(!saved)throw new Error('Rimborso avviato su Stripe, ma la prenotazione va riconciliata manualmente');
-  await admin.from('notifications').insert({recipient_id:b.client_id,title:'Disdetta e rimborso',body:'La tua lezione è stata disdetta. Il rimborso è stato avviato sul metodo originale.',kind:'booking_cancelled',booking_id:b.id});
-  return json({ok:true});
+  await admin.from('notifications').insert({recipient_id:b.client_id,title:'Disdetta e rimborso',body:`Lezione disdetta. Rimborso di ${(refundAmountCents/100).toFixed(2)} € avviato sul metodo originale.`,kind:'booking_cancelled',booking_id:b.id});
+  return json({ok:true,refundAmountCents});
  }catch(e){console.error('cancel-booking',e);return json({error:'Rimborso non completato. Contatta il coach.'},500)}
 });
