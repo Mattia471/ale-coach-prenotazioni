@@ -72,3 +72,49 @@ await ok(as(client,inPerson),'unpaid in-person booking cancelled without fees 1h
 await deny(as(client,cashPaid),/Pagamento in presenza gia registrato/,'captured cash cannot be silently erased');
 await eq("select count(*) from qa_policy.notifications;",2,'only two successful cancellations notify clients');
 console.log('All client late-cancellation rules pass in isolated PostgreSQL.');
+
+const coach='d0000000-0000-4000-8000-000000000008';
+const coachCredit='d0000000-0000-4000-8000-000000000009';
+const coachStart=source.indexOf('CREATE OR REPLACE FUNCTION public.coach_cancel_confirmed_booking(');
+assert.ok(coachStart>0,'coach cancellation SQL absent');
+const coachEnd=source.indexOf('$coach$;',coachStart);
+assert.ok(coachEnd>coachStart,'coach cancellation terminator absent');
+const coachSql=source.slice(coachStart,coachEnd+'$coach$;'.length)
+ .replaceAll('public.coach_cancel_confirmed_booking','qa_policy.coach_cancel_confirmed_booking')
+ .replaceAll('public.bookings','qa_policy.bookings')
+ .replaceAll('public.wallet_credits','qa_policy.wallet_credits')
+ .replaceAll('public.notifications','qa_policy.notifications');
+await ok(`
+ ALTER TABLE qa_policy.bookings
+  ADD COLUMN amount_cents integer not null default 5500,
+  ADD COLUMN refunded_amount_cents integer not null default 0,
+  ADD COLUMN refunded_at timestamptz;
+ CREATE OR REPLACE FUNCTION private.is_coach() RETURNS boolean
+ LANGUAGE sql STABLE AS $q$
+ SELECT current_setting('request.jwt.claim.sub',true)='${coach}'
+ $q$;
+ UPDATE qa_policy.wallet_credits SET remaining=0 WHERE id='${wallet}';
+ INSERT INTO qa_policy.bookings(id,client_id,starts_at,status,payment_mode,payment_status,credit_wallet_id)
+ VALUES ('${coachCredit}','${client}',now()+interval '1 hour','confirmed','credit','paid','${wallet}');
+`,'setup coach-only synthetic authorization and cash accounting');
+await ok(coachSql,'apply actual staged coach RPC to synthetic tables');
+const coachCall=(actor,id,cash=false)=>
+ `BEGIN;SET LOCAL request.jwt.claim.sub='${actor}';SELECT qa_policy.coach_cancel_confirmed_booking('${id}'::uuid,${cash});COMMIT;`;
+await deny(coachCall(client,coachCredit),/Operazione riservata al coach/,
+ 'client cannot impersonate coach to return an extra Flex credit');
+await ok(coachCall(coach,coachCredit),'coach cancels a confirmed Flex booking');
+await eq(`select remaining from qa_policy.wallet_credits where id='${wallet}';`,1,
+ 'coach cancellation returns exactly one Flex credit');
+await deny(coachCall(coach,coachCredit),/Lezione non cancellabile/,
+ 'repeating coach cancellation cannot return another Flex credit');
+await deny(coachCall(coach,cashPaid),/Restituisci prima il contante/,
+ 'coach cannot mark collected cash refunded without confirmation');
+await eq(`select payment_status from qa_policy.bookings where id='${cashPaid}';`,
+ 'paid','cash remains paid until physical refund confirmed');
+await ok(coachCall(coach,cashPaid,true),
+ 'coach records a previously completed full cash refund');
+await eq(`select payment_status||':'||refunded_amount_cents from qa_policy.bookings where id='${cashPaid}';`,
+ 'refunded:5500','cash refund records original amount without losing transaction history');
+await eq("select count(*) from qa_policy.notifications;",4,
+ 'coach cancellation also sends exactly one notice to each client');
+console.log('All coach cancellation and manual-cash acknowledgment checks PASSED.');
