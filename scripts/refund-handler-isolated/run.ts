@@ -182,6 +182,22 @@ try{
  pass('retry after DB failure reuses idempotency key and avoids duplicate refund');
 
  reset();
+ state.booking.starts_at=new Date(Date.now()+24*3600000+120000).toISOString();
+ state.failDbUpdateOnce=true;
+ result=await post();
+ assert.equal(result.status,500);
+ assert.equal(state.refundedCents,5500);
+ assert.equal(state.refundClaims,1);
+ state.booking.starts_at=new Date(Date.now()+23*3600000).toISOString();
+ result=await post();
+ assert.equal(result.status,200);
+ assert.equal(result.body.refundAmountCents,5500);
+ assert.equal(state.refundedCents,5500);
+ assert.equal(state.refundsCreated,1);
+ assert.equal(state.booking.refunded_amount_cents,5500);
+ pass('24-hour boundary crossing retry preserves original full refund amount');
+
+ reset();
  const responses=await Promise.all([post(),post()]);
  assert.ok(responses.some(response=>response.status===200),
   'at least one parallel request must complete');
