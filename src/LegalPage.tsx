@@ -228,8 +228,8 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
             Cloudflare e Stripe possono impostare cookie tecnici di sicurezza
             e antifrode nei casi riportati nella tabella al punto 1.
             Per i dettagli si veda l'<a href={legalPaths.privacy}>informativa privacy</a>.</p>
-          <p>I font dell'interfaccia sono caricati tramite Google Fonts, servizio di Google,
-            che riceve le richieste tecniche per le risorse tipografiche. È possibile
+          <p>I font dell'interfaccia sono ospitati direttamente sul dominio ALE COACH,
+            senza richieste a servizi esterni di font. È possibile
             cancellare dati locali e cookie dalle impostazioni del browser,
             disattivare le notifiche nelle preferenze del dispositivo
             e interrompere la sessione usando il pulsante «Esci» dell'app.
