@@ -21,12 +21,23 @@ Deno.serve(async req=>{
   const {data:{user},error:authError}=await auth.auth.getUser(token);
   if(authError||!user)return json({error:'Sessione non valida'},401);
   const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
-  const {bookingId}=await req.json();
+  const body=await req.json();
+  const bookingId=String(body.bookingId||'');
+  const coachCancellation=body.actor==='coach';
+  if(coachCancellation){
+   const {data:actorProfile,error:roleError}=await admin.from('profiles')
+    .select('role').eq('id',user.id).maybeSingle();
+   if(roleError||actorProfile?.role!=='coach')
+    return json({error:'Operazione riservata al coach'},403);
+  }
   const {data:b,error}=await admin.from('bookings').select('*').eq('id',bookingId).single();
-  if(error||!b||b.client_id!==user.id)return json({error:'Prenotazione non trovata'},404);
+  if(error||!b||(!coachCancellation&&b.client_id!==user.id))
+   return json({error:'Prenotazione non trovata'},404);
+  if(coachCancellation&&b.status!=='confirmed')
+   return json({error:'Il coach può annullare solo lezioni confermate'},409);
   // Prima dell'approvazione si ANNULLA solo la preautorizzazione:
   // mai un rimborso di fondi che non sono stati incassati.
-  const isBeforeApproval=b.payment_mode==='online'&&
+  const isBeforeApproval=!coachCancellation&&b.payment_mode==='online'&&
    (b.status==='authorizing'||
      b.status==='pending'&&['authorized','unpaid'].includes(b.payment_status)||
      b.status==='processing'&&b.stripe_decision==='cancel');
@@ -70,7 +81,7 @@ Deno.serve(async req=>{
   if(!b.starts_at||new Date(b.starts_at).getTime()<=Date.now())return json({error:'La lezione è già iniziata: contatta il coach'},409);
   // Cancellation >=24h before start refunds 100%; later cancellations refund
   // 50%. Do not modify the captured price or silently erase the remainder.
-  const refundAmountCents=new Date(b.starts_at).getTime()-Date.now()>=24*3600000
+  const refundAmountCents=coachCancellation||new Date(b.starts_at).getTime()-Date.now()>=24*3600000
    ? b.amount_cents : Math.round(b.amount_cents/2);
   if(!Number.isInteger(refundAmountCents)||refundAmountCents<1)
    return json({error:'Importo del rimborso non valido'},409);
@@ -83,7 +94,7 @@ Deno.serve(async req=>{
   await stripe.refunds.create({
    payment_intent:intent.id,
    amount:refundAmountCents,
-   reason:'requested_by_customer'
+   ...(coachCancellation?{}:{reason:'requested_by_customer' as const})
   },{idempotencyKey:`ale-refund-${b.id}`});
   const {data:saved,error:saveError}=await admin.from('bookings')
    .update({status:'cancelled',payment_status:'refunded',refunded_amount_cents:refundAmountCents,refunded_at:new Date().toISOString(),cancelled_at:new Date().toISOString()})
@@ -91,7 +102,7 @@ Deno.serve(async req=>{
    .select('id').maybeSingle();
   if(saveError)throw saveError;
   if(!saved)throw new Error('Rimborso avviato su Stripe, ma la prenotazione va riconciliata manualmente');
-  await admin.from('notifications').insert({recipient_id:b.client_id,title:'Disdetta e rimborso',body:`Lezione disdetta. Rimborso di ${(refundAmountCents/100).toFixed(2)} € avviato sul metodo originale.`,kind:'booking_cancelled',booking_id:b.id});
+  await admin.from('notifications').insert({recipient_id:b.client_id,title:coachCancellation?'Annullamento e rimborso del coach':'Disdetta e rimborso',body:`${coachCancellation?'Il coach ha annullato la lezione.':'Lezione disdetta.'} Rimborso di ${(refundAmountCents/100).toFixed(2)} € avviato sul metodo originale.`,kind:'booking_cancelled',booking_id:b.id});
   return json({ok:true,refundAmountCents});
  }catch(e){console.error('cancel-booking',e);return json({error:'Rimborso non completato. Contatta il coach.'},500)}
 });
