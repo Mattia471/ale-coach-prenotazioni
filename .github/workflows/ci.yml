@@ -95,3 +95,4 @@ jobs:
           node scripts/qa-signup-allowlist-isolated.mjs
           node scripts/qa-go-signup-isolated.mjs
           node scripts/qa-backup-restore-isolated.mjs
+          node scripts/qa-client-cancellation-policy-isolated.mjs
