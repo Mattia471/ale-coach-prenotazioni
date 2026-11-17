@@ -11,7 +11,8 @@ const delay=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 
 async function post(
  token='qa-valid-client',
- from=origin
+ from=origin,
+ actor?:'coach'
 ):Promise<{status:number;body:Record<string,unknown>}>{
  const res=await fetch(base,{
   method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),
@@ -20,7 +21,7 @@ async function post(
    'Origin':from,
    'Content-Type':'application/json'
   },
-  body:JSON.stringify({bookingId:state.bookingId})
+  body:JSON.stringify({bookingId:state.bookingId,actor})
  });
  return {status:res.status,body:await res.json()};
 }
@@ -104,6 +105,21 @@ try{
  assert.equal(result.status,409);
  mustUnchanged('started/no-show booking');
  pass('already-started no-show booking cannot refund or return credit');
+
+ reset();
+ state.booking.starts_at=new Date(Date.now()+3600000).toISOString();
+ result=await post('qa-coach',origin,'coach');
+ assert.equal(result.status,200);
+ assert.equal(result.body.refundAmountCents,5500);
+ assert.equal(state.refundedCents,5500);
+ assert.equal(state.notifications,1);
+ pass('coach cancellation within 24h refunds 100 percent, not customer late fee');
+
+ reset();
+ result=await post('qa-valid-client',origin,'coach');
+ assert.equal(result.status,403);
+ mustUnchanged('forged coach action');
+ pass('client cannot impersonate coach to receive full refund');
 
  reset();
  (state.intent.metadata as Record<string,string>).client_id='44444444-4444-4444-8444-444444444444';
