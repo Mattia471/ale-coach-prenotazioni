@@ -6,6 +6,7 @@ export const state = {
  intent: {} as Record<string,unknown>,
  refundCalls: 0,
  refundsCreated: 0,
+ refundedCents: 0,
  refundKeys: new Set<string>(),
  retrievals: 0,
  updates: 0,
@@ -28,6 +29,7 @@ export function reset() {
  };
  state.refundCalls = 0;
  state.refundsCreated = 0;
+ state.refundedCents = 0;
  state.refundKeys.clear();
  state.retrievals = 0;
  state.updates = 0;
