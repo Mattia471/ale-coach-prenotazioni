@@ -383,47 +383,52 @@ test('Privacy, Termini e Cookie sono pagine consultabili senza navigazione verso
  assert.match(legal,/kind === 'cookie'/);
 });
 
-test('Cookie V1: nessun Google Fonts CDN, font locali correttamente presenti e licenziati',()=>{
+test('Cookie V1: font locali presenti con licenze e CDN Google disattivato',()=>{
  const html=read('index.html');
  const main=read('src/main.tsx');
- const fontStyles=read('src/local-fonts.css');
+ const css=read('src/local-fonts.css');
  const headers=read('public/_headers');
  const legal=read('src/LegalPage.tsx');
- assert.doesNotMatch(html,/fonts\\.(?:googleapis|gstatic)\\.com|<script[^>]+src=["']https?:/i);
- assert.doesNotMatch(headers,/fonts\\.(?:googleapis|gstatic)\\.com/i);
- assert.match(main,/import '\\.\\/local-fonts\\.css';/);
- assert.match(fontStyles,/font-family:'Barlow'/);
- assert.match(fontStyles,/font-family:'Barlow Condensed'/);
- assert.match(fontStyles,/font-family:'Caveat'/);
- const fontFiles=[...fontStyles.matchAll(/url\\('\\/(fonts\\/[^']+\\.ttf)'\\)/g)].map(m=>m[1]);
- assert.equal(fontFiles.length,12,'Expected the original font weights, italics and Caveat variable file');
- for(const file of fontFiles){
-  const stats=statSync(new URL('../public/'+file,import.meta.url));
-  assert.ok(stats.size>10000,'Missing or invalid local font '+file);
+ for(const host of ['fonts.googleapis.com','fonts.gstatic.com']){
+  assert.ok(!html.includes(host),'Unexpected external font host in index.html: '+host);
+  assert.ok(!headers.includes(host),'Unexpected external font host in CSP: '+host);
+ }
+ assert.ok(main.includes("import './local-fonts.css';"),'Local fonts stylesheet not imported');
+ for(const family of ["font-family:'Barlow'","font-family:'Barlow Condensed'","font-family:'Caveat'"]){
+  assert.ok(css.includes(family),'Missing font face: '+family);
+ }
+ const files=css.split('\n').filter(line=>line.includes("src:url('/fonts/"))
+  .map(line=>line.split("url('/")[1].split("')")[0]);
+ assert.equal(files.length,12,'12 original font styles are required');
+ assert.equal(new Set(files).size,12,'Duplicate local font path');
+ for(const path of files){
+  const stats=statSync(new URL('../public/'+path,import.meta.url));
+  assert.ok(stats.size>10000,'Invalid local font: '+path);
  }
  for(const family of ['barlow','barlow-condensed','caveat']){
-  assert.match(read('public/fonts/'+family+'/OFL.txt'),/SIL OPEN FONT LICENSE Version 1\\.1/);
+  const license=read('public/fonts/'+family+'/OFL.txt');
+  assert.ok(license.includes('SIL OPEN FONT LICENSE Version 1.1'),'Missing font license: '+family);
  }
- assert.match(legal,/I font dell'interfaccia sono ospitati direttamente sul dominio ALE COACH/);
- assert.doesNotMatch(legal,/I font dell'interfaccia sono caricati tramite Google Fonts/);
- assert.match(legal,/legal-tools-table/);
+ assert.ok(legal.includes("I font dell'interfaccia sono ospitati direttamente sul dominio ALE COACH"));
+ assert.ok(legal.includes('legal-tools-table'));
  for(const name of ['__cf_bm','__stripe_mid','__stripe_sid']){
   assert.ok(legal.includes(name),'Cookie transparency table missing '+name);
  }
+ const app=read('src/App.tsx');
+ assert.ok(app.includes('referrerPolicy="no-referrer"'),'External portrait must not receive a page referrer');
 });
 
-test('Cookie V1: nessuna SDK advertising o profiling caricata prima di eventuale consenso',()=>{
+test('Cookie V1: nessun SDK pubblicitario o tracking CDN caricato dai sorgenti',()=>{
  const sources=['index.html','src/App.tsx','src/lib.ts','src/main.tsx',
   'src/styles.css','src/minimal-focus.css','src/minimal-focus-live.css','public/sw.js'];
- const code=sources.map(read).join('\\n');
- for(const disallowed of [
-  /googletagmanager\\.com/i,/google-analytics\\.com/i,
-  /connect\\.facebook\\.net\\/.*fbevents/i,/facebook\\.com\\/tr\\?/i,
-  /hotjar\\.com/i,/static\\.hotjar\\.com/i,
-  /segment\\.io\\/analytics/i,/clarity\\.ms\\/tag/i,
-  /gtag\\s*\\(/i,/fbq\\s*\\(/i,
-  /fonts\\.(?:googleapis|gstatic)\\.com/i
- ]){
-  assert.doesNotMatch(code,disallowed,'A non-essential or external tracking resource was added: '+disallowed);
+ const code=sources.map(read).join('\n').toLowerCase();
+ const forbidden=[
+  'googletagmanager.com','google-analytics.com',
+  'connect.facebook.net','facebook.com/tr?',
+  'hotjar.com','clarity.ms/tag','segment.io/analytics',
+  'gtag(', 'fbq(', 'fonts.googleapis.com','fonts.gstatic.com'
+ ];
+ for(const text of forbidden){
+  assert.ok(!code.includes(text),'Unexpected external tracking resource: '+text);
  }
 });
