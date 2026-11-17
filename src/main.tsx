@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import LegalPage from './LegalPage';
+import './local-fonts.css';
 import './styles.css';
 import './minimal-focus.css';
 import './minimal-focus-live.css';

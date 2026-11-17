@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,rmSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
-import {buildCloudflareHeaders,assertPagesBuild,assertCloudflareRuntimeConfig} from './cloudflare-pages-postbuild.mjs';
+import {join,dirname} from 'node:path';
+import {buildCloudflareHeaders,assertPagesBuild,assertCloudflareRuntimeConfig,assertCloudflareLocalFonts} from './cloudflare-pages-postbuild.mjs';
 
 const src=`# Prelaunch
 /*
@@ -76,4 +76,20 @@ test('Cloudflare Pages production build rejects absent or wrong Supabase public 
   VITE_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_dummy'
  }));
  assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({}));
+});
+
+test('Cloudflare build rifiuta font locali assenti e accetta solo asset completi',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'ale-local-fonts-'));
+ try{
+  assert.throws(()=>assertCloudflareLocalFonts(dir),/font locale mancante/);
+  const css=readFileSync(new URL('../src/local-fonts.css',import.meta.url),'utf8');
+  const paths=css.split('\n').filter(line=>line.includes("src:url('/fonts/")).map(line=>line.split("url('/")[1].split("')")[0]);
+  assert.equal(paths.length,12);
+  for(const file of paths){
+   const dest=join(dir,file);
+   mkdirSync(dirname(dest),{recursive:true});
+   writeFileSync(dest,'synthetic fixture');
+  }
+  assert.doesNotThrow(()=>assertCloudflareLocalFonts(dir));
+ }finally{rmSync(dir,{recursive:true,force:true})}
 });

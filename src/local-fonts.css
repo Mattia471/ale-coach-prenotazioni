@@ -1,0 +1,18 @@
+/*
+ * ALE COACH self-hosted fonts.
+ * Original unmodified Google Fonts font files, SIL Open Font License 1.1:
+ * public/fonts/{barlow,barlow-condensed,caveat}/OFL.txt
+ * Served by Cloudflare Pages from this same origin, never Google Fonts CDN.
+ */
+@font-face{font-family:'Barlow';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/barlow/Barlow-Regular.ttf') format('truetype')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/barlow/Barlow-Medium.ttf') format('truetype')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/barlow/Barlow-SemiBold.ttf') format('truetype')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:700;font-display:swap;src:url('/fonts/barlow/Barlow-Bold.ttf') format('truetype')}
+@font-face{font-family:'Barlow';font-style:normal;font-weight:800;font-display:swap;src:url('/fonts/barlow/Barlow-ExtraBold.ttf') format('truetype')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;src:url('/fonts/barlow-condensed/BarlowCondensed-Bold.ttf') format('truetype')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:800;font-display:swap;src:url('/fonts/barlow-condensed/BarlowCondensed-ExtraBold.ttf') format('truetype')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:900;font-display:swap;src:url('/fonts/barlow-condensed/BarlowCondensed-Black.ttf') format('truetype')}
+@font-face{font-family:'Barlow Condensed';font-style:italic;font-weight:700;font-display:swap;src:url('/fonts/barlow-condensed/BarlowCondensed-BoldItalic.ttf') format('truetype')}
+@font-face{font-family:'Barlow Condensed';font-style:italic;font-weight:800;font-display:swap;src:url('/fonts/barlow-condensed/BarlowCondensed-ExtraBoldItalic.ttf') format('truetype')}
+@font-face{font-family:'Barlow Condensed';font-style:italic;font-weight:900;font-display:swap;src:url('/fonts/barlow-condensed/BarlowCondensed-BlackItalic.ttf') format('truetype')}
+@font-face{font-family:'Caveat';font-style:normal;font-weight:400 700;font-display:swap;src:url('/fonts/caveat/Caveat-variable.ttf') format('truetype')}

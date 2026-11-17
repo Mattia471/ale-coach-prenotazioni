@@ -58,6 +58,7 @@ function CoachPhoto({avatar=false}:{avatar?:boolean}){
   : <img className={avatar?'coach-photo-avatar':'coach-photo-image'}
     src={coachPortraitUrl}
     alt="Alessandro Cola, personal trainer"
+    referrerPolicy="no-referrer"
     loading={avatar?'eager':'lazy'}
     decoding="async"
     onError={()=>setUnavailable(true)}/>;

@@ -55,8 +55,18 @@ export function assertPagesBuild(dist='dist') {
   throw new Error('Cloudflare Pages SPA usa il fallback nativo; rimuovi _redirects per evitare riscritture degli asset.');
 }
 
+
+export function assertCloudflareLocalFonts(dist='dist',css=readFileSync('src/local-fonts.css','utf8')) {
+ const paths=css.split('\n').filter(line=>line.includes("src:url('/fonts/")).map(line=>line.split("url('/")[1].split("')")[0]);
+ if(paths.length!==12||new Set(paths).size!==12)
+  throw new Error('Cloudflare Pages: i 12 font locali attesi non sono tutti dichiarati');
+ for(const path of paths)if(!existsSync(`${dist}/${path}`))
+  throw new Error(`Cloudflare Pages: risorsa font locale mancante ${dist}/${path}`);
+}
+
 if(process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1]){
  assertPagesBuild();
+ assertCloudflareLocalFonts();
  assertCloudflareRuntimeConfig(process.env);
  const source=readFileSync('dist/_headers','utf8');
  const legalText=readFileSync('src/LegalPage.tsx','utf8');
