@@ -11,7 +11,8 @@ const delay=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 
 async function post(
  token='qa-valid-client',
- from=origin
+ from=origin,
+ actor?:'coach'
 ):Promise<{status:number;body:Record<string,unknown>}>{
  const res=await fetch(base,{
   method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),
@@ -20,7 +21,7 @@ async function post(
    'Origin':from,
    'Content-Type':'application/json'
   },
-  body:JSON.stringify({bookingId:state.bookingId})
+  body:JSON.stringify({bookingId:state.bookingId,actor})
  });
  return {status:res.status,body:await res.json()};
 }
@@ -54,6 +55,7 @@ try{
  assert.equal(result.body.ok,true);
  assert.equal(state.refundCalls,1);
  assert.equal(state.refundsCreated,1);
+ assert.equal(state.refundedCents,5500);
  assert.equal(state.refundKeys.size,1);
  assert.equal(state.booking.status,'cancelled');
  assert.equal(state.booking.payment_status,'refunded');
@@ -89,9 +91,35 @@ try{
  reset();
  state.booking.starts_at=new Date(Date.now()+23*3600000).toISOString();
  result=await post();
+ assert.equal(result.status,200);
+ assert.equal(result.body.refundAmountCents,2750);
+ assert.equal(state.refundsCreated,1);
+ assert.equal(state.refundedCents,2750);
+ assert.equal(state.booking.refunded_amount_cents,2750);
+ assert.equal(state.booking.status,'cancelled');
+ pass('late cancellation refunds exactly 50 percent with persisted amount');
+
+ reset();
+ state.booking.starts_at=new Date(Date.now()-60000).toISOString();
+ result=await post();
  assert.equal(result.status,409);
- mustUnchanged('less than 24h cancellation');
- pass('self-service 24-hour cancellation cutoff enforced');
+ mustUnchanged('started/no-show booking');
+ pass('already-started no-show booking cannot refund or return credit');
+
+ reset();
+ state.booking.starts_at=new Date(Date.now()+3600000).toISOString();
+ result=await post('qa-coach',origin,'coach');
+ assert.equal(result.status,200);
+ assert.equal(result.body.refundAmountCents,5500);
+ assert.equal(state.refundedCents,5500);
+ assert.equal(state.notifications,1);
+ pass('coach cancellation within 24h refunds 100 percent, not customer late fee');
+
+ reset();
+ result=await post('qa-valid-client',origin,'coach');
+ assert.equal(result.status,403);
+ mustUnchanged('forged coach action');
+ pass('client cannot impersonate coach to receive full refund');
 
  reset();
  (state.intent.metadata as Record<string,string>).client_id='44444444-4444-4444-8444-444444444444';
@@ -152,6 +180,22 @@ try{
  assert.equal(state.updates,1);
  assert.equal(state.notifications,1);
  pass('retry after DB failure reuses idempotency key and avoids duplicate refund');
+
+ reset();
+ state.booking.starts_at=new Date(Date.now()+24*3600000+120000).toISOString();
+ state.failDbUpdateOnce=true;
+ result=await post();
+ assert.equal(result.status,500);
+ assert.equal(state.refundedCents,5500);
+ assert.equal(state.refundClaims,1);
+ state.booking.starts_at=new Date(Date.now()+23*3600000).toISOString();
+ result=await post();
+ assert.equal(result.status,200);
+ assert.equal(result.body.refundAmountCents,5500);
+ assert.equal(state.refundedCents,5500);
+ assert.equal(state.refundsCreated,1);
+ assert.equal(state.booking.refunded_amount_cents,5500);
+ pass('24-hour boundary crossing retry preserves original full refund amount');
 
  reset();
  const responses=await Promise.all([post(),post()]);

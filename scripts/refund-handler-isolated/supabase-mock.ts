@@ -6,10 +6,11 @@ export function createClient(_url:string,_key:string,_options:unknown){
  return {
   auth:{
    getUser:async(token:string)=>({
-    data:{user:token==='qa-valid-client' ? {id:state.clientId}
+    data:{user:token==='qa-coach' ? {id:state.coachId}
+              : token==='qa-valid-client' ? {id:state.clientId}
               : token==='qa-other-client' ? {id:'33333333-3333-4333-8333-333333333333'}
               : null},
-    error:token==='qa-valid-client'||token==='qa-other-client'?null:{message:'Invalid mock token'}
+    error:token==='qa-valid-client'||token==='qa-other-client'||token==='qa-coach'?null:{message:'Invalid mock token'}
    })
   },
   from(table:string){
@@ -27,15 +28,19 @@ export function createClient(_url:string,_key:string,_options:unknown){
       : {data:null,error:{message:'Not found in isolated mock'}};
     },
     async maybeSingle(){
+     if(table==='profiles'&&!updateValues){
+      return {data:{role:filters.id===state.coachId?'coach':'client'},error:null};
+     }
      if(table!=='bookings'||!updateValues)throw new Error('Unexpected mocked update');
-     if(state.failDbUpdateOnce){
+     if(state.failDbUpdateOnce&&updateValues.status==='cancelled'){
       state.failDbUpdateOnce=false;
       return {data:null,error:{message:'Synthetic DB failure after refund'}};
      }
      if(!matches())return {data:null,error:null};
      Object.assign(state.booking,updateValues);
-     state.updates++;
-     return {data:{id:state.bookingId},error:null};
+     if(updateValues.status==='cancelled')state.updates++;
+     else state.refundClaims++;
+     return {data:{id:state.bookingId,refunded_amount_cents:state.booking.refunded_amount_cents},error:null};
     },
     async insert(row:RecordValue){
      if(table!=='notifications'||row.booking_id!==state.bookingId)

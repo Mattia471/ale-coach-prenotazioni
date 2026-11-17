@@ -294,3 +294,12 @@ button,a,input,select,textarea,summary,[role="button"]{touch-action:manipulation
  .mf-root button.switch::after{content:'';position:absolute;inset:-9px -3px;border-radius:18px}
  .mf-root button.switch:focus-visible{outline:2px solid #e1001a;outline-offset:6px}
 }
+
+/* Documenti legali, accessibili anche su mobile senza modificare l'app. */
+.legal-table-wrap{overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch;margin:18px 0}
+.legal-tools-table{width:100%;border-collapse:collapse;min-width:600px;font-size:14px;line-height:1.5}
+.legal-tools-table th,.legal-tools-table td{text-align:left;vertical-align:top;padding:12px 10px;border:1px solid #dfe1e5}
+.legal-tools-table th{background:#eef0f3;font-weight:750}
+.legal-tools-table tbody tr:nth-child(even){background:#f8f8fa}
+.legal-print{border:1px solid #262631;border-radius:8px;padding:12px 18px;cursor:pointer;background:#fff;color:#161623;font:inherit;font-weight:700;margin:12px 0}
+@media print{.legal-print,.legal-footer{display:none!important}.legal-site{color:#000}}

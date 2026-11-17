@@ -29,4 +29,5 @@ export const legalPaths = {
   privacy:'/privacy',
   terms:'/termini',
   cookies:'/cookie',
+  withdrawal:'/recesso',
 };
