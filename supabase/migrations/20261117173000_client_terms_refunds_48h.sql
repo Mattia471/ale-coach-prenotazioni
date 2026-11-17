@@ -86,7 +86,7 @@ begin
 exception when exclusion_violation or unique_violation then
  raise exception 'Questo orario o la promozione sono già riservati';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.finalize_booking_authorization(p_booking_id uuid, p_session_id text, p_intent_id text, p_capture_before timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -112,7 +112,7 @@ begin
    'booking_created',p_booking_id from public.profiles where role='coach';
  return true;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.cancel_unpaid_booking(p_booking_id uuid)
@@ -141,7 +141,7 @@ begin
  if v_b.credit_wallet_id is not null then update public.wallet_credits set remaining=remaining+1 where id=v_b.credit_wallet_id; end if;
  insert into public.notifications(recipient_id,title,body,kind,booking_id) values(v_b.client_id,'Lezione disdetta','La prenotazione è stata cancellata.','booking_cancelled',p_booking_id);
 end;
-$function$
+$function$;
 
 
 -- Distinguish a partial refund without altering the booked/captured price.
