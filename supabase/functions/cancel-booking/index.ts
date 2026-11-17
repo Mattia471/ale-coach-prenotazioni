@@ -81,9 +81,9 @@ Deno.serve(async req=>{
   if(!b.starts_at||new Date(b.starts_at).getTime()<=Date.now())return json({error:'La lezione è già iniziata: contatta il coach'},409);
   // Cancellation >=24h before start refunds 100%; later cancellations refund
   // 50%. Do not modify the captured price or silently erase the remainder.
-  const refundAmountCents=coachCancellation||new Date(b.starts_at).getTime()-Date.now()>=24*3600000
+  const requestedAmountCents=coachCancellation||new Date(b.starts_at).getTime()-Date.now()>=24*3600000
    ? b.amount_cents : Math.round(b.amount_cents/2);
-  if(!Number.isInteger(refundAmountCents)||refundAmountCents<1)
+  if(!Number.isInteger(requestedAmountCents)||requestedAmountCents<1)
    return json({error:'Importo del rimborso non valido'},409);
   const stripe=new Stripe(key);
   // Fails closed before any money-moving API call if the DB booking has a
@@ -91,6 +91,30 @@ Deno.serve(async req=>{
   const intent=await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id);
   if(!isRefundIntentForBooking(intent,b))
    return json({error:'Pagamento Stripe non corrispondente alla prenotazione: contatta il coach'},409);
+  // Persist the intended refund amount BEFORE calling Stripe. A retry crossing
+  // the 24-hour threshold must reuse the identical amount and idempotency key.
+  // Pending amount is distinguishable from completed refund by refunded_at.
+  let refundAmountCents=Number(b.refunded_amount_cents)||0;
+  if(refundAmountCents===0){
+   const {data:claimed,error:claimError}=await admin.from('bookings')
+    .update({refunded_amount_cents:requestedAmountCents})
+    .eq('id',b.id).eq('status','confirmed').eq('payment_status','paid')
+    .eq('refunded_amount_cents',0)
+    .select('refunded_amount_cents').maybeSingle();
+   if(claimError)throw claimError;
+   if(claimed)refundAmountCents=claimed.refunded_amount_cents;
+   else {
+    const {data:current,error:readError}=await admin.from('bookings')
+     .select('status,payment_status,refunded_amount_cents').eq('id',b.id).single();
+    if(readError||current?.status!=='confirmed'||current.payment_status!=='paid')
+     return json({error:'Prenotazione già modificata, aggiorna la pagina'},409);
+    refundAmountCents=Number(current.refunded_amount_cents)||0;
+   }
+  }
+  if(!Number.isInteger(refundAmountCents)||refundAmountCents<1||refundAmountCents>b.amount_cents)
+   return json({error:'Rimborso non riconciliabile, contatta il coach'},409);
+  if(coachCancellation&&refundAmountCents!==b.amount_cents)
+   return json({error:'È già stata avviata una disdetta con importo diverso: riconcilia il residuo manualmente'},409);
   await stripe.refunds.create({
    payment_intent:intent.id,
    amount:refundAmountCents,
