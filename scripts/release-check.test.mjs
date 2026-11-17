@@ -41,10 +41,13 @@ test('V1 legal copy uses current Stripe preauthorization and Flex instant paymen
   assert.match(legalText,/pagamento immediato/i);
   assert.match(legalText,/24 ore prima/i);
   assert.match(legalText,/14 giorni/i);
-  assert.match(legalText,/dieci anni/i);
+  assert.match(legalText,/(?:dieci|10) anni/i);
   assert.match(legalText,/credito.*riaccredita|riaccredita un credito/i);
   assert.doesNotMatch(legalText,/\[DA COMPILARE|\[DA VALIDARE/i);
   assert.doesNotMatch(legalText,/checkout Stripe è disponibile dopo l'approvazione/i);
+  assert.doesNotMatch(legalText,/Versione:|Bozza V1|Informativa in verifica/i);
+  assert.match(legalText,/rimborso del 50%/i);
+  assert.match(legalText,/48 ore/i);
 });
 
 test('user approval of draft does not automatically enable commercial launch',()=>{
