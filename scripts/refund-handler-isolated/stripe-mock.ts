@@ -11,7 +11,7 @@ export default class Stripe {
  };
  refunds = {
   create: async (
-   params:{payment_intent:string;reason:string},
+   params:{payment_intent:string;reason:string;amount:number},
    options:{idempotencyKey:string}
   ) => {
    state.refundCalls++;
@@ -24,6 +24,7 @@ export default class Stripe {
    if(!state.refundKeys.has(options.idempotencyKey)){
     state.refundKeys.add(options.idempotencyKey);
     state.refundsCreated++;
+    state.refundedCents+=params.amount;
    }
    return {id:'re_test_fake_once',status:'succeeded'};
   }
