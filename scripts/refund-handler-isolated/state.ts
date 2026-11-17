@@ -1,6 +1,7 @@
 // Test-only state, loaded solely by the Deno import-map mocks. No real accounts.
 export const state = {
  clientId: '22222222-2222-4222-8222-222222222222',
+ coachId: '55555555-5555-4555-8555-555555555555',
  bookingId: '11111111-1111-4111-8111-111111111111',
  booking: {} as Record<string,unknown>,
  intent: {} as Record<string,unknown>,
