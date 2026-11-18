@@ -46,3 +46,25 @@ jobs:
         env:
           QA_ALLOWED_ORIGIN: https://www.alecoach.online
         run: node scripts/qa-cors-preflight.mjs
+
+  privacy-runtime:
+    name: Cookie/legal deep links and local fonts (read-only HTTPS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify technical Pages cookies and self-hosted fonts (GET only)
+        env:
+          QA_SITE_ORIGIN: https://ale-coach-prenotazioni.pages.dev
+        run: node scripts/qa-cookie-runtime.mjs
+      - name: Verify customer apex cookies and self-hosted fonts (GET only)
+        env:
+          QA_SITE_ORIGIN: https://alecoach.online
+        run: node scripts/qa-cookie-runtime.mjs
+      - name: Verify customer www cookies and self-hosted fonts (GET only)
+        env:
+          QA_SITE_ORIGIN: https://www.alecoach.online
+        run: node scripts/qa-cookie-runtime.mjs
