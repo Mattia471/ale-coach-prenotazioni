@@ -71,3 +71,25 @@ Effettuare la prova su desktop e mobile, preferibilmente in sessione pulita o in
 
 Nessuna modifica ai pagamenti Live, alle registrazioni pubbliche o ai record QA è richiesta
 per questa attività.
+
+## 18 novembre 2026 | Controllo pubblico automatico, senza dati personali
+
+- `scripts/qa-cookie-runtime.mjs` verifica con sole richieste HTTPS **GET** le URL
+  Home, Privacy, Termini, Cookie e Recesso; il JavaScript pubblicato deve includere
+  la tabella cookie e il modulo tipo di recesso. Controlla inoltre il CSS, tre
+  font locali rappresentativi e la presenza di URL verso font/tracker noti.
+- Nei soli header delle risposte GET individua i **nomi** dei cookie, senza
+  registrarne valori o identità. Rifiuta eventuali nomi tipici di profilazione
+  come `_ga` e `_fbp`; i cookie di sicurezza come `__cf_bm` non provocano
+  un falso allarme. Le prove sono ripetute ogni giorno e su richiesta per
+  `pages.dev`, `alecoach.online` e `www.alecoach.online`, senza segreti
+  o alcuna interazione con login, database o pagamenti.
+- Il test usa anche fixture completamente isolate in `npm test`, per
+  convalidare il blocco di tracker, redirect esterni e cookie marketing.
+- **Limite importante:** una richiesta HTTP da Node non è un browser e non
+  può accertare JavaScript storage o i cookie di terze parti nel checkout
+  ospitato da Stripe. Restano necessari un controllo DevTools una tantum,
+  la conferma del diritto d'uso della foto Virgin Active e l'eventuale
+  valutazione giuridica della configurazione commerciale. Questo check
+  automatizzato **non sostituisce** né una CMP quando necessaria né il
+  consenso valido del titolare al GO.
