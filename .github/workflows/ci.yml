@@ -26,8 +26,10 @@ jobs:
           bash -n scripts/backup-cloud-encrypted.sh
           bash -n scripts/verify-encrypted-backup.sh
           bash -n scripts/qa-backup-crypto-smoke.sh
-      - name: Syntax check read-only Cloudflare Pages HTTP smoke script
-        run: node --check scripts/qa-cloudflare-pages-smoke.mjs
+      - name: Syntax check read-only Cloudflare Pages and Cookie HTTPS smoke scripts
+        run: |
+          node --check scripts/qa-cloudflare-pages-smoke.mjs
+          node --check scripts/qa-cookie-runtime.mjs
       - name: Syntax check customer custom-domain monitors
         run: node --check scripts/qa-pages-auth-public.mjs
       - name: Cloudflare Pages prelaunch build and static asset checks
