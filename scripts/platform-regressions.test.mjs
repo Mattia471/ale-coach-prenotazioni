@@ -432,3 +432,15 @@ test('Cookie V1: nessun SDK pubblicitario o tracking CDN caricato dai sorgenti',
   assert.ok(!code.includes(text),'Unexpected external tracking resource: '+text);
  }
 });
+
+
+test('audit RLS/RPC covers coach cancellation and fails for newly exposed privileged RPCs',()=>{
+ const audit=read('docs/QA-RPC-SECURITY-AUDIT.sql');
+ assert.match(audit,/unaudited authenticated SECURITY DEFINER function/);
+ assert.match(audit,/coach_cancel_confirmed_booking/);
+ assert.match(audit,/coach-only RPC lacks expected guard/);
+ assert.match(audit,/client RPC lacks expected auth.uid\(\) guard/);
+ assert.match(audit,/anonymous EXECUTE on privileged function/);
+ assert.match(audit,/server-only RPC exposed to authenticated/);
+ assert.match(audit,/search_path/);
+});
