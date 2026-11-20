@@ -37,3 +37,27 @@ Una volta terminato il collaudo, ottenuta autorizzazione al reset e rimossi i **
 L'ordine è: approvazioni legali e Stripe; pianificazione dei backup futuri; blocco delle nuove operazioni QA; reset selettivo autorizzato e verificato; conferma config/coach; **GO esplicito**; esecuzione dello script di apertura iscrizioni nell'ambiente Supabase corretto; verifica di un nuovo account cliente con `role='client'` e senza privilegi; verifica dell'endpoint web pubblico, delle informazioni legali e degli avvisi; abilitazione commerciale soltanto quando tutti i gate sono passati. Eventuale rollback blocca **nuove iscrizioni** ma non revoca account/sessioni già esistenti.
 
 Nessuno di questi passaggi sul cloud è stato eseguito durante la preparazione.
+
+
+## Inventario aggiornato 20 novembre 2026 | Dopo il rimborso Sandbox
+
+Campionamento **read-only** su Supabase ALE COACH, dopo il ciclo completo di autorizzazione, cattura e rimborso del 20/11/2026. I conteggi storici del 16/11 in testa al documento sono conservati per confronto.
+
+| Categoria | Conteggio attuale |
+| --- | ---: |
+| Utenti Auth | 2 |
+| Profili coach / cliente QA | 1 / 1 |
+| Prenotazioni QA | 17 |
+| Prenotazioni con rimborso registrato | 1 |
+| Notifiche | 35 |
+| Ordini pacchetto / wallet | 4 / 2 |
+| Slot hold aperti / push subscriptions | 0 / 3 |
+| Servizi / pacchetti / sedi | 6 / 4 / 2 |
+| Finestre disponibilità / blocchi corsi / chiusure | 10 / 12 / 4 |
+| File Storage | 0 |
+
+**Invarianti:** 0 wallet negativi; 0 booking `authorizing/processing` vecchi oltre 2 ore; 0 lezioni online confermate ma non pagate; 0 rimborsi segnati `refunded` senza importo positivo e data; 0 ordini pagati senza wallet. I due cron `ale-coach-expire-bookings` e `ale-coach-release-stripe-authorizations` risultano attivi, ciascuno con 288 esecuzioni riuscite e 0 fallite nelle ultime 24 ore.
+
+**Significato operativo:** questo è soltanto un inventario preparatorio. Sono ancora presenti i dati di collaudo inclusi quelli del rimborso E2E. Nessun `DELETE`, `TRUNCATE`, operazione Stripe o modifica utenti Auth è stata eseguita per preparare questo checkpoint. Al cutover occorrerà rifare l'inventario in quel momento e applicare esclusivamente la pulizia selettiva **dopo autorizzazione esplicita**. Preservare sempre account coach, cataloghi, configurazioni, cron e migrazioni.
+
+**Protezione dati commerciali futuri:** la strategia del documento [BACKUP-RESTORE-RUNBOOK.md](BACKUP-RESTORE-RUNBOOK.md) è tecnicamente predisposta ma non ancora operativa. Sul piano Supabase Free i backup automatici scaricabili non sono inclusi: opzioni da far deliberare al titolare sono (A) Supabase Pro con backup gestiti, (B) dump PostgreSQL cifrato age verso destinazione esterna con schedulazione e restore isolato. Non programmare job che esportino dati personali verso servizi non approvati, non usare il dataset QA per una copia che il titolare ha dispensato e non considerare test sintetici equivalenti a un restore reale.
