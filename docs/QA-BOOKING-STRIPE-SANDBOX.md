@@ -1,14 +1,16 @@
 # ALE COACH V1 | Collaudo finale prenotazioni e Stripe Sandbox
 
-**Checkpoint 11 novembre 2026.** Il cliente ha confermato manualmente sulla preview Cloudflare Pages il funzionamento di login, persistenza della sessione al refresh, logout e recupero password via email. Questo è un **risultato di collaudo dichiarato dal cliente**, distinto dai test HTTP automatici (già verdi).
+**Checkpoint iniziale 11 novembre 2026; percorso QA aggiornato il 16 novembre 2026.** Il cliente ha confermato manualmente sulla preview Cloudflare Pages il funzionamento di login, persistenza della sessione al refresh, logout e recupero password via email. Questo è un **risultato di collaudo dichiarato dal cliente**, distinto dai test HTTP automatici (già verdi).
 
 La CI e il backend sono in buono stato. Stripe collegato: **Alessandro Cola sandbox** (`livemode=false`), senza incassi live. Il database non mostra ordini Flex scaduti sospesi, wallet negativi, ordini non pagati con crediti, né prenotazioni `authorizing` o `processing` bloccate oltre due ore. Al momento del controllo risultano **1 profilo coach e 1 profilo client**: serve un secondo utente di prova autorizzato per il collaudo concorrente reale a due account.
 
 ## Ambiente QA, obbligatorio prima di ogni pagamento test
 
-- Usare **solo il branch preview `qa/booking-stripe-sandbox`**, con password **HTTP Basic validata da Cloudflare Pages Functions** prima di servire qualunque asset. Non occorre Zero Trust né un abbonamento Access. La funzione `functions/_middleware.js` e la regola `public/_routes.json` devono essere presenti nel deploy QA, mentre `main` resta invariato.
+- **Il progetto Cloudflare Pages separato `ale-coach-qa-sandbox` è stato eliminato dal responsabile prima del 16/11/2026: NON chiedere di ricrearlo e non usare il vecchio indirizzo QA.** Il branch storico `qa/booking-stripe-sandbox` esiste in GitHub ma **non equivale** a un ambiente online disponibile.
+- Per i test automatici **senza checkout reale** utilizzare i test CI su database e servizi Stripe completamente sintetici, e gli smoke GET/OPTIONS sull'unico progetto Pages `ale-coach-prenotazioni` e sui domini ufficiali. Questi test NON certificano il rimborso E2E.
+- Se occorre un vero test browser di rimborso Stripe Sandbox, preparare **una preview dedicata e protetta dello STESSO progetto Pages esistente**, partendo da `main` e mantenendo Basic Auth lato server che protegge ogni route/asset, secret `QA_ACCESS_PASSWORD` conservato solo su Cloudflare, `noindex` e **Fail closed**. Prima di abilitarla verificare da fuori: HTTP 401 anonimo, HTTP 200 con credenziali del tester autorizzato, nessun asset/service worker accessibile anonimamente. Non basta la presenza del branch né una build riuscita; evitare segreti o flag QA globali sulle preview non protette. Nessun accesso di produzione e nessun nuovo progetto Worker richiesto.
 - Conservare `PAGES_RELEASE_MODE=prelaunch` e `VITE_LEGAL_APPROVED=false`. Il frontend commerciale pubblico deve continuare a bloccare prenotazioni, acquisti Flex e riprese del pagamento.
-- L'eventuale flag **`VITE_PRELAUNCH_QA=true`** serve solo a test interni autorizzati su una preview effettivamente protetta. Non abilitarlo indiscriminatamente nella Production Pages pubblica: un URL `pages.dev` con `noindex` **non è privato**.
+- L'eventuale flag **`VITE_PRELAUNCH_QA=true`** serve solo a test interni autorizzati **in una build separata e protetta** dopo la prova HTTP 401/200. Non impostarlo su Production né su un ambiente Preview condiviso da branch non protetti: un URL `pages.dev` con `noindex` **non è privato**.
 - Stripe deve restare `STRIPE_ENVIRONMENT=test`, con chiave server `sk_test_`, webhook di test firmato e `STRIPE_LIVE_APPROVED=false`. Le chiavi segrete devono rimanere solo su Supabase.
 - Prevedere slot futuri dedicati al test e due account client autorizzati più il coach. Non usare o cancellare prenotazioni commerciali reali per la QA.
 
@@ -57,21 +59,18 @@ Continuano a richiedere chiusura e approvazione: GDPR/termini commerciali, backu
 
 **Stato attuale:** Auth su Cloudflare confermata dal cliente; controlli SQL, Stripe Sandbox pregressa e simulazioni di concorrenza verdi; **B01–R01 non ancora certificati end-to-end su Pages**.
 
-**Gate automatico aggiunto:** le build Cloudflare Pages del branch `main` (`CF_PAGES=1`, `CF_PAGES_BRANCH=main`) falliscono se `VITE_PRELAUNCH_QA=true`, anche in `prelaunch`. La modalità QA è riservata a un branch preview separato con Cloudflare Access o protezione equivalente verificata. Il controllo è in `scripts/cloudflare-pages-postbuild.mjs` ed è coperto da regressione CI.
+**Gate automatico aggiunto:** le build Cloudflare Pages del branch `main` (`CF_PAGES=1`, `CF_PAGES_BRANCH=main`) falliscono se `VITE_PRELAUNCH_QA=true`, anche in `prelaunch`. La modalità QA è riservata al branch `qa/booking-stripe-sandbox` con HTTP Basic autenticata lato server, password conservata come Secret Cloudflare Preview e `Fail closed` verificato. Il controllo è in `scripts/cloudflare-pages-postbuild.mjs` ed è coperto da regressione CI.
 
+## Audit RPC Supabase, 12 novembre 2026
 
-### Accesso protetto senza Zero Trust
+La query ripetibile in [QA-RPC-SECURITY-AUDIT.sql](QA-RPC-SECURITY-AUDIT.sql) è stata eseguita **in sola lettura** sul progetto Supabase cloud: 21 funzioni SECURITY DEFINER, 12 eseguibili da authenticated, **0 violazioni** nei controlli automatici di grants, search_path e presenza delle guardie attese. Non sono stati alterati ruoli, policy, crediti o prenotazioni.
 
-La preview usa `functions/_middleware.js` e `public/_routes.json` che intercettano ogni URL (anche JS/CSS, service worker, deep link). **Il test GitHub** `scripts/qa-pages-password-gate.test.mjs` verifica: 401 senza password, 401 con password errata, 503 se il segreto non è configurato, 200 con password valida, no-store e noindex.
+Limite importante: la presenza testuale di `auth.uid()` o `private.is_coach()` **non dimostra da sola** che ogni ramo del codice applichi correttamente l'autorizzazione. I test RLS/RPC con rollback in [QA-RPC-RLS-READONLY.sql](QA-RPC-RLS-READONLY.sql) completano solo parzialmente la copertura. Prima del GO servono revisione puntuale dei rami di business, controllo Auth e delle eventuali nuove RPC. Le funzioni server-only per saldo pacchetti e autorizzazione Stripe non sono accessibili ad authenticated.
 
-**Preferire un secondo progetto Cloudflare Pages dedicato esclusivamente ai test**, per evitare che le variabili dell'ambiente Preview del progetto principale vengano condivise da altre anteprime. Nome consigliato: `ale-coach-qa-sandbox`, stesso repository GitHub, branch di produzione QA `qa/booking-stripe-sandbox`, build `npm run pages:build`, output `dist`, Node 22. Il middleware Basic è disponibile solo su questo branch, non su `main`. Configurazione di questo **progetto QA separato**:
+**Non** applicare REVOKE generalizzati alle RPC authenticated: sono necessarie al booking e all'agenda. In caso di modifica SQL, verificare l'intero percorso cliente/coach con test automatici e collaudo mirato.
 
-1. `Settings → Variables and Secrets → Production → Add` **nel progetto QA separato**: **`QA_ACCESS_PASSWORD`**, tipo **Encrypted secret**, password casuale ASCII senza spazi lunga almeno 24 caratteri (massimo 128). Mantenerla privata e non inserirla in `VITE_*` né in chat.
-2. Eseguire il deploy del branch QA e verificare da un browser in incognito che il server richieda **utente `ale-tester`** e la password scelta. Nessun HTML o asset deve risultare accessibile con password errata; se il segreto manca il server risponde HTTP 503.
-3. Nelle impostazioni di Cloudflare Pages Runtime/Functions verificare, se disponibile, **Fail closed**: in caso di esaurimento delle risorse Functions non deve essere servito il frontend senza passare dal middleware.
-4. **Solo dopo** il collaudo della password, impostare `VITE_PRELAUNCH_QA=true` **soltanto sul progetto QA separato**, mantenendo `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false` e tutte le variabili del progetto Pages commerciale immutate. Fare un nuovo deploy.
-5. Usare solo Stripe Sandbox (`sk_test_`, `STRIPE_ENVIRONMENT=test`) e account di test autorizzati. Non aprire né collegare il dominio commerciale.
+## Decisione ambiente 16/11/2026
 
-Il browser può ricordare temporaneamente credenziali Basic, quindi per verificare il 401 usare una nuova finestra anonima. L'accesso con password è un cancello **QA temporaneo**, non un sistema di autenticazione clienti definitivo. Non fare mai merge della PR QA #53 in `main`.
+Il titolare ha esplicitamente confermato che **`ale-coach-qa-sandbox` non esiste più** perché cancellato in passato. L'unico progetto Cloudflare Pages da mantenere per la V1 è **`ale-coach-prenotazioni`**, già collegato a `https://alecoach.online`. Il collaudo tecnico isolato continua senza alcuna ricreazione del vecchio Worker.
 
-**Non impostare `VITE_PRELAUNCH_QA=true` nel progetto Pages commerciale, nemmeno nel suo ambiente Preview**, perché potrebbe interessare altre preview non protette. Se Cloudflare non permette un secondo progetto collegato al repository, mantenere la modalità QA disabilitata e verificare prima una soluzione di isolamento equivalente.
+Resta **aperto**, non superato: un rimborso effettivo Stripe Sandbox dal frontend e relativo salvataggio cloud, con retry idempotente. I test già PASS (sandbox acquisto Flex, approvazione, credito, webhook firmato isolato e guard rimborso v14) **non vanno ripetuti**. Non avviare nuovi pagamenti né usare il dominio principale per sbloccare QA aggirando `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false` o la allowlist di registrazione. Se si sceglie di eseguire l'E2E, prima validare una preview protetta sul progetto esistente; non chiedere al titolare una seconda installazione Cloudflare.

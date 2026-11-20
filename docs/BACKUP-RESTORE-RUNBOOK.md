@@ -50,3 +50,9 @@ La verifica autentica l'intero stream con age e verifica la firma **PGDMP** del 
 ## Controlli CI e disponibilità dei mirror
 
 La CI obbligatoria esegue `bash -n` e controlli statici sulle guardie dei due script, senza connessioni DB. Una prova age con dati fittizi si avvia separatamente da GitHub Actions → **QA | Encrypted backup cryptography (manual)** tramite workflow_dispatch. Questo isolamento impedisce che guasti DNS dei mirror Ubuntu per l'installazione di age blocchino le release del frontend. La verifica crittografica è stata superata nel workflow della PR #37; la sua indisponibilità temporanea non equivale a un difetto dell'app né a un backup reale.
+
+## Eccezione operativa per il dataset di collaudo 16/11/2026
+
+Il responsabile ha deciso **di non conservare il database QA corrente**: i record attuali verranno rimossi con procedura selettiva poco prima dell'apertura commerciale (non durante le prove, non dopo l'arrivo dei primi clienti reali). Di conseguenza **non è richiesta l'esecuzione di questo backup cifrato sul dataset QA attuale** per proseguire al successivo step della release. Nessun dato è stato cancellato.
+
+Questa scelta non disattiva né sostituisce la protezione dei futuri dati personali. Prima dell'uso da parte di clienti reali scegliere una strategia di backup/recupero proporzionata all'operatività, con responsabile e verifica di ripristinabilità. La procedura tecnica sopra rimane valida. Piano di pulizia: [V1-PRE-GO-QA-DATA-CUTOVER.md](V1-PRE-GO-QA-DATA-CUTOVER.md).

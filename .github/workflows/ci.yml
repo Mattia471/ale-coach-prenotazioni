@@ -26,8 +26,12 @@ jobs:
           bash -n scripts/backup-cloud-encrypted.sh
           bash -n scripts/verify-encrypted-backup.sh
           bash -n scripts/qa-backup-crypto-smoke.sh
-      - name: Syntax check read-only Cloudflare Pages HTTP smoke script
-        run: node --check scripts/qa-cloudflare-pages-smoke.mjs
+      - name: Syntax check read-only Cloudflare Pages and Cookie HTTPS smoke scripts
+        run: |
+          node --check scripts/qa-cloudflare-pages-smoke.mjs
+          node --check scripts/qa-cookie-runtime.mjs
+      - name: Syntax check customer custom-domain monitors
+        run: node --check scripts/qa-pages-auth-public.mjs
       - name: Cloudflare Pages prelaunch build and static asset checks
         run: npm run pages:build
       - uses: denoland/setup-deno@v2
@@ -36,7 +40,19 @@ jobs:
       - name: Check Supabase Edge Functions and trusted-origin tests (no deployment)
         run: |
           deno check --node-modules-dir=auto supabase/functions/create-checkout/index.ts supabase/functions/cancel-booking/index.ts supabase/functions/decide-booking/index.ts supabase/functions/stripe-webhook/index.ts
-          deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts
+          deno test --allow-env supabase/functions/_shared/trusted-origins_test.ts supabase/functions/_shared/refund-binding_test.ts
+      - name: P0 Stripe refund cancellation handler (real handler, fake local Stripe and Supabase only)
+        env:
+          STRIPE_SECRET_KEY: sk_test_synthetic_ci_no_real_payments
+          STRIPE_ENVIRONMENT: test
+          STRIPE_PAYMENTS_ENABLED: 'true'
+          STRIPE_LIVE_APPROVED: 'false'
+          SUPABASE_URL: http://127.0.0.1:54321
+          SUPABASE_ANON_KEY: synthetic_ci_public_key
+          SUPABASE_SERVICE_ROLE_KEY: synthetic_ci_service_key
+          PUBLIC_APP_URL: https://alecoach.online
+          ADDITIONAL_APP_ORIGINS: https://www.alecoach.online
+        run: deno run --no-check --import-map=scripts/refund-handler-isolated/import_map.json --allow-env --allow-net scripts/refund-handler-isolated/run.ts
       - name: P0 Stripe signed-webhook retries, tampering and paid-order guard (fake local backend)
         run: node scripts/qa-stripe-webhook-isolated.mjs
       - name: Validate read-only Auth smoke script syntax
@@ -74,4 +90,11 @@ jobs:
       - name: Run simultaneous PostgreSQL transactions without Supabase access
         env:
           QA_DATABASE_URL: postgresql://alecoach_ci:local_ci_only@127.0.0.1:5432/alecoach_ci
-        run: node scripts/qa-concurrency.mjs
+        run: |
+          node scripts/qa-concurrency.mjs
+          node scripts/qa-credit-cancellation-isolated.mjs
+          node scripts/qa-flex-booking-isolated.mjs
+          node scripts/qa-signup-allowlist-isolated.mjs
+          node scripts/qa-go-signup-isolated.mjs
+          node scripts/qa-backup-restore-isolated.mjs
+          node scripts/qa-client-cancellation-policy-isolated.mjs

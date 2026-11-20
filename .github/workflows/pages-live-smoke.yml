@@ -1,6 +1,8 @@
-name: QA | Cloudflare Pages smoke (manual)
+name: QA | Cloudflare Pages smoke (daily & manual)
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '7 6 * * *'
 permissions:
   contents: read
 jobs:
@@ -13,7 +15,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify Cloudflare Pages deployment (GET only)
+      - name: Verify technical Pages deployment (GET only)
+        run: node scripts/qa-cloudflare-pages-smoke.mjs
+      - name: Verify customer apex SPA, security headers, legal routes and PWA (GET only)
+        env:
+          QA_SITE_ORIGIN: https://alecoach.online
+        run: node scripts/qa-cloudflare-pages-smoke.mjs
+      - name: Verify customer www SPA, security headers, legal routes and PWA (GET only)
+        env:
+          QA_SITE_ORIGIN: https://www.alecoach.online
         run: node scripts/qa-cloudflare-pages-smoke.mjs
   preview-cors:
     name: Supabase CORS for the exact technical Pages URL
@@ -24,7 +34,37 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify Edge preflight from Cloudflare Pages (OPTIONS only)
+      - name: Verify Edge preflight from technical Pages origin (OPTIONS only)
         env:
           QA_ALLOWED_ORIGIN: https://ale-coach-prenotazioni.pages.dev
         run: node scripts/qa-cors-preflight.mjs
+      - name: Verify Edge preflight for customer apex (OPTIONS only)
+        env:
+          QA_ALLOWED_ORIGIN: https://alecoach.online
+        run: node scripts/qa-cors-preflight.mjs
+      - name: Verify Edge preflight for customer www (OPTIONS only)
+        env:
+          QA_ALLOWED_ORIGIN: https://www.alecoach.online
+        run: node scripts/qa-cors-preflight.mjs
+
+  privacy-runtime:
+    name: Cookie/legal deep links and local fonts (read-only HTTPS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify technical Pages cookies and self-hosted fonts (GET only)
+        env:
+          QA_SITE_ORIGIN: https://ale-coach-prenotazioni.pages.dev
+        run: node scripts/qa-cookie-runtime.mjs
+      - name: Verify customer apex cookies and self-hosted fonts (GET only)
+        env:
+          QA_SITE_ORIGIN: https://alecoach.online
+        run: node scripts/qa-cookie-runtime.mjs
+      - name: Verify customer www cookies and self-hosted fonts (GET only)
+        env:
+          QA_SITE_ORIGIN: https://www.alecoach.online
+        run: node scripts/qa-cookie-runtime.mjs

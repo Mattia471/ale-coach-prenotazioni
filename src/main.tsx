@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import LegalPage from './LegalPage';
+import './local-fonts.css';
 import './styles.css';
 import './minimal-focus.css';
 import './minimal-focus-live.css';
@@ -9,7 +10,7 @@ import './minimal-focus-live.css';
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined));
 }
-const legalRoute = ({'/privacy':'privacy','/termini':'termini','/cookie':'cookie'} as const)[window.location.pathname as '/privacy'|'/termini'|'/cookie'];
+const legalRoute = ({'/privacy':'privacy','/termini':'termini','/cookie':'cookie','/recesso':'recesso'} as const)[window.location.pathname as '/privacy'|'/termini'|'/cookie'|'/recesso'];
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>{legalRoute ? <LegalPage kind={legalRoute}/> : <App/>}</React.StrictMode>
 );

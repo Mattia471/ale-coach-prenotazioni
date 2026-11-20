@@ -12,14 +12,41 @@ const signingSecret='whsec_alecoach_local_only_synthetic';
 const key='sk_test_alecoach_local_only_not_a_real_stripe_key';
 const pendingId='11111111-1111-4111-8111-111111111111';
 const paidId='22222222-2222-4222-8222-222222222222';
+const completedId='33333333-3333-4333-8333-333333333333';
+const completedClient='44444444-4444-4444-8444-444444444444';
+const completedSession='cs_test_fake_completed';
 const db=new Map([
  [pendingId,{status:'pending',stripe_session_id:'cs_test_fake_pending'}],
- [paidId,{status:'paid',stripe_session_id:'cs_test_fake_paid'}]
+ [paidId,{status:'paid',stripe_session_id:'cs_test_fake_paid'}],
+ [completedId,{status:'pending',stripe_session_id:completedSession,client_id:completedClient,package_id:'five',amount_cents:25000}]
 ]);
 const calls=[];
-const mock=createServer((req,res)=>{
+const wallets=new Map();
+let settlements=0;
+const mock=createServer(async(req,res)=>{
  try{
   const url=new URL(req.url||'/', 'http://'+host);
+  if(req.method==='GET'&&url.pathname==='/rest/v1/package_checkout_orders'){
+   const id=url.searchParams.get('id')?.replace(/^eq\./,'');
+   calls.push({method:req.method,path:url.pathname});
+   const item=db.get(id);
+   res.writeHead(200,{'Content-Type':'application/json'});
+   res.end(JSON.stringify(item?[{id,...item}]:[]));return;
+  }
+  if(req.method==='POST'&&url.pathname==='/rest/v1/rpc/settle_package_checkout_order'){
+   let body='';for await(const chunk of req)body+=chunk.toString();
+   const data=JSON.parse(body);
+   calls.push({method:req.method,path:url.pathname});
+   const item=db.get(data.p_order_id);
+   assert.equal(data.p_order_id,completedId);
+   assert.equal(data.p_session_id,completedSession);
+   assert.ok(item,'Unknown synthetic order');
+   settlements++;
+   if(item.status==='pending'&&item.stripe_session_id===data.p_session_id){
+    item.status='paid';wallets.set(item.stripe_session_id,(wallets.get(item.stripe_session_id)||0)+1);
+   }
+   res.writeHead(204);res.end();return;
+  }
   if(req.method!=='PATCH'||url.pathname!=='/rest/v1/package_checkout_orders'){
    res.writeHead(500,{'Content-Type':'application/json'});
    res.end(JSON.stringify({message:'Unexpected mock request'})); return;
@@ -59,6 +86,19 @@ function makeEvent({id,sessionId,orderId,livemode=false}){
    id:sessionId,object:'checkout.session',livemode,metadata:{
     kind:'package',order_id:orderId
    }
+  }}
+ });
+}
+function makeCompletedEvent(){
+ return JSON.stringify({
+  id:'evt_fake_completed',object:'event',api_version:'2026-09-30.preview',
+  created:Math.floor(Date.now()/1000),livemode:false,pending_webhooks:1,
+  type:'checkout.session.completed',
+  data:{object:{
+   id:completedSession,object:'checkout.session',livemode:false,
+   payment_status:'paid',amount_total:25000,currency:'eur',
+   payment_intent:'pi_test_fake_completed',
+   metadata:{kind:'package',order_id:completedId,client_id:completedClient,package_id:'five'}
   }}
  });
 }
@@ -125,6 +165,23 @@ try{
  assert.equal(db.get(paidId).status,'paid');
  pass('session mismatch cannot modify the order');
 
+ const completedPayload=makeCompletedEvent();
+ const settled=await post(completedPayload);
+ assert.equal(settled.status,200,settled.body);
+ assert.equal(db.get(completedId).status,'paid');
+ assert.equal(wallets.get(completedSession),1);
+ assert.equal(settlements,1);
+ pass('signed checkout.session.completed grants exactly one synthetic paid package wallet');
+
+ const beforeCompletedRetry=calls.length;
+ const duplicateCompleted=await post(completedPayload);
+ assert.equal(duplicateCompleted.status,200,duplicateCompleted.body);
+ assert.equal(wallets.get(completedSession),1);
+ assert.equal(settlements,1);
+ assert.equal(calls.length,beforeCompletedRetry+1,
+  'replay may re-read paid order, never settle it twice');
+ pass('identical signed checkout.session.completed replay grants no extra wallet');
+
  const prior=calls.length;
  const invalidSig=await post(pendingPayload,signedHeader(pendingPayload,'whsec_wrong_synthetic'));
  assert.equal(invalidSig.status,400,invalidSig.body);
@@ -150,6 +207,8 @@ try{
 
  assert.equal(db.get(paidId).status,'paid');
  assert.equal(db.get(pendingId).status,'expired');
+ assert.equal(db.get(completedId).status,'paid');
+ assert.equal(wallets.get(completedSession),1);
  console.log('All signed-webhook integration checks PASSED using fake orders and local HTTP only.');
 }catch(error){
  console.error('FAILED:',error.stack||String(error));

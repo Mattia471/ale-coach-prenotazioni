@@ -1,6 +1,8 @@
-name: QA | Cloudflare Auth public & RLS (manual)
+name: QA | Cloudflare Auth public & RLS (daily & manual)
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '19 6 * * *'
 permissions:
   contents: read
 jobs:
@@ -15,5 +17,13 @@ jobs:
           node-version: '22'
       - name: Verify safe script syntax
         run: node --check scripts/qa-pages-auth-public.mjs
-      - name: Read-only smoke against deployed Cloudflare Pages and Supabase Auth
+      - name: Read-only smoke against technical Pages host and Supabase Auth
+        run: node scripts/qa-pages-auth-public.mjs
+      - name: Read-only Auth and anon RLS from customer apex bundle
+        env:
+          QA_SITE_ORIGIN: https://alecoach.online
+        run: node scripts/qa-pages-auth-public.mjs
+      - name: Read-only Auth and anon RLS from customer www bundle
+        env:
+          QA_SITE_ORIGIN: https://www.alecoach.online
         run: node scripts/qa-pages-auth-public.mjs

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 const read = path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
 test('PWA mobile conserva il viewport stabile e i form senza zoom involontario',()=>{
@@ -319,4 +319,116 @@ test('Cloudflare main production refuses legal QA bypass before publishing',asyn
  assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES_BRANCH:'qa/booking-stripe-sandbox',VITE_PRELAUNCH_QA:'true'}));
  // A non-Pages build is unaffected, preserving local and GitHub CI workflows.
  assert.doesNotThrow(()=>assertCloudflareRuntimeConfig({...base,CF_PAGES:'',VITE_PRELAUNCH_QA:'true'}));
+});
+
+test('Approved Minimal Focus visual baseline is restored pending desktop redesign',()=>{
+ const base=read('src/styles.css');
+ const focus=read('src/minimal-focus.css');
+ const live=read('src/minimal-focus-live.css');
+ assert.match(base,/\.client-layout\{max-width:516px;margin:0 auto/);
+ assert.match(focus,/\.mf-workspace\{max-width:1490px;margin:0 auto/);
+ assert.match(focus,/\.mf-view-key\{max-width:1000px;margin:0 auto/);
+ assert.match(live,/\.mf-live \.mf-main>section,[^\n]*max-width:1000px/);
+ assert.match(live,/@media\(max-width:760px\)/);
+ assert.doesNotMatch(live,/V1 desktop polish|Responsive authenticated workspace:/);
+ assert.doesNotMatch(base,/V1 fluid layout|V1 desktop: the public landing/);
+});
+
+test('Auth reset and signup redirect to the current trusted site origin',()=>{
+ const app=read('src/App.tsx');
+ assert.match(app,/resetPasswordForEmail\(authForm\.email,\{redirectTo:\`\$\{location\.origin\}\/\`\}\)/);
+ assert.match(app,/emailRedirectTo:\`\$\{location\.origin\}\/\`/);
+ assert.match(app,/event==='PASSWORD_RECOVERY'/);
+ assert.match(app,/supabase\.auth\.updateUser\(\{password:newPassword\}\)/);
+ // Prevent accidental hard-coded Vercel callback in new Auth code.
+ const callbackMethods=['resetPasswordForEmail(','signUp('];
+ for(const method of callbackMethods){
+  const offset=app.indexOf(method);
+  assert.ok(offset>=0,'Missing '+method+' Auth call');
+  const callSnippet=app.slice(offset,offset+250);
+  assert.ok(!callSnippet.includes('ale-coach-prenotazioni.vercel.app'),
+   'Auth callback must follow current site origin, not Vercel');
+ }
+ const guide=read('docs/AUTH-SMTP-GO-LIVE.md');
+ assert.match(guide,/ale-coach-qa-sandbox\.pages\.dev/);
+ assert.match(guide,/alecoach\.online/);
+ assert.match(guide,/SPF\/DKIM\/DMARC/);
+});
+
+test('Scheduled prelaunch Cloudflare checks stay read-only and never use secrets',()=>{
+ const pages=read('.github/workflows/pages-live-smoke.yml');
+ const auth=read('.github/workflows/pages-auth-public-smoke.yml');
+ for(const workflow of [pages,auth]){
+  assert.match(workflow,/workflow_dispatch:/);
+  assert.match(workflow,/schedule:\s*\n\s*- cron: '[0-9]+ [0-9]+ \* \* \*'/);
+  assert.match(workflow,/contents: read/);
+  assert.doesNotMatch(workflow,/secrets\.|STRIPE_SECRET|SUPABASE_SERVICE_ROLE|GITHUB_TOKEN:/);
+  assert.doesNotMatch(workflow,/POST|PATCH|DELETE|stripe_api_write/);
+ }
+ assert.match(pages,/node scripts\/qa-cloudflare-pages-smoke\.mjs/);
+ assert.match(pages,/node scripts\/qa-cors-preflight\.mjs/);
+ assert.match(auth,/node scripts\/qa-pages-auth-public\.mjs/);
+});
+
+test('Privacy, Termini e Cookie sono pagine consultabili senza navigazione verso l’app',()=>{
+ const legal=read('src/LegalPage.tsx');
+ assert.match(legal,/<span className="legal-logo">ALE COACH<\/span>/);
+ assert.doesNotMatch(legal,/Torna all.app|href=["']\/["']/i);
+ assert.doesNotMatch(legal,/<a href=["']\/["'] className="legal-logo"/);
+ assert.match(legal,/href=\{legalPaths\.privacy\}/);
+ assert.match(legal,/href=\{legalPaths\.terms\}/);
+ assert.match(legal,/href=\{legalPaths\.cookies\}/);
+ assert.match(legal,/kind === 'privacy'/);
+ assert.match(legal,/kind === 'termini'/);
+ assert.match(legal,/kind === 'cookie'/);
+});
+
+test('Cookie V1: font locali presenti con licenze e CDN Google disattivato',()=>{
+ const html=read('index.html');
+ const main=read('src/main.tsx');
+ const css=read('src/local-fonts.css');
+ const headers=read('public/_headers');
+ const legal=read('src/LegalPage.tsx');
+ for(const host of ['fonts.googleapis.com','fonts.gstatic.com']){
+  assert.ok(!html.includes(host),'Unexpected external font host in index.html: '+host);
+  assert.ok(!headers.includes(host),'Unexpected external font host in CSP: '+host);
+ }
+ assert.ok(main.includes("import './local-fonts.css';"),'Local fonts stylesheet not imported');
+ for(const family of ["font-family:'Barlow'","font-family:'Barlow Condensed'","font-family:'Caveat'"]){
+  assert.ok(css.includes(family),'Missing font face: '+family);
+ }
+ const files=css.split('\n').filter(line=>line.includes("src:url('/fonts/"))
+  .map(line=>line.split("url('/")[1].split("')")[0]);
+ assert.equal(files.length,12,'12 original font styles are required');
+ assert.equal(new Set(files).size,12,'Duplicate local font path');
+ for(const path of files){
+  const stats=statSync(new URL('../public/'+path,import.meta.url));
+  assert.ok(stats.size>10000,'Invalid local font: '+path);
+ }
+ for(const family of ['barlow','barlow-condensed','caveat']){
+  const license=read('public/fonts/'+family+'/OFL.txt');
+  assert.ok(license.includes('SIL OPEN FONT LICENSE Version 1.1'),'Missing font license: '+family);
+ }
+ assert.ok(legal.includes("I font dell'interfaccia sono ospitati direttamente sul dominio ALE COACH"));
+ assert.ok(legal.includes('legal-tools-table'));
+ for(const name of ['__cf_bm','__stripe_mid','__stripe_sid']){
+  assert.ok(legal.includes(name),'Cookie transparency table missing '+name);
+ }
+ const app=read('src/App.tsx');
+ assert.ok(app.includes('referrerPolicy="no-referrer"'),'External portrait must not receive a page referrer');
+});
+
+test('Cookie V1: nessun SDK pubblicitario o tracking CDN caricato dai sorgenti',()=>{
+ const sources=['index.html','src/App.tsx','src/lib.ts','src/main.tsx',
+  'src/styles.css','src/minimal-focus.css','src/minimal-focus-live.css','public/sw.js'];
+ const code=sources.map(read).join('\n').toLowerCase();
+ const forbidden=[
+  'googletagmanager.com','google-analytics.com',
+  'connect.facebook.net','facebook.com/tr?',
+  'hotjar.com','clarity.ms/tag','segment.io/analytics',
+  'gtag(', 'fbq(', 'fonts.googleapis.com','fonts.gstatic.com'
+ ];
+ for(const text of forbidden){
+  assert.ok(!code.includes(text),'Unexpected external tracking resource: '+text);
+ }
 });
