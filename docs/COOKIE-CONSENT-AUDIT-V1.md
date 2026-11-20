@@ -93,3 +93,17 @@ per questa attività.
   valutazione giuridica della configurazione commerciale. Questo check
   automatizzato **non sostituisce** né una CMP quando necessaria né il
   consenso valido del titolare al GO.
+
+## 20 novembre 2026 | Prima evidenza browser dai DevTools
+
+Screenshot di un controllo manuale Chrome su `https://alecoach.online`, sezione Application > Cookies. **Non acquisire né riportare valori, token, ID o contenuti dello storage**; la schermata serve a identificare i soli nomi dei cookie e il relativo dominio.
+
+- Tre cookie risultano nell'elenco: `ARRAffinitySameSite` (Session), `TiPMix`, `x-ms-routing-name`; la colonna **Domain** indica `.www.virginactive.it`, non `alecoach.online`. Hanno flag HttpOnly e Secure, SameSite=None. I nomi sono compatibili con l'infrastruttura tecnica Azure App Service (affinità e routing di slot), ma finalità e indispensabilità nel concreto devono essere confermate.
+- Questo è coerente con il caricamento del ritratto del coach da `www.virginactive.it` già presente nel codice. `referrerPolicy=no-referrer` impedisce l'invio dell'URL della pagina come Referer ma **non** impedisce la connessione né gli eventuali Set-Cookie del fornitore.
+- L'elenco laterale mostra anche un'origine `https://www.goog...` non ancora identificata. Non presumere che si tratti di analytics/tracciamento o del codice ALE COACH senza visionare nomi cookie, URL completo e rete di provenienza.
+- Tra i **tre cookie visibili** non sono presenti nomi tipici di Google Analytics o Meta Pixel. Non è una certificazione dell'assenza di tracciamenti nel browser e **non chiude** l'audit né il gate Cookie/Legal.
+- **Gap dell'informativa pubblicata:** la tabella `src/LegalPage.tsx` registra Supabase, ALE COACH, Cloudflare e Stripe, ma non esplicita ancora i tre cookie/il dominio Virgin Active osservati in browser. Prima del GO valutare con il titolare una descrizione puntuale del fornitore e un link alla sua informativa oppure eliminare il caricamento terzo sostituendo la foto con un'immagine di cui si abbia il diritto d'uso e servita dal dominio ALE COACH.
+- **Controlli residui non distruttivi:** ispezionare l'origine Google visibile e soltanto i **nomi** delle chiavi in Local Storage; se possibile ricostruire con Network l'origine del Set-Cookie dell'immagine; verificare successivamente la sessione Auth di collaudo e il Checkout Stripe in Sandbox, mai denaro Live.
+- **Banner:** la FAQ del Garante esenta i soli cookie strettamente tecnici dal consenso preventivo ma richiede un'informativa corretta e completa. Non aggiungere un banner fittizio; bloccare o richiedere consenso preventivo per eventuali strumenti non tecnici. Decisione finale rinviata a evidenza e verifica del titolare.
+
+Riferimenti tecnici: Microsoft `https://learn.microsoft.com/it-it/power-pages/admin/cookies` (ARRAffinitySameSite), `https://learn.microsoft.com/en-us/azure/app-service/deploy-staging-slots` (x-ms-routing-name); FAQ Garante `https://www.garanteprivacy.it/faq/cookie`.
