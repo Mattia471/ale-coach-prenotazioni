@@ -443,4 +443,8 @@ test('audit RLS/RPC covers coach cancellation and fails for newly exposed privil
  assert.match(audit,/anonymous EXECUTE on privileged function/);
  assert.match(audit,/server-only RPC exposed to authenticated/);
  assert.match(audit,/search_path/);
+ const rls=read('docs/QA-RPC-RLS-READONLY.sql');
+ assert.match(rls,/coach_cancel_confirmed_booking/);
+ assert.match(rls,/cash_flag IN ARRAY ARRAY\[false,true\]/);
+ assert.match(rls,/BEGIN TRANSACTION READ ONLY/);
 });
