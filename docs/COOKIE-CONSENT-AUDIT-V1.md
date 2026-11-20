@@ -110,4 +110,6 @@ Screenshot di un controllo manuale Chrome su `https://alecoach.online`, sezione 
 
 - **Follow-up Local Storage anonimo (20/11/2026):** l'utente conferma che `Application > Local Storage > https://alecoach.online` è vuoto **prima di aver effettuato il login**. Risultato compatibile con una sessione anonima; non equivale a controllo dello storage dopo autenticazione. Necessario verificare soltanto le **chiavi**, non i valori, dopo accesso con account QA. Non acquisire token, refresh token o dati personali.
 
+- **Follow-up Local Storage autenticato (20/11/2026):** screenshot Chrome `Application > Local Storage > https://alecoach.online` dopo login QA: è visibile esclusivamente il nome della chiave di sessione Supabase Auth (`sb-…-auth-token`). Il valore non è stato mostrato, acquisito né registrato. Risultato coerente con storage funzionale di autenticazione; non prova l'assenza di tracciamento su rete, sessionStorage o provider esterni. **Controllo del solo elenco chiavi Local Storage post-login: PASS**. Rimangono Network e Stripe Sandbox.
+
 Riferimenti tecnici: Microsoft `https://learn.microsoft.com/it-it/power-pages/admin/cookies` (ARRAffinitySameSite), `https://learn.microsoft.com/en-us/azure/app-service/deploy-staging-slots` (x-ms-routing-name); FAQ Garante `https://www.garanteprivacy.it/faq/cookie`.
