@@ -13,7 +13,7 @@ WITH rpc AS (
  JOIN pg_namespace n ON n.oid=p.pronamespace
  WHERE n.nspname='public' AND p.prosecdef
 ), violations AS (
- UNION ALL SELECT proname,'unaudited authenticated SECURITY DEFINER function' FROM rpc
+ SELECT proname,'unaudited authenticated SECURITY DEFINER function' AS reason FROM rpc
   WHERE user_allowed AND proname NOT IN (
    'available_slots_v2','cancel_unpaid_booking','claim_booking_cancellation',
    'claim_booking_decision','coach_cancel_confirmed_booking',
@@ -21,7 +21,7 @@ WITH rpc AS (
    'coach_set_booking_method','coach_set_in_person','create_booking_v2',
    'release_slot_hold_v2','reserve_slot_v2'
   )
- SELECT proname,'anonymous EXECUTE on privileged function' AS reason FROM rpc WHERE anon_allowed
+ UNION ALL SELECT proname,'anonymous EXECUTE on privileged function' FROM rpc WHERE anon_allowed
  UNION ALL SELECT proname,'unsafe or unset search_path' FROM rpc
   WHERE config NOT LIKE '%search_path=""%'
  UNION ALL SELECT proname,'server-only RPC exposed to authenticated' FROM rpc
