@@ -11,7 +11,7 @@
 - Disdetta della lezione **prima dell'inizio**: online pagata, >=24h rimborso 100%; sotto 24h rimborso 50%; credito Flex restituito con scadenza originaria anche nelle ultime 24h; pagamento in presenza senza penali. Nessun rimborso o credito restituito per no-show senza disdetta.
 - Lezione annullata dal coach: rimborso integrale online, credito ripristinato; incasso già ricevuto in contanti restituito fisicamente e registrato solo dopo conferma.
 - Ricevuta via email per ogni pagamento online riuscito (abilitare le email per **Successful payments** nell'account Stripe Live, verificare email cliente e invio). I pagamenti di prova Stripe normalmente richiedono ricevute test inviate manualmente.
-- Contatti, basi giuridiche, conservazione, fornitori e tabella cookie rivisti; **nessuna versione, bozza o numero di revisione visibile nelle pagine legali**. Font esterni nominati in modo esplicito fino a eventuale self-hosting.
+- Contatti, basi giuridiche, conservazione, fornitori e tabella cookie rivisti; **nessuna versione, bozza o numero di revisione visibile nelle pagine legali**. Font Barlow, Barlow Condensed e Caveat già ospitati localmente sul dominio con licenze OFL e senza richiesta al CDN Google (PR #97).
 
 ## Scansione rapida, per blocchi (stime di lavoro, non date garantite)
 
