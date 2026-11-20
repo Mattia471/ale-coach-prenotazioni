@@ -133,3 +133,16 @@ Il responsabile ha confermato l'utilizzo dei testi iniziali e ha autorizzato il 
 - [ ] **Non confondere questo PASS con GO commerciale:** rimangono come controlli distinti l'eventuale E2E 50% <24h e annullamento coach, replay webhook Stripe effettivo (idempotenza già testata isolatamente), documentazione cookie/trattamento immagine esterna, ricevute Stripe Live, gestione assistita recesso Flex, protezione dei futuri dati reali e autorizzazione separata al reset QA e al GO. Non ripetere il rimborso 100% già superato.
 
 I checkpoint storici di novembre che descrivono il rimborso E2E come ancora aperto sono superati dal presente checkpoint; le altre verifiche e approvazioni rimangono necessarie.
+
+
+## Checkpoint autonomo 20 novembre 2026 | Sicurezza, cron e webhook
+
+- [x] **CI main**: verifica TypeScript/build, suite di regressione (incluso nuovo controllo documentale RPC), PostgreSQL sintetico anti-concorrenza e deploy Cloudflare Pages tutti `success` al commit `f12d624`. Nessuna modifica a UI, flussi di pagamento o variabili commerciali.
+- [x] **RPC Security Advisor e audit read-only**: 22 funzioni `public SECURITY DEFINER`; 13 invocabili da authenticated, inclusa `coach_cancel_confirmed_booking`; 0 grant anon e **0 violazioni** nella nuova allowlist SQL che segnala eventuali funzioni privilegiate non revisionate. La revisione dei guard è statica, non un penetration test.
+- [x] **Test negativo direttamente su Supabase** in transazione `READ ONLY`: account con ruolo client **non** può chiamare `coach_cancel_confirmed_booking` né con `p_cash_refunded=false` né con `true`. Caso aggiunto a `QA-RPC-RLS-READONLY.sql` e protetto da test CI. Nessuna mutazione persistente.
+- [x] **Cron cloud**: `ale-coach-expire-bookings` e `ale-coach-release-stripe-authorizations` attivi, ciascuno con 288 esecuzioni `succeeded` nelle ultime 24 ore e 0 altre esecuzioni.
+- [x] **Eventi Stripe test**: acquisizione del PaymentIntent e rimborso unico del 20/11 presenti. Eventi correlati `checkout.session.completed`, `payment_intent.succeeded`, `charge.captured`, `refund.created`, `charge.refunded`, `refund.updated` con `pending_webhooks=0`; richiesta API `delivery_success=false` restituisce 0 eventi. **Non è stato eseguito un replay webhook reale** e questo non certifica tutte le possibili consegne future.
+- [x] **Inventario QA read-only aggiornato** in `V1-PRE-GO-QA-DATA-CUTOVER.md`: 2 utenti Auth, 17 booking, 1 rimborso, 35 notifiche, 4 ordini Flex, 2 wallet, 0 saldi negativi/stati anomali. Nessun reset.
+- [ ] **Restano fuori dal GO automatico**: eventuale prova provider 50% e replay reale (50%, retry e coach-cancel hanno comunque regressioni isolate), diritti e trattamento della foto esterna/cookie, revisione e accettazione legale finale da parte del titolare, configurazione ricevute email Stripe Live, gestione assistita dei recessi Flex, scelta + verifica dei backup dei futuri dati reali, pulizia selettiva QA autorizzata e **GO commerciale esplicito**. Stripe Live, signup pubblica e deindicizzazione rimangono invariati.
+
+**Nota di budget:** sul piano Supabase Free non sono inclusi backup automatici gestiti. La protezione dei dati futuri richiede una decisione tra piano che includa backup gestiti e processo di dump cifrati offsite con restore testato, senza immettere dati personali in archivi non autorizzati.
