@@ -108,4 +108,6 @@ Screenshot di un controllo manuale Chrome su `https://alecoach.online`, sezione 
 
 - **Follow-up Chrome (20/11/2026):** l'utente ha aperto l'origine Google visibile nel pannello Cookies e conferma che non contiene cookie. Questa osservazione chiude il controllo *dei cookie in tale voce*, non certifica l'assenza di richieste Network a Google o tracciamenti non basati su cookie. Rimangono aperti Local Storage (soli nomi delle chiavi), audit Network e checkout Stripe Sandbox.
 
+- **Follow-up Local Storage anonimo (20/11/2026):** l'utente conferma che `Application > Local Storage > https://alecoach.online` è vuoto **prima di aver effettuato il login**. Risultato compatibile con una sessione anonima; non equivale a controllo dello storage dopo autenticazione. Necessario verificare soltanto le **chiavi**, non i valori, dopo accesso con account QA. Non acquisire token, refresh token o dati personali.
+
 Riferimenti tecnici: Microsoft `https://learn.microsoft.com/it-it/power-pages/admin/cookies` (ARRAffinitySameSite), `https://learn.microsoft.com/en-us/azure/app-service/deploy-staging-slots` (x-ms-routing-name); FAQ Garante `https://www.garanteprivacy.it/faq/cookie`.
