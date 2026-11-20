@@ -74,3 +74,11 @@ Limite importante: la presenza testuale di `auth.uid()` o `private.is_coach()` *
 Il titolare ha esplicitamente confermato che **`ale-coach-qa-sandbox` non esiste più** perché cancellato in passato. L'unico progetto Cloudflare Pages da mantenere per la V1 è **`ale-coach-prenotazioni`**, già collegato a `https://alecoach.online`. Il collaudo tecnico isolato continua senza alcuna ricreazione del vecchio Worker.
 
 Resta **aperto**, non superato: un rimborso effettivo Stripe Sandbox dal frontend e relativo salvataggio cloud, con retry idempotente. I test già PASS (sandbox acquisto Flex, approvazione, credito, webhook firmato isolato e guard rimborso v14) **non vanno ripetuti**. Non avviare nuovi pagamenti né usare il dominio principale per sbloccare QA aggirando `PAGES_RELEASE_MODE=prelaunch`, `VITE_LEGAL_APPROVED=false` o la allowlist di registrazione. Se si sceglie di eseguire l'E2E, prima validare una preview protetta sul progetto esistente; non chiedere al titolare una seconda installazione Cloudflare.
+
+## Checkpoint 20 novembre 2026 | Redeploy con variabili Preview aggiornate
+
+Il responsabile ha confermato di aver aggiunto su Cloudflare Pages le variabili Preview richieste, inclusi la chiave Supabase pubblicabile e il secret HTTP Basic `QA_ACCESS_PASSWORD`. Nessun valore di segreti è archiviato in Git.
+
+Il primo deploy del branch riallineato (`8b2c7ab`) è fallito nel controllo **fail-closed** perché l'ambiente Preview non forniva l'URL Supabase atteso. La build TypeScript e la suite GitHub QA risultavano PASS. Questo aggiornamento esclusivamente documentale provoca un nuovo deploy del solo branch `qa/booking-stripe-sandbox` dopo la configurazione dichiarata.
+
+**Prima di qualunque pagamento Sandbox:** accertare build Cloudflare riuscita, risposta anonima 401 su pagina e asset (o 503 quando la configurazione manca), risposta 200 soltanto con credenziali del tester, `VITE_PRELAUNCH_QA=false` finché il gate HTTP non è validato, Stripe esclusivamente test, nessuna modifica a Production. Se non è possibile verificare il cancello Basic reale, non abilitare il bypass QA.
