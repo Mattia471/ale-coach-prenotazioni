@@ -13,6 +13,14 @@ WITH rpc AS (
  JOIN pg_namespace n ON n.oid=p.pronamespace
  WHERE n.nspname='public' AND p.prosecdef
 ), violations AS (
+ UNION ALL SELECT proname,'unaudited authenticated SECURITY DEFINER function' FROM rpc
+  WHERE user_allowed AND proname NOT IN (
+   'available_slots_v2','cancel_unpaid_booking','claim_booking_cancellation',
+   'claim_booking_decision','coach_cancel_confirmed_booking',
+   'coach_classify_external_event','coach_decide_booking','coach_mark_in_person_paid',
+   'coach_set_booking_method','coach_set_in_person','create_booking_v2',
+   'release_slot_hold_v2','reserve_slot_v2'
+  )
  SELECT proname,'anonymous EXECUTE on privileged function' AS reason FROM rpc WHERE anon_allowed
  UNION ALL SELECT proname,'unsafe or unset search_path' FROM rpc
   WHERE config NOT LIKE '%search_path=""%'
@@ -25,7 +33,7 @@ WITH rpc AS (
   ) AND user_allowed
  UNION ALL SELECT proname,'coach-only RPC lacks expected guard' FROM rpc
   WHERE proname IN (
-   'claim_booking_decision','coach_classify_external_event',
+   'claim_booking_decision','coach_cancel_confirmed_booking','coach_classify_external_event',
    'coach_decide_booking','coach_mark_in_person_paid',
    'coach_set_booking_method','coach_set_in_person'
   ) AND user_allowed AND source !~* 'private[.]is_coach[(]'
@@ -38,8 +46,11 @@ WITH rpc AS (
 SELECT 'rpc_security_audit' AS audit,
  (SELECT count(*) FROM rpc) AS total_security_definer,
  (SELECT count(*) FROM rpc WHERE user_allowed) AS authenticated_exposed,
+ (SELECT count(*) FROM rpc WHERE user_allowed AND proname='coach_cancel_confirmed_booking') AS coach_cancellation_exposed,
  (SELECT count(*) FROM violations) AS violation_count,
  coalesce((SELECT jsonb_agg(jsonb_build_object('function',proname,'reason',reason))
   FROM violations),'[]'::jsonb) AS violations;
--- Expected on 2026-11-12: 21 privileged functions, 12 authenticated-exposed, 0 violations.
+-- Expected on 2026-11-20: 22 privileged public functions, 13 authenticated-exposed, 0 violations.
+-- The extra check flags a newly exposed SECURITY DEFINER RPC lacking review. The presence
+-- of source guards is only static evidence, not a proof of complete authorization.
 -- New RPCs require explicit review of the lists above; a zero count alone is not approval.
