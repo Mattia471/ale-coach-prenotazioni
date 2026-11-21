@@ -65,6 +65,10 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
             comunicazioni di servizio e al consulente fiscale per gli adempimenti contabili.
             I fornitori operano come responsabili del trattamento (art. 28 GDPR) oppure, per alcune attività
             come la prevenzione delle frodi nei pagamenti, come titolari autonomi.
+            La fotografia del coach è attualmente caricata da www.virginactive.it:
+            la richiesta può comunicare al sito esterno dati tecnici di connessione
+            e comportare cookie di instradamento del fornitore, come indicato
+            nell'<a href={legalPaths.cookies}>informativa cookie</a>.
             Dettagli aggiornati disponibili presso <a href={'mailto:'+email}>{email}</a>.</p>
           <p>Il database è ospitato nell'Unione europea. Alcuni fornitori, tra cui Cloudflare, Supabase e Stripe,
             possono trattare dati anche fuori dallo Spazio economico europeo. Quando applicabile,
@@ -233,7 +237,7 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
             quest'ultimo può impostare cookie tecnici di instradamento, distinti
             da quelli di ALE COACH. Per i dettagli si veda l'
             <a href={legalPaths.privacy}>informativa privacy</a> e l'
-            <a href="https://www.virginactive.it/" target="_blank" rel="noopener noreferrer">informativa del sito Virgin Active</a>.</p>
+            <a href="https://www.virginactive.it/" target="_blank" rel="noopener noreferrer">sito Virgin Active</a>.</p>
           <p>I font dell'interfaccia sono ospitati direttamente sul dominio ALE COACH,
             senza richieste a servizi esterni di font. È possibile
             cancellare dati locali e cookie dalle impostazioni del browser,
