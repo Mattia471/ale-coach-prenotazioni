@@ -448,3 +448,15 @@ test('audit RLS/RPC covers coach cancellation and fails for newly exposed privil
  assert.match(rls,/cash_flag IN ARRAY ARRAY\[false,true\]/);
  assert.match(rls,/BEGIN TRANSACTION READ ONLY/);
 });
+
+
+test('legal privacy and cookie disclosures include observed external coach-image technical cookies',()=>{
+ const legal=read('src/LegalPage.tsx');
+ for(const name of ['ARRAffinitySameSite','TiPMix','x-ms-routing-name'])
+  assert.ok(legal.includes(name),'Missing observed Virgin Active cookie disclosure: '+name);
+ assert.match(legal,/www\.virginactive\.it/);
+ assert.match(legal,/cookie tecnici di instradamento/);
+ assert.match(legal,/informativa cookie/);
+ assert.match(legal,/__stripe_mid/);
+ assert.match(legal,/__stripe_sid/);
+});
