@@ -211,6 +211,7 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
               <tr><td>__cf_bm, ove presente</td><td>Cloudflare</td><td>Sicurezza e distinzione persone/bot</td><td>30 minuti circa</td></tr>
               <tr><td>__stripe_mid, ove presente</td><td>Stripe</td><td>Prevenzione frodi nei pagamenti</td><td>1 anno circa</td></tr>
               <tr><td>__stripe_sid, ove presente</td><td>Stripe</td><td>Prevenzione frodi nei pagamenti</td><td>30 minuti circa</td></tr>
+              <tr><td>ARRAffinitySameSite, TiPMix, x-ms-routing-name, ove presenti</td><td>Virgin Active (infrastruttura del sito esterno)</td><td>Instradamento tecnico e affinità della connessione quando viene caricata la fotografia del coach da www.virginactive.it</td><td>Sessione o durata impostata dal fornitore, verificabile nel browser</td></tr>
             </tbody>
           </table></div>
         </section>
@@ -227,7 +228,12 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
             Supabase (accesso e database) e, durante il pagamento, a Stripe.
             Cloudflare e Stripe possono impostare cookie tecnici di sicurezza
             e antifrode nei casi riportati nella tabella al punto 1.
-            Per i dettagli si veda l'<a href={legalPaths.privacy}>informativa privacy</a>.</p>
+            La fotografia del coach, quando visualizzata, è richiesta anche al sito
+            esterno di Virgin Active: il browser comunica con tale dominio e
+            quest'ultimo può impostare cookie tecnici di instradamento, distinti
+            da quelli di ALE COACH. Per i dettagli si veda l'
+            <a href={legalPaths.privacy}>informativa privacy</a> e l'
+            <a href="https://www.virginactive.it/" target="_blank" rel="noopener noreferrer">informativa del sito Virgin Active</a>.</p>
           <p>I font dell'interfaccia sono ospitati direttamente sul dominio ALE COACH,
             senza richieste a servizi esterni di font. È possibile
             cancellare dati locali e cookie dalle impostazioni del browser,
