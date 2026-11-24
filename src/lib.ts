@@ -11,7 +11,7 @@ export const nextDates=()=>Array.from({length:42},(_,i)=>{const today=new Date(`
 export const bookingTime=(date:string,hour:number)=>`${date}T${String(hour).padStart(2,'0')}:00:00+01:00`;
 export const stateLabels:Record<Booking['status'],string>={authorizing:'Autorizzazione da completare',processing:'Operazione in corso',pending:'In attesa',awaiting_payment:'Da pagare',confirmed:'Confermata',quoted:'Preventivo',rejected:'Rifiutata',cancelled:'Disdetta',expired:'Scaduta'};
 export const sources:Record<string,string>={direct:'Accesso diretto',instagram_bio:'Instagram · link in bio',instagram_dm:'DM Instagram · FORZA',meta_ads:'Pubblicità Meta',club:'QR palestra',friend:'Codice amico'};
-export const whatsappLink=(message:string)=>{const phone=String(import.meta.env.VITE_COACH_WHATSAPP||'').replace(/[^0-9]/g,'');return phone?`https://wa.me/${phone}?text=${encodeURIComponent(message)}`:null};
+export const whatsappLink=(message:string)=>{const phone=String(import.meta.env.VITE_COACH_WHATSAPP||'393396998893').replace(/[^0-9]/g,'');return phone?`https://wa.me/${phone}?text=${encodeURIComponent(message)}`:null};
 
 export const formatStartMinute=(minute:number)=>
  `${String(Math.floor(minute/60)).padStart(2,'0')}:${String(minute%60).padStart(2,'0')}`;

@@ -48,3 +48,15 @@ L'audit live, effettuato con sole query di catalogo e conteggi, conferma:
 - Il Security Advisor continua a segnalare 12 RPC `SECURITY DEFINER` eseguibili da authenticated (superficie intenzionale da monitorare), una tabella server-only con RLS senza policy (per progetto) e leaked-password protection disattivata. La protezione password compromesse è disponibile su Supabase **Pro e superiori**, non sul piano Free, secondo [password security](https://supabase.com/docs/guides/auth/password-security).
 
 **Limiti:** questa verifica di cataloghi/permessi e gli smoke anonimizzati non sostituiscono un penetration test né l'esercizio con due JWT di veri utenti. Le policy future devono conservare la separazione `anon` / `authenticated` / `service_role`. Non è stato abilitato alcun servizio a pagamento.
+
+
+## Aggiornamento 20 novembre 2026 | 13 RPC esposte e audit fail-closed
+
+- Nuova funzione applicativa esposta a `authenticated` rispetto al checkpoint iniziale: `public.coach_cancel_confirmed_booking(p_booking_id uuid, p_cash_refunded boolean)`. È intenzionale per la disdetta del coach e contiene `private.is_coach()`. Il suo comportamento sui crediti Flex e sul pagamento contante confermato è già coperto dalla suite PostgreSQL isolata `qa-client-cancellation-policy-isolated.mjs`; non richiede accesso anonimo.
+- Il Security Advisor del 20/11/2026 segnala **13** funzioni `SECURITY DEFINER` accessibili da `authenticated` (non 12), **1** tabella server-only `package_checkout_orders` con RLS e nessuna policy (intenzionale), e **1** warning Auth per leaked-password protection disabilitata. Non interpretare questi warning come prova automatica di vulnerabilità né considerarli chiusi.
+- Audit runtime `docs/QA-RPC-SECURITY-AUDIT.sql` aggiornato: elenco esplicito delle 13 RPC autorizzate, controllo guard coach sulla nuova RPC, segnalazione automatica di ogni ulteriore funzione privilegiata eseguibile da utenti autenticati ma non ancora revisionata.
+- Esecuzione read-only del nuovo audit sul progetto Supabase del 20/11/2026: **22** funzioni `public SECURITY DEFINER`, **13** eseguibili da authenticated, **1** coach cancellation esposta, **0** accessibili da anon, **0 violazioni statiche**.
+- Aggiunta una regressione nella suite Node che impedisce di perdere accidentalmente questi controlli nell'audit versionato. Il SQL analizza solo cataloghi e testi delle funzioni; **non** dimostra ogni ramo di autorizzazione e non sostituisce il test end-to-end con account separati.
+- Il warning leaked-password protection richiede valutazione piano/feature Supabase e non autorizza alcun upgrade automatico. Anche gli advisory indici FK sono prioritizzazioni di performance da non introdurre durante il cutover senza misurazioni o necessità concreta.
+
+**Non eseguire `REVOKE` generali sulle 13 RPC**, altrimenti la prenotazione, l'agenda e le disdette non funzionerebbero. Eventuali cambi richiedono revisione puntuale, migrazione, test e piano rollback.

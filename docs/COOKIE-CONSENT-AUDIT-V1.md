@@ -118,3 +118,10 @@ Screenshot di un controllo manuale Chrome su `https://alecoach.online`, sezione 
 - **Osservazione non bloccante performance:** alcune GET di booking/notifiche/wallet/profilo si ripetono nella cattura. Possibili eventi auth/realtime/bootstrap, ma i soli screenshot non provano un loop: indagare solo se persistentemente riprodotto, senza introdurre regressioni prima del GO.
 
 Riferimenti tecnici: Microsoft `https://learn.microsoft.com/it-it/power-pages/admin/cookies` (ARRAffinitySameSite), `https://learn.microsoft.com/en-us/azure/app-service/deploy-staging-slots` (x-ms-routing-name); FAQ Garante `https://www.garanteprivacy.it/faq/cookie`.
+
+
+## 21 novembre 2026 | Tabella pubblica aggiornata
+
+Dopo il controllo DevTools del 20/11, la pagina `/cookie` è stata aggiornata con la riga esplicita per `ARRAffinitySameSite`, `TiPMix` e `x-ms-routing-name` associati al dominio esterno `www.virginactive.it`. Il testo ne descrive la funzione **tecnica presumibile** di routing/affinità e lascia la durata come quella effettivamente impostata dal fornitore, senza inventare scadenze precise. Anche `/privacy` dichiara ora che il caricamento della foto comunica al dominio terzo dati tecnici di connessione. Aggiunto test statico di regressione in `scripts/platform-regressions.test.mjs`.
+
+**Non è stata installata una CMP**: nel browser verificato non risultavano tracker pubblicitari, ma la valutazione del carattere strettamente tecnico di ogni cookie e la verifica della foto rimangono soggette a conferma del titolare/consulente. Non si è effettuato un test browser Stripe Checkout completo. Per evitare ulteriore invio di dati a Virgin Active, serve una fotografia autorizzata ospitata localmente, non il download automatico di un'immagine di terzi senza prova del diritto d'uso. Nessun flag di produzione, consenso o Stripe Live è stato cambiato.

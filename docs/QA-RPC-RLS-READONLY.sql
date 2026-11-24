@@ -118,3 +118,38 @@ BEGIN
 END $qa$;
 SELECT 'QA prenotazione/hold senza JWT: PASS (READ ONLY)' AS qa_result;
 ROLLBACK;
+
+
+-- D. QA ruolo client contro annullamento coach: transazione rigorosamente READ ONLY.
+-- Verificato sul progetto cloud ALE COACH il 20/11/2026: PASS, zero mutazioni.
+-- Anche p_cash_refunded=true non deve consentire a un cliente di attribuirsi il ruolo coach.
+BEGIN TRANSACTION READ ONLY;
+SET LOCAL statement_timeout='8s';
+DO $setup$
+BEGIN
+ PERFORM set_config('request.jwt.claim.sub',
+  (SELECT id::text FROM public.profiles WHERE role='client' ORDER BY created_at LIMIT 1),true);
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'QA: missing client profile'; END IF;
+END $setup$;
+SET LOCAL ROLE authenticated;
+DO $qa$
+DECLARE message_text text; cash_flag boolean;
+BEGIN
+ IF auth.uid() IS NULL OR coalesce(private.is_coach(),false) THEN
+  RAISE EXCEPTION 'QA: invalid client context';
+ END IF;
+ FOREACH cash_flag IN ARRAY ARRAY[false,true] LOOP
+  message_text:=null;
+  BEGIN
+   PERFORM public.coach_cancel_confirmed_booking(
+    '00000000-0000-0000-0000-000000000000'::uuid,cash_flag);
+  EXCEPTION WHEN others THEN
+   GET STACKED DIAGNOSTICS message_text=MESSAGE_TEXT;
+  END;
+  IF message_text IS DISTINCT FROM 'Operazione riservata al coach' THEN
+   RAISE EXCEPTION 'QA: role bypass of coach cancellation: %',coalesce(message_text,'SUCCESS');
+  END IF;
+ END LOOP;
+END $qa$;
+SELECT 'QA coach cancellation denies client for cash=false/true: PASS (READ ONLY)' AS qa_result;
+ROLLBACK;
