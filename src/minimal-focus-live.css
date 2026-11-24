@@ -132,3 +132,7 @@
 #rc2-course-form{scroll-margin-top:90px}
 @media(max-width:760px){.mf-live .site-footer{padding-bottom:calc(100px + env(safe-area-inset-bottom));}.rc2-legal-back{padding-top:calc(15px + env(safe-area-inset-top))}.rc2-contact-links a{width:100%}.rc2-profile-legal a{flex:1 1 40%}}
 @media print{.rc2-legal-back{display:none}}
+
+.rc2-coach-signature{display:block;width:128px;height:auto;object-fit:contain;margin:12px 0 5px}
+.rc2-footer-signature{display:block;width:150px;height:auto;margin:0 auto 8px}
+@media(max-width:900px){.mf-live .site-footer{padding-bottom:calc(100px + env(safe-area-inset-bottom))}}
