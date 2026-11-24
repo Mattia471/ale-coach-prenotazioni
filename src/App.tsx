@@ -730,7 +730,7 @@ function App(){
    const isCourse=newBlock.course;
    if(isCourse&&!newBlock.venue_id)throw Error('Seleziona il club del corso Virgin.');
    const previous=courseBlocks.find(b=>b.id===editingBlockId);
-   const dateFields=newBlock.recurring?{weekday:newBlock.weekday,on_date:null,valid_from:newBlock.valid_from,valid_until:newBlock.valid_until}:{weekday:null,on_date:newBlock.on_date,valid_from:newBlock.on_date,valid_until:newBlock.on_date};
+   const dateFields:{weekday:number|null;on_date:string|null;valid_from:string;valid_until:string}=newBlock.recurring?{weekday:newBlock.weekday,on_date:null,valid_from:newBlock.valid_from,valid_until:newBlock.valid_until}:{weekday:null,on_date:newBlock.on_date,valid_from:newBlock.on_date,valid_until:newBlock.on_date};
    const payload={
     title:newBlock.title.trim().slice(0,120),venue_id:newBlock.venue_id||null,...dateFields,
     start_minute:newBlock.start_minute,end_minute:newBlock.end_minute,
