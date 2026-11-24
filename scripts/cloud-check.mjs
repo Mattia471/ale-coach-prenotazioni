@@ -34,8 +34,7 @@ const main=async()=>{
  const services=await read('/rest/v1/services?select=id,price_cents&order=sort_order');
  eq(services.status,200,'Catalogo accessibile (API pubblica)');
  const prices=Object.fromEntries(services.data.map(x=>[x.id,x.price_cents]));
- eq(prices,{single:5500,couple:8000,check:3500,start:5000,intro:0,other:0},
-   'Prezzi v2 corretti, compresi i servizi gratuiti');
+ eq(prices,{single:5500},'Solo lezione individuale attiva (RC2)');
 
  const packages=await read('/rest/v1/packages?select=id,price_cents&order=sort_order');
  eq(packages.status,200,'Pacchetti accessibili');
