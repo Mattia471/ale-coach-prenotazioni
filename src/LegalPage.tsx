@@ -2,7 +2,7 @@ import { legal, legalPaths } from './legal';
 
 type DocumentType = 'privacy' | 'termini' | 'cookie' | 'recesso';
 
-export default function LegalPage({kind}: {kind: DocumentType}) {
+export default function LegalPage({kind,onNavigate}: {kind: DocumentType;onNavigate?:(kind:DocumentType)=>void}) {
   const title = kind === 'privacy' ? 'Informativa privacy'
     : kind === 'termini' ? 'Condizioni di prenotazione e acquisto'
     : kind === 'recesso' ? 'Modulo tipo di recesso'
@@ -12,7 +12,7 @@ export default function LegalPage({kind}: {kind: DocumentType}) {
   const email = legal.contactEmail;
   const phone = '+39 339 699 8893';
 
-  return <div className="legal-site">
+  return <div className="legal-site" onClick={event=>{if(!onNavigate||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;const anchor=event.target instanceof Element?event.target.closest("a"):null;if(!anchor)return;const href=anchor.getAttribute("href");const routes:Record<string,DocumentType>={"/privacy":"privacy","/termini":"termini","/cookie":"cookie","/recesso":"recesso"};if(href&&routes[href]){event.preventDefault();onNavigate(routes[href])}}}>
     <header className="legal-header"><span className="legal-logo">ALE COACH</span></header>
     <main className="legal-document">
       <span className="legal-eyebrow">TRASPARENZA &amp; TUTELA</span>
