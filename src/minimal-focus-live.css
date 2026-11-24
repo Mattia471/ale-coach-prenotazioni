@@ -99,3 +99,40 @@
  .mf-live .mf-live-trainer .coach-introduction-tags span:nth-child(3){display:none}
  .mf-live .mf-live-stats>.mf-stat{padding:13px 9px}
 }
+
+/* RC2: dark focus surfaces, compact history and PWA-safe legal links. */
+.rc2-slot-empty{grid-column:1/-1;line-height:1.6;padding:10px 0;margin:0}
+.rc2-contact-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.rc2-contact-links a,.rc2-profile-legal a{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:#a90928;min-height:40px;padding:9px 12px;border:1px solid #e5dadc;border-radius:10px;background:#fff;font-size:13px}
+.rc2-profile-legal{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;padding:16px;border:1px solid #ece8e7;border-radius:12px;text-align:left}
+.rc2-profile-legal h3{flex-basis:100%;margin:0 0 2px;font-size:18px}
+.mf-live .rc2-wallet-summary{background:#241e20;color:#fff;border-radius:17px;padding:19px;margin:14px 0 18px}
+.rc2-wallet-summary h3{margin:0 0 5px;font-size:26px}.rc2-wallet-summary p{font-size:13px;color:#dacdd1;margin-bottom:12px}
+.rc2-wallet-summary>div{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #ffffff25;padding:12px 0;font-size:13px;flex-wrap:wrap}
+.rc2-wallet-summary>div span{color:#f2dfe3}
+.mf-live .booking-card.rc2-booking-confirmed{border:1px solid #a9cdb5;border-left:4px solid #21864c;background:#f7fcf8}
+.rc2-history{margin-top:20px;border-top:1px solid #e3dbde;padding-top:12px}
+.rc2-history-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;background:#241e20;color:#fff;border:0;border-radius:12px;padding:16px;font-size:15px;font-weight:750;text-align:left}
+.rc2-history-toggle[aria-expanded="true"] svg{transform:rotate(90deg)}
+.rc2-history .booking-list{margin-top:10px}
+.mf-live .booking-card.rc2-booking-archived{padding:12px 14px;background:#f9f7f7;box-shadow:none;border:1px solid #e6dfe1}
+.rc2-booking-archived .booking-head h3{font-size:17px}.rc2-booking-archived .booking-total{margin-top:8px}
+.rc2-refund-note{display:flex;align-items:flex-start;gap:8px;background:#f1f5f2;border-radius:9px;color:#24543a;font-size:13px;line-height:1.5;padding:10px 12px;margin:10px 0 0}
+.rc2-refund-note svg{flex:none;margin-top:2px}
+.mf-live .wizard-top,.mf-live .mf-live-book .promo-panel{background:#241e20;color:#fff;border-color:#241e20}
+.mf-live .wizard-top h2,.mf-live .mf-live-book .promo-panel b,.mf-live .mf-live-book .promo-panel strong{color:#fff}
+.mf-live .wizard-top p,.mf-live .mf-live-book .promo-panel p{color:#e1d5d8}
+.mf-live .wizard-top .eyebrow,.mf-live .mf-live-book .promo-panel button{color:#ffa8b5}
+.mf-live .mf-live-book .service-card{background:#241e20;color:#fff;border-color:#241e20}
+.mf-live .mf-live-book .service-card h3{color:#fff}
+.mf-live .mf-live-book .service-card p,.mf-live .mf-live-book .service-card small{color:#ded2d5}
+.mf-live .mf-live-book .service-price{color:#ffa8b5}
+.rc2-legal-in-app{min-height:100vh;background:#f8f7f5}
+.rc2-legal-back{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:8px;width:100%;padding:15px 20px;background:#241e20;color:#fff;border:0;text-align:left;font-weight:700}
+#rc2-course-form{scroll-margin-top:90px}
+@media(max-width:760px){.mf-live .site-footer{padding-bottom:calc(100px + env(safe-area-inset-bottom));}.rc2-legal-back{padding-top:calc(15px + env(safe-area-inset-top))}.rc2-contact-links a{width:100%}.rc2-profile-legal a{flex:1 1 40%}}
+@media print{.rc2-legal-back{display:none}}
+
+.rc2-coach-signature{display:block;width:128px;height:auto;object-fit:contain;margin:12px 0 5px}
+.rc2-footer-signature{display:block;width:150px;height:auto;margin:0 auto 8px}
+@media(max-width:900px){.mf-live .site-footer{padding-bottom:calc(100px + env(safe-area-inset-bottom))}}
