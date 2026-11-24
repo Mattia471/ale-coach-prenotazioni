@@ -13,7 +13,7 @@ type Screen='landing'|'auth'|'client'|'coach';
 type Step='details'|'when'|'review';
 type WindowRow={id:number;weekday:number;venue_id:string;start_minute:number;end_minute:number;is_flexible:boolean;is_active:boolean};
 type ClosureRow={id:number;start_date:string;end_date:string;reason:string;is_active:boolean;review_status:'proposed'|'confirmed'};
-type CourseRow={id:number;title:string;venue_id:string|null;weekday:number|null;on_date:string|null;start_minute:number;end_minute:number;is_active:boolean;needs_review:boolean;source_ref:string|null};
+type CourseRow={id:number;title:string;venue_id:string|null;weekday:number|null;on_date:string|null;valid_from:string|null;valid_until:string|null;start_minute:number;end_minute:number;before_minutes:number;after_minutes:number;is_active:boolean;needs_review:boolean;source_ref:string|null};
 const asMinute=(value:string)=>{const [h,m]=value.split(':').map(Number);return h*60+m};
 
 const virginCourses=['TRX','HYROX','GRID','Calisthenics','WOD'];
@@ -140,7 +140,7 @@ function App(){
  const [closures,setClosures]=useState<ClosureRow[]>([]);
  const [courseBlocks,setCourseBlocks]=useState<CourseRow[]>([]);
  const [newWindow,setNewWindow]=useState({weekday:1,venue_id:'talenti',start_minute:540,end_minute:600,is_flexible:false});
- const [newBlock,setNewBlock]=useState({on_date:'',title:'',venue_id:'',start_minute:540,end_minute:600});
+ const [newBlock,setNewBlock]=useState({on_date:'',title:'',venue_id:'',start_minute:540,end_minute:600,recurring:false,weekday:1,valid_from:'',valid_until:'',course:true});
  const [editingBlockId,setEditingBlockId]=useState<number|null>(null);
  const [historyOpen,setHistoryOpen]=useState(false);
  const [legalDocument,setLegalDocument]=useState<'privacy'|'termini'|'cookie'|'recesso'|null>(null);
@@ -715,42 +715,50 @@ function App(){
  };
  const createManualBlock=async()=>{
   if(!supabase||busy)return;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(newBlock.on_date)||!newBlock.title.trim()){
-   submitMsg('Inserisci una data e una descrizione dell’impegno.','error');return;
+  const validDate=(d:string)=>/^\d{4}-\d{2}-\d{2}$/.test(d);
+  const datesOk=newBlock.recurring?validDate(newBlock.valid_from)&&validDate(newBlock.valid_until)&&newBlock.valid_until>=newBlock.valid_from:validDate(newBlock.on_date);
+  if(!datesOk||!newBlock.title.trim()){
+   submitMsg('Inserisci una descrizione e date valide per l’impegno.','error');return;
   }
-  if(newBlock.start_minute<0||newBlock.end_minute>1440||
+  if(!Number.isFinite(newBlock.start_minute)||!Number.isFinite(newBlock.end_minute)||newBlock.start_minute<0||newBlock.end_minute>1440||
     newBlock.start_minute%15!==0||newBlock.end_minute%15!==0||
     newBlock.end_minute<=newBlock.start_minute){
    submitMsg('L’orario deve essere valido, con intervalli di 15 minuti.','error');return;
   }
   setBusy(true);
   try{
-   const isCourse=virginCourses.some(c=>c.toLowerCase()===newBlock.title.trim().toLowerCase());
+   const isCourse=newBlock.course;
    if(isCourse&&!newBlock.venue_id)throw Error('Seleziona il club del corso Virgin.');
+   const previous=courseBlocks.find(b=>b.id===editingBlockId);
+   const dateFields=newBlock.recurring?{weekday:newBlock.weekday,on_date:null,valid_from:newBlock.valid_from,valid_until:newBlock.valid_until}:{weekday:null,on_date:newBlock.on_date,valid_from:newBlock.on_date,valid_until:newBlock.on_date};
    const payload={
-    title:newBlock.title.trim().slice(0,120),venue_id:newBlock.venue_id||null,
-    weekday:null,on_date:newBlock.on_date,valid_from:newBlock.on_date,
-    valid_until:newBlock.on_date,start_minute:newBlock.start_minute,
-    end_minute:newBlock.end_minute,before_minutes:isCourse?15:0,after_minutes:isCourse?10:0,
-    needs_review:false,is_active:true,source_ref:'manual'
+    title:newBlock.title.trim().slice(0,120),venue_id:newBlock.venue_id||null,...dateFields,
+    start_minute:newBlock.start_minute,end_minute:newBlock.end_minute,
+    before_minutes:isCourse?15:0,after_minutes:isCourse?10:0,
+    needs_review:false,is_active:previous?.is_active??true,source_ref:'manual'
    };
    const table=supabase.from('calendar_course_blocks');
-   const {data,error}=await (editingBlockId===null?table.insert(payload):table.update(payload).eq('id',editingBlockId).eq('source_ref','manual')).select('*').single();
+   const {data,error}=await (editingBlockId===null?table.insert(payload):table.update({...payload,source_ref:previous?.source_ref??'manual'}).eq('id',editingBlockId)).select('*').single();
    if(error)throw error;
    setCourseBlocks(v=>[...v.filter(x=>x.id!==(data as CourseRow).id),data as CourseRow].sort((a,b)=>(a.on_date||'').localeCompare(b.on_date||'')));
    setEditingBlockId(null);setNewBlock(v=>({...v,title:''}));
    submitMsg('Impegno salvato. I nuovi slot sovrapposti non saranno prenotabili.');
   }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
+ const editCourseBlock=(b:CourseRow)=>{
+  setEditingBlockId(b.id);setNewBlock({on_date:b.on_date||'',title:b.title,venue_id:b.venue_id||'',start_minute:b.start_minute,end_minute:b.end_minute,recurring:b.weekday!==null,weekday:b.weekday||1,valid_from:b.valid_from||'',valid_until:b.valid_until||'',course:b.before_minutes>0||b.after_minutes>0||b.source_ref!=='manual'||virginCourses.some(c=>c.toLowerCase()===b.title.toLowerCase())});
+  window.setTimeout(()=>document.getElementById('rc2-course-form')?.scrollIntoView({behavior:'smooth',block:'start'}),50);
+ };
  const deleteManualBlock=async(b:CourseRow)=>{
-  if(!supabase||busy||b.source_ref!=='manual')return;
+  if(!supabase||busy)return;
+  if(!window.confirm('Eliminare questo impegno dal calendario? Le lezioni già confermate non verranno cancellate.'))return;
   setBusy(true);
   try{
    const {data,error}=await supabase.from('calendar_course_blocks')
-    .delete().eq('id',b.id).eq('source_ref','manual').select('id');
+    .delete().eq('id',b.id).select('id');
    if(error)throw error;
    if(!data?.length)throw Error('Impegno non eliminato. Ricarica la pagina e riprova.');
-   setCourseBlocks(rows=>rows.filter(x=>x.id!==b.id));
+   setCourseBlocks(rows=>rows.filter(x=>x.id!==b.id));if(editingBlockId===b.id){setEditingBlockId(null);setNewBlock(v=>({...v,title:''}))}
    submitMsg('Impegno eliminato. Le disponibilità vengono ricalcolate.');
   }catch(e){submitMsg(errorText(e),'error')}finally{setBusy(false)}
  };
@@ -976,8 +984,10 @@ function App(){
     </div>
     <h3 className="schedule-subtitle">Corsi Virgin e impegni personali</h3>
     <p className="section-intro">Aggiungi, modifica o elimina un corso Virgin o un impegno personale. I corsi bloccano l’agenda, non sono lezioni prenotabili dal cliente. Il server considera anche pause e trasferimenti tra i club.</p>
-    <div className="schedule-create">
-     <label>Data<input type="date" value={newBlock.on_date} onChange={e=>setNewBlock(v=>({...v,on_date:e.target.value}))}/></label>
+    <div className="schedule-create" id="rc2-course-form">
+     <label>Tipo<select value={newBlock.course?"course":"personal"} onChange={e=>setNewBlock(v=>({...v,course:e.target.value==="course"}))}><option value="course">Corso Virgin</option><option value="personal">Impegno personale</option></select></label>
+      <label>Ripetizione<select value={newBlock.recurring?"weekly":"once"} onChange={e=>setNewBlock(v=>({...v,recurring:e.target.value==="weekly"}))}><option value="once">Una volta</option><option value="weekly">Ogni settimana</option></select></label>
+      {newBlock.recurring?<><label>Giorno<select value={newBlock.weekday} onChange={e=>setNewBlock(v=>({...v,weekday:Number(e.target.value)}))}>{dayNames.map((d,i)=><option key={d} value={i+1}>{d}</option>)}</select></label><label>Dal<input type="date" value={newBlock.valid_from} onChange={e=>setNewBlock(v=>({...v,valid_from:e.target.value}))}/></label><label>Al<input type="date" min={newBlock.valid_from||undefined} value={newBlock.valid_until} onChange={e=>setNewBlock(v=>({...v,valid_until:e.target.value}))}/></label></>:<label>Data<input type="date" value={newBlock.on_date} onChange={e=>setNewBlock(v=>({...v,on_date:e.target.value}))}/></label>}
      <label>Corso o impegno<input type="text" list="virgin-course-options" maxLength={120} placeholder="Es. TRX" value={newBlock.title} onChange={e=>setNewBlock(v=>({...v,title:e.target.value}))}/><datalist id="virgin-course-options">{virginCourses.map(c=><option key={c} value={c}/>)}</datalist></label>
      <label>Luogo<select value={newBlock.venue_id} onChange={e=>setNewBlock(v=>({...v,venue_id:e.target.value}))}><option value="">Non specificato</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select></label>
      <label>Da<input type="time" step={900} value={formatStartMinute(newBlock.start_minute)} onChange={e=>setNewBlock(v=>({...v,start_minute:asMinute(e.target.value)}))}/></label>
@@ -985,9 +995,9 @@ function App(){
      <Button variant="outline" disabled={busy} onClick={()=>void createManualBlock()}>{editingBlockId===null?"AGGIUNGI IMPEGNO":"SALVA MODIFICHE"}</Button>{editingBlockId!==null&&<Button variant="quiet" onClick={()=>{setEditingBlockId(null);setNewBlock(v=>({...v,title:""}))}}>ANNULLA MODIFICA</Button>}
     </div>
     <div className="schedule-window-list">{courseBlocks.filter(b=>b.source_ref==='manual').map(b=><div key={b.id} className="schedule-window">
-     <div><b>{b.title}</b>{b.needs_review&&<span className="review-tag">DA VERIFICARE · SLOT BLOCCATI</span>}<small>{b.on_date} · {formatStartMinute(b.start_minute)}–{formatStartMinute(b.end_minute)} · {venues.find(v=>v.id===b.venue_id)?.name||'Luogo non specificato'}</small></div>
+     <div><b>{b.title}</b>{b.needs_review&&<span className="review-tag">DA VERIFICARE · SLOT BLOCCATI</span>}<small>{b.on_date||dayNames[(b.weekday||1)-1]}{b.weekday!==null&&` · ${b.valid_from||'inizio'} → ${b.valid_until||'fine'}`} · {formatStartMinute(b.start_minute)}–{formatStartMinute(b.end_minute)} · {venues.find(v=>v.id===b.venue_id)?.name||'Luogo non specificato'}</small></div>
      <label className="check-row tiny"><input type="checkbox" checked={b.is_active} onChange={e=>void saveCourseBlock(b,{is_active:e.target.checked})}/>Blocca</label>
-     <Button variant="outline" disabled={busy} onClick={()=>{setEditingBlockId(b.id);setNewBlock({on_date:b.on_date||"",title:b.title,venue_id:b.venue_id||"",start_minute:b.start_minute,end_minute:b.end_minute})}}>MODIFICA</Button><Button variant="quiet" disabled={busy} onClick={()=>void deleteManualBlock(b)}>ELIMINA</Button>
+     <Button variant="outline" disabled={busy} onClick={()=>editCourseBlock(b)}>MODIFICA</Button><Button variant="quiet" disabled={busy} onClick={()=>void deleteManualBlock(b)}>ELIMINA</Button>
     </div>)}</div>
     <p className="footnote">Le indisponibilità impediscono nuove prenotazioni, ma non cancellano lezioni già confermate. Controlla la tua agenda prima di bloccare un impegno.</p>
     <h3 className="schedule-subtitle">Chiusure per intere giornate</h3>
@@ -1004,13 +1014,14 @@ function App(){
       {cl.review_status==='proposed'&&<Button variant="outline" onClick={()=>void saveClosure(cl,{review_status:'confirmed'})}>CONFERMA CHIUSURA</Button>}
     </div>):<p className="small-muted">Nessuna chiusura proposta.</p>}
     <h3 className="schedule-subtitle">Palinsesto corsi e impegni da verificare</h3>
-    <p className="section-intro">Ricorrenze confermate dal documento solo per 19/10–30/11/2026. Gli eventi TRX senza fine o sede verificata restano bloccanti: prima di renderli disponibili occorre classificare gli impegni reali.</p>
+    <p className="section-intro">Corsi già importati: puoi aggiornare giorno, sede, orari e periodo di validità, disattivarli o eliminarli. Verifica gli impegni ancora contrassegnati come da classificare.</p>
     <div className="schedule-window-list">{courseBlocks.filter(b=>b.source_ref!=='manual').map(b=><div key={b.id} className="schedule-window">
      <div><b>{b.title}</b><small>{b.on_date||dayNames[(b.weekday||1)-1]} · {formatStartMinute(b.start_minute)}–{formatStartMinute(b.end_minute)} {b.needs_review?'· Da verificare':''}</small></div>
      <label>Sede<select value={b.venue_id||''} onChange={e=>void saveCourseBlock(b,{venue_id:e.target.value||null,needs_review:!e.target.value})}>
       <option value="">Non classificata</option>{venues.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
      </select></label>
      <label className="check-row tiny"><input type="checkbox" checked={b.is_active} onChange={e=>void saveCourseBlock(b,{is_active:e.target.checked})}/>Blocca</label>
+      <Button variant="outline" disabled={busy} onClick={()=>editCourseBlock(b)}>MODIFICA</Button><Button variant="quiet" disabled={busy} onClick={()=>void deleteManualBlock(b)}>ELIMINA</Button>
     </div>)}</div>
     <p className="footnote">Le prenotazioni usano l’agenda interna dell’app. Tieni aggiornati gli impegni nei due club e le chiusure: le modifiche alle disponibilità non spostano automaticamente le prenotazioni già confermate.</p>
     </section>}
