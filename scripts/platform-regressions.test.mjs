@@ -460,3 +460,49 @@ test('legal privacy and cookie disclosures include observed external coach-image
  assert.match(legal,/__stripe_mid/);
  assert.match(legal,/__stripe_sid/);
 });
+
+
+test('RC2 booking presentation separates active and historical lessons, uses recorded refund amounts',async()=>{
+ const ts=await import('typescript');
+ const js=ts.transpileModule(read('src/bookingPresentation.ts'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+ const {isArchivedBooking,refundSummary}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+ const now=Date.parse('2026-11-24T13:00:00Z');
+ const future={status:'confirmed',starts_at:'2026-11-25T12:00:00Z',duration_minutes:60,payment_mode:'online',payment_status:'paid',amount_cents:5500,refunded_amount_cents:0,paid_at:'2026-11-23T12:00:00Z'};
+ assert.equal(isArchivedBooking(future,now),false);
+ assert.equal(isArchivedBooking({...future,starts_at:'2026-11-24T12:30:00Z'},now),false);
+ assert.equal(isArchivedBooking({...future,starts_at:'2026-11-24T11:00:00Z'},now),true);
+ for(const status of ['cancelled','rejected','expired'])assert.equal(isArchivedBooking({...future,status},now),true);
+ assert.equal(isArchivedBooking({...future,status:'pending'},now),false);
+ assert.equal(refundSummary(future),null);
+ const full=refundSummary({...future,status:'cancelled',payment_status:'refunded',refunded_amount_cents:5500,refunded_at:'2026-11-24T13:00:00Z'});
+ assert.match(full,/integrale.*55,00.*avviato/);
+ assert.match(full,/tempi della tua banca/);
+ const half=refundSummary({...future,status:'cancelled',payment_status:'refunded',refunded_amount_cents:2750,refunded_at:'2026-11-24T13:00:00Z'});
+ assert.match(half,/50%.*27,50/);
+ assert.match(refundSummary({...future,refunded_amount_cents:2750}),/attesa di conferma/);
+ assert.match(refundSummary({...future,status:'rejected',payment_status:'unpaid',paid_at:null}),/Nessun importo incassato/);
+ assert.match(refundSummary({...future,status:'cancelled',payment_mode:'credit',payment_status:'refunded'}),/credito Flex.*scadenza originaria/);
+ assert.equal(refundSummary({...future,status:'cancelled',payment_status:'unpaid'}),null);
+});
+
+test('RC2 client feedback: only individual bookings, editable Virgin courses and accessible legal pages',()=>{
+ const app=read('src/App.tsx'),legal=read('src/LegalPage.tsx'),css=read('src/minimal-focus-live.css');
+ assert.ok(app.includes("s.active&&s.id==='single'"));
+ assert.ok(!app.includes('Disciplina (facoltativa)'));
+ assert.ok(app.includes("const editCourseBlock="));
+ assert.ok(app.includes("newBlock.recurring?"));
+ assert.ok(app.includes("before_minutes:isCourse?15:0"));
+ assert.ok(app.includes("after_minutes:isCourse?10:0"));
+ assert.ok(app.includes("const activeWallets="));
+ assert.ok(app.includes("activeMyBookings.map(renderClientBooking)"));
+ assert.ok(app.includes("archivedMyBookings.map(renderClientBooking)"));
+ assert.ok(app.includes("Nessun orario libero nelle due sedi"));
+ assert.ok(app.includes('rc2-profile-legal'));
+ assert.ok(app.includes('onNavigate={kind=>'));
+ assert.ok(legal.includes('onNavigate?:'));
+ assert.ok(css.includes('env(safe-area-inset-bottom)'));
+ assert.ok(app.includes('/ale-coach-signature.svg'));
+ assert.ok(read('public/ale-coach-signature.svg').includes('fill-rule="evenodd"'));
+ assert.ok(app.includes('instagram.com/alecoach.pt/'));
+ assert.ok(app.includes("await subscription.unsubscribe()"));
+});
