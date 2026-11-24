@@ -8,6 +8,7 @@ import { blockUnreviewedLegal, internalQa, legal, legalPaths } from './legal';
 import { serviceRules, packageRules } from './v2Catalog';
 import { FocusWeekCalendar, romeDateKey } from './FocusWeekCalendar';
 import LegalPage from './LegalPage';
+import { isArchivedBooking, refundSummary } from './bookingPresentation';
 
 type Screen='landing'|'auth'|'client'|'coach';
 type Step='details'|'when'|'review';
@@ -26,16 +27,6 @@ const errorText=(e:unknown)=>e instanceof Error?e.message:typeof e==='object'&&e
 function Logo({small=false}:{small?:boolean}){return <div className={`brand ${small?'brand-small':''}`}><span>///</span> ALE <b>COACH</b></div>}
 function Button({children,variant='primary',disabled=false,onClick,type='button',className=''}:{children:ReactNode;variant?:'primary'|'outline'|'quiet'|'dark';disabled?:boolean;onClick?:()=>void;type?:'button'|'submit';className?:string}){return <button type={type} onClick={onClick} disabled={disabled} className={`button button-${variant} ${className}`}>{children}</button>}
 function Title({eyebrow,children,sub}:{eyebrow?:string;children:ReactNode;sub?:string}){return <div className="title-block">{eyebrow&&<div className="eyebrow"><span>///</span> {eyebrow}</div>}<h2>{children}</h2>{sub&&<p>{sub}</p>}</div>}
-function isArchivedBooking(b:Booking){return ['cancelled','rejected','expired'].includes(b.status)||(b.status==='confirmed'&&Boolean(b.starts_at)&&new Date(b.starts_at!).getTime()+b.duration_minutes*60000<=Date.now())}
-function refundSummary(b:Booking){
- const amount=b.refunded_amount_cents||0;
- if(b.payment_mode==='credit'&&b.payment_status==='refunded')return 'Il credito Flex è stato restituito con la scadenza originaria.';
- if(b.payment_mode==='online'&&amount>0){const share=amount===b.amount_cents?'integrale':amount===Math.round(b.amount_cents/2)?'del 50%':'parziale';return `Rimborso ${share} di ${currency(amount)} ${b.refunded_at?'avviato sul metodo originale. L’accredito dipende dai tempi della tua banca.':'richiesto, in attesa di conferma.'}`;}
- if(['cancelled','rejected','expired'].includes(b.status)&&b.payment_mode==='online'&&b.payment_status==='unpaid')return 'Nessun importo incassato: non è necessario un rimborso.';
- if(b.status==='cancelled'&&b.payment_mode==='in_person'&&b.payment_status==='refunded')return 'Rimborso in presenza registrato dal coach.';
- if(b.status==='cancelled'&&b.payment_mode==='in_person'&&b.payment_status==='unpaid')return 'Nessun pagamento da effettuare.';
- return null;
-}
 function Status({status}:{status:Booking['status']}){return <span className={`state state-${status}`}><i/>{stateLabels[status]}</span>}
 function Labeled({label,children,required=false}:{label:string;children:ReactNode;required?:boolean}){return <label className="field"><span>{label}{required?' *':''}</span>{children}</label>}
 function Empty({title,desc}:{title:string;desc:string}){return <div className="empty-state"><CalendarDays size={31}/><h3>{title}</h3><p>{desc}</p></div>}
@@ -188,7 +179,7 @@ function App(){
  const activeWallets=wallets.filter(w=>w.client_id===profile?.id&&new Date(w.expires_at)>new Date()&&w.remaining>0).sort((a,b)=>a.expires_at.localeCompare(b.expires_at));
  const creditCount=activeWallets.reduce((v,w)=>v+w.remaining,0);
  const activeMyBookings=myBookings.filter(b=>!isArchivedBooking(b)).sort((a,b)=>Number(b.status!=='confirmed')-Number(a.status!=='confirmed')||(a.starts_at||'9999').localeCompare(b.starts_at||'9999'));
- const archivedMyBookings=myBookings.filter(isArchivedBooking);
+ const archivedMyBookings=myBookings.filter(b=>isArchivedBooking(b));
  const selected=selectedService;
  const trialDays=nextDates();
  const submitMsg=(text:string,mode:'ok'|'error'|'info'='ok')=>setMessage({text,mode});
@@ -608,9 +599,11 @@ function App(){
     const reg=await navigator.serviceWorker.getRegistration();
     const subscription=reg?await reg.pushManager.getSubscription():null;
     if(!active||!subscription||Notification.permission!=='granted'||!supabase)return;
-    const {data}=await supabase.from('push_subscriptions').select('id')
+    const {data,error}=await supabase.from('push_subscriptions').select('id')
      .eq('user_id',profile.id).eq('endpoint',subscription.endpoint).maybeSingle();
-    if(active&&data)setPushEnabled(true);
+    if(!active||error)return;
+    if(data)setPushEnabled(true);
+    else await subscription.unsubscribe();
    }catch{
     // In mancanza di subscription resta visibile l'invito.
    }
